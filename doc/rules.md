@@ -1,4 +1,4 @@
-# ARCoffee Development Rules
+# Development Rules
 
 ## Dokumentasi & Referensi
 - Gunakan MCP Context7 untuk mencari dokumentasi yang diperlukan.
