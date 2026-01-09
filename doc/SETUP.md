@@ -39,24 +39,70 @@ Struktur direktori telah dibuat sesuai dengan `doc/prd.md`:
 ```
 src/
 ├── app/
+│   ├── index.tsx              # Entry point aplikasi
 │   └── routes/
+│       └── index.ts           # Routes configuration
+│
 ├── components/
 │   ├── layout/
+│   │   └── MainLayout.tsx     # Layout utama
 │   ├── pages/
+│   │   └── PagesList.tsx      # Component daftar pages
 │   └── editor/
+│       └── BlockEditor.tsx    # Block editor component
+│
 ├── editor/
 │   ├── schema/
+│   │   └── index.ts           # Tiptap schema definitions
 │   ├── extensions/
+│   │   └── index.ts           # Custom Tiptap extensions
 │   ├── commands/
+│   │   └── index.ts           # Slash commands
 │   └── utils/
+│       └── index.ts           # Editor utilities
+│
 ├── state/
+│   ├── pages.store.ts         # Zustand store untuk Pages
+│   └── blocks.store.ts        # Zustand store untuk Blocks
+│
 ├── data/
+│   ├── db.ts                  # Dexie database configuration
+│   ├── pages.repository.ts    # Pages data access layer
+│   └── blocks.repository.ts   # Blocks data access layer
+│
 ├── types/
+│   ├── page.ts                # Page type definitions
+│   └── block.ts               # Block type definitions
+│
 ├── utils/
+│   ├── debounce.ts            # Debounce utility
+│   └── id.ts                  # ID generation utilities
+│
 ├── pwa/
+│   └── service-worker.ts      # PWA service worker (placeholder)
+│
 └── styles/
-    └── globals.css (dengan Tailwind CSS import)
+    ├── globals.css            # Global styles + Tailwind import
+    └── editor.css             # Tiptap editor styles
 ```
+
+### **File-file Penting:**
+
+#### **Data Layer**
+- `src/data/db.ts`: Konfigurasi Dexie dengan tabel `pages` dan `blocks`
+- `src/data/*.repository.ts`: Repository pattern untuk CRUD operations
+
+#### **State Management**
+- `src/state/*.store.ts`: Zustand stores dengan actions untuk Pages dan Blocks
+
+#### **Type Safety**
+- `src/types/*.ts`: TypeScript interfaces untuk Page dan Block entities
+
+#### **Components**
+- `src/components/`: React components (Layout, Pages, Editor)
+
+#### **Utilities**
+- `src/utils/`: Helper functions (debounce untuk auto-save, ID generation)
 
 ---
 
