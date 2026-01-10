@@ -4,7 +4,7 @@
  */
 
 import { create } from 'zustand';
-import type { Page } from '../types/page';
+import type { Page, UpdatePageInput } from '../types/page';
 import { pagesRepository } from '../data/pages.repository';
 
 interface PagesState {
@@ -15,8 +15,8 @@ interface PagesState {
 
     // Actions
     loadPages: () => Promise<void>;
-    createPage: (title: string) => Promise<Page>;
-    updatePage: (id: string, title: string) => Promise<void>;
+    createPage: (title: string, parentId?: string) => Promise<Page>;
+    updatePage: (id: string, input: UpdatePageInput) => Promise<void>;
     deletePage: (id: string) => Promise<void>;
     setCurrentPage: (page: Page | null) => void;
 }
@@ -37,25 +37,25 @@ export const usePagesStore = create<PagesState>((set) => ({
         }
     },
 
-    createPage: async (title: string) => {
-        set({ isLoading: true, error: null });
+    createPage: async (title: string, parentId?: string) => {
         try {
-            const page = await pagesRepository.create({ title });
-            set((state) => ({
-                pages: [page, ...state.pages],
-                isLoading: false,
-            }));
-            return page;
+            const newPage = await pagesRepository.create({
+                title,
+                parentId: parentId || null
+            });
+            // Update local state -> prepend new page
+            set((state) => ({ pages: [newPage, ...state.pages] }));
+            return newPage;
         } catch (error) {
-            set({ error: 'Failed to create page', isLoading: false });
+            set({ error: 'Failed to create page' });
             throw error;
         }
     },
 
-    updatePage: async (id: string, title: string) => {
+    updatePage: async (id: string, input: UpdatePageInput) => {
         set({ isLoading: true, error: null });
         try {
-            const updated = await pagesRepository.update(id, { title });
+            const updated = await pagesRepository.update(id, input);
             if (updated) {
                 set((state) => ({
                     pages: state.pages.map((p) => (p.id === id ? updated : p)),
@@ -71,13 +71,16 @@ export const usePagesStore = create<PagesState>((set) => ({
     deletePage: async (id: string) => {
         set({ isLoading: true, error: null });
         try {
+            console.log('Deleting page:', id);
             await pagesRepository.delete(id);
             set((state) => ({
                 pages: state.pages.filter((p) => p.id !== id),
                 currentPage: state.currentPage?.id === id ? null : state.currentPage,
                 isLoading: false,
             }));
+            console.log('Page deleted successfully');
         } catch (error) {
+            console.error('Failed to delete page:', error);
             set({ error: 'Failed to delete page', isLoading: false });
         }
     },

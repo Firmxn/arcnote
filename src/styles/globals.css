@@ -1,15 +1,39 @@
-@import "tailwindcss";
-@import "./editor.css";
+/* Import Inter font (harus paling atas) */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-/* Reset dan Base Styles */
+/* Reset SEBELUM Tailwind - hanya box-sizing */
 * {
-  margin: 0;
-  padding: 0;
   box-sizing: border-box;
 }
 
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+@import "./editor.css";
+
+@theme {
+  --color-primary: var(--color-bg-primary);
+  --color-secondary: var(--color-bg-secondary);
+  --color-accent: var(--color-bg-accent);
+  --color-neutral: var(--color-bg-neutral);
+
+  --color-warning: var(--color-bg-warning);
+  --color-info: var(--color-bg-info);
+  --color-danger: var(--color-bg-danger);
+  --color-success: var(--color-bg-success);
+
+  --color-text-primary: var(--color-text-primary);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-text-accent: var(--color-text-accent);
+  --color-text-neutral: var(--color-text-neutral);
+
+  --color-text-warning: var(--color-text-warning);
+  --color-text-info: var(--color-text-info);
+  --color-text-danger: var(--color-text-danger);
+  --color-text-success: var(--color-text-success);
+}
+
 :root {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
@@ -17,18 +41,120 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  /* Linear.app-like colors with Custom Blue Palette */
+  --color-bg-primary: #0066FF;
+  /* tombol utama, lirnk aktif, state aktif, header utama */
+  --color-bg-secondary: #66A3FF;
+  /* Tombol sekunder ("Cancel", "Back"), Ikon-ikon navigasi, Border (garis tepi), atau Background elemen seperti Sidebar */
+  --color-bg-accent: #00AAFF;
+  /* Notifikasi (badge merah/kuning), Progress bar, Toggle switch yang aktif, atau Call-to-Action (CTA) spesial  */
+  --color-bg-neutral: #FFFFFF;
+  /* Background halaman utama (lembar kerja), Teks paragraf (agar mudah dibaca), Garis halus. */
+
+  /* Semantic colors - Light mode (vibrant to match bright primary) */
+  --color-bg-warning: #FF8800;
+  /* Orange - same as accent for consistency */
+  --color-bg-info: #0066FF;
+  /* Blue - same as primary */
+  --color-bg-danger: #FF3333;
+  /* Bright Red */
+  --color-bg-success: #00CC66;
+  /* Bright Green */
+
+  --color-text-primary: #FFFFFF;
+  --color-text-secondary: #FFFFFF;
+  --color-text-accent: #FFFFFF;
+  --color-text-neutral: #000000;
+
+  /* Semantic text colors - Light mode */
+  --color-text-warning: #FF8800;
+  --color-text-info: #0066FF;
+  --color-text-danger: #FF3333;
+  --color-text-success: #00CC66;
 }
 
 body {
+  margin: 0;
   min-height: 100vh;
-  background-color: #ffffff;
-  color: #1a1a1a;
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  overflow: hidden;
 }
 
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-  body {
-    background-color: #1a1a1a;
-    color: #f5f5f5;
-  }
+/* Dark mode support - Linear style - Manual Toggle */
+:root.dark {
+  --color-bg-primary: #020617;
+  /* Slate 950 */
+  --color-bg-secondary: #0f172a;
+  /* Slate 900 */
+  --color-bg-accent: #0284c7;
+  --color-bg-neutral: #020617;
+  /* Deepest Navy */
+
+  /* Semantic colors - Dark mode (softer to match dark theme) */
+  --color-bg-warning: #fbbf24;
+  /* Amber 400 - softer orange for dark bg */
+  --color-bg-info: #0ea5e9;
+  /* Sky 500 - matches accent tone */
+  --color-bg-danger: #f87171;
+  /* Red 400 - softer red for dark bg */
+  --color-bg-success: #34d399;
+  /* Emerald 400 - softer green for dark bg */
+
+  --color-text-primary: #f8fafc;
+  /* Slate 50 */
+  --color-text-secondary: #94a3b8;
+  /* Slate 400 */
+  --color-text-accent: #ffffff;
+  --color-text-neutral: #e2e8f0;
+  /* Slate 200 */
+
+  /* Semantic text colors - Dark mode */
+  --color-text-warning: #fbbf24;
+  --color-text-info: #0ea5e9;
+  --color-text-danger: #f87171;
+  --color-text-success: #34d399;
+}
+
+/* Scrollbar styling - Linear style (minimal) */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+:root.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+:root.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* Selection color - Linear style */
+::selection {
+  background-color: rgba(99, 102, 241, 0.2);
+}
+
+/* Remove default focus outline, use custom */
+*:focus {
+  outline: none;
+}
+
+*:focus-visible {
+  outline: 2px solid rgba(99, 102, 241, 0.5);
+  outline-offset: 2px;
 }
