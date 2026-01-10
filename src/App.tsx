@@ -10,19 +10,27 @@ import { HomePage } from './components/pages/HomePage';
 import { PagesListPage } from './components/pages/PagesListPage';
 import { SettingsPage } from './components/pages/SettingsPage';
 import { SchedulePage } from './components/pages/SchedulePage';
+import { FinancePage } from './components/pages/FinancePage';
 import { usePagesStore } from './state/pages.store';
+import { useSchedulesStore } from './state/schedules.store';
+import { useFinanceStore } from './state/finance.store';
 
-type ViewState = 'home' | 'editor' | 'pages' | 'settings' | 'schedule';
+type ViewState = 'home' | 'editor' | 'pages' | 'settings' | 'schedule' | 'finance';
 
 function App() {
   const { loadPages, currentPage, setCurrentPage, pages, createPage } = usePagesStore();
+  const { loadEvents } = useSchedulesStore();
+  const { loadTransactions, loadSummary } = useFinanceStore();
   const [currentView, setCurrentView] = useState<ViewState>('home');
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
 
-  // Load pages saat aplikasi pertama kali dibuka
+  // Load pages, events, dan finance saat aplikasi pertama kali dibuka
   useEffect(() => {
     loadPages();
-  }, [loadPages]);
+    loadEvents();
+    loadTransactions();
+    loadSummary();
+  }, [loadPages, loadEvents, loadTransactions, loadSummary]);
 
   // Handler untuk membuat halaman baru
   const handleCreatePage = async () => {
@@ -48,6 +56,8 @@ function App() {
         return <SettingsPage />;
       case 'schedule':
         return <SchedulePage initialEventId={selectedEventId} />;
+      case 'finance':
+        return <FinancePage />;
       case 'pages':
         return (
           <PagesListPage
@@ -117,6 +127,7 @@ function App() {
         onPagesClick={() => setCurrentView('pages')}
         onSettingsClick={() => setCurrentView('settings')}
         onScheduleClick={() => setCurrentView('schedule')}
+        onFinanceClick={() => setCurrentView('finance')}
         onPageSelect={() => setCurrentView('editor')}
       />
 

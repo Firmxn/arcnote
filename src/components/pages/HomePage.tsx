@@ -25,7 +25,7 @@ interface HomePageProps {
 
 export const HomePage: React.FC<HomePageProps> = ({ onPageSelect, onScheduleClick, onEventSelect, onNewPageClick }) => {
     const { pages } = usePagesStore();
-    const { events } = useSchedulesStore();
+    const { events, markEventAsVisited } = useSchedulesStore();
     const [recentItems, setRecentItems] = useState<RecentItem[]>([]);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -45,6 +45,13 @@ export const HomePage: React.FC<HomePageProps> = ({ onPageSelect, onScheduleClic
         return () => window.removeEventListener('resize', checkScroll);
     }, [recentItems]);
 
+    // Reset scroll position ke awal saat recentItems berubah (agar card terbaru terlihat)
+    useEffect(() => {
+        if (scrollContainerRef.current) {
+            scrollContainerRef.current.scrollLeft = 0;
+        }
+    }, [recentItems]);
+
     const scroll = (direction: 'left' | 'right') => {
         if (scrollContainerRef.current) {
             const { current } = scrollContainerRef;
@@ -61,13 +68,13 @@ export const HomePage: React.FC<HomePageProps> = ({ onPageSelect, onScheduleClic
         // Combine pages and schedules into recent items
         const items: RecentItem[] = [];
 
-        // Add pages (using updatedAt or createdAt)
+        // Add pages (using lastVisitedAt, fallback ke updatedAt atau createdAt)
         pages.forEach(page => {
             items.push({
                 id: page.id,
                 type: 'page',
                 title: page.title,
-                date: page.updatedAt || page.createdAt,
+                date: page.lastVisitedAt || page.updatedAt || page.createdAt,
                 icon: (
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -77,13 +84,13 @@ export const HomePage: React.FC<HomePageProps> = ({ onPageSelect, onScheduleClic
             });
         });
 
-        // Add schedule events (using updatedAt or createdAt)
+        // Add schedule events (using lastVisitedAt, fallback ke updatedAt atau createdAt)
         events.forEach((event: ScheduleEvent) => {
             items.push({
                 id: event.id,
                 type: 'schedule',
                 title: event.title || 'Untitled Event',
-                date: event.updatedAt || event.createdAt,
+                date: event.lastVisitedAt || event.updatedAt || event.createdAt,
                 icon: (
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -93,7 +100,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onPageSelect, onScheduleClic
             });
         });
 
-        // Sort by date (most recent first) and take top 12
+        // Sort by date (most recent first) - prioritas: lastVisitedAt > updatedAt > createdAt
         const sorted = items
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
             .slice(0, 12);
@@ -104,7 +111,9 @@ export const HomePage: React.FC<HomePageProps> = ({ onPageSelect, onScheduleClic
     const handleItemClick = (item: RecentItem) => {
         if (item.type === 'page' && onPageSelect) {
             onPageSelect(item.id);
+            // Page sudah auto-mark as visited di setCurrentPage()
         } else if (item.type === 'schedule' && onEventSelect) {
+            markEventAsVisited(item.id); // Mark as visited
             onEventSelect(item.id);  // Pass event ID to open specific event
         }
     };
@@ -157,7 +166,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onPageSelect, onScheduleClic
                                 Recently visited
                             </h2>
                         </div>
-                        <div className="relative group -mx-4 px-4">
+                        <div className="relative group -mx-4 px-0.5">
                             {/* Navigation Buttons - Visible on Hover */}
                             {canScrollLeft && (
                                 <Button
@@ -168,7 +177,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onPageSelect, onScheduleClic
                                     className="absolute left-0 top-1/2 -translate-y-1/2 z-10 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity bg-white dark:bg-secondary border border-secondary/10 dark:border-primary/10 p-0"
                                     aria-label="Scroll left"
                                 >
-                                    <svg className="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                                     </svg>
                                 </Button>
@@ -183,7 +192,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onPageSelect, onScheduleClic
                                     className="absolute right-0 top-1/2 -translate-y-1/2 z-10 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity bg-white dark:bg-secondary border border-secondary/10 dark:border-primary/10 p-0"
                                     aria-label="Scroll right"
                                 >
-                                    <svg className="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                     </svg>
                                 </Button>
@@ -193,10 +202,14 @@ export const HomePage: React.FC<HomePageProps> = ({ onPageSelect, onScheduleClic
                             <div
                                 ref={scrollContainerRef}
                                 onScroll={checkScroll}
-                                className="flex overflow-x-auto gap-4 pb-4 snap-x [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']"
+                                className="flex overflow-x-auto gap-4 pb-4 mx-1 snap-x scroll-pl-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']"
+                                style={{
+                                    maskImage: `linear-gradient(to right, ${canScrollLeft ? 'transparent, black 48px' : 'black 0%'}, ${canScrollRight ? 'black calc(100% - 48px), transparent' : 'black 100%'})`,
+                                    WebkitMaskImage: `linear-gradient(to right, ${canScrollLeft ? 'transparent, black 48px' : 'black 0%'}, ${canScrollRight ? 'black calc(100% - 48px), transparent' : 'black 100%'})`
+                                }}
                             >
                                 {recentItems.map((item) => (
-                                    <div key={`${item.type}-${item.id}`} className="min-w-[260px] w-[260px] snap-start">
+                                    <div key={`${item.type}-${item.id}`} className="min-w-[260px] w-[260px] snap-start first:ml-4 last:mr-4">
                                         <Card
                                             icon={item.icon}
                                             title={item.title}
@@ -219,7 +232,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onPageSelect, onScheduleClic
 
                 {/* Quick Actions */}
                 {recentItems.length > 0 && (
-                    <div className="mt-12 pt-8 border-t border-secondary dark:border-primary">
+                    <div className="mt-12 pt-8">
                         <h2 className="text-sm font-bold text-text-neutral dark:text-text-secondary uppercase tracking-wider mb-4 opacity-80">
                             Quick Actions
                         </h2>

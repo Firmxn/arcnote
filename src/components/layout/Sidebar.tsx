@@ -2,19 +2,23 @@ import React, { useState } from 'react';
 import { usePagesStore } from '../../state/pages.store';
 import { useTheme } from '../../hooks/useTheme';
 import { SidebarItem } from './SidebarItem';
+import { PagesSearchModal } from '../modals/PagesSearchModal';
+import { Input } from '../ui/Input';
 
 interface SidebarProps {
     onPageSelect?: (pageId: string) => void;
     onSettingsClick?: () => void;
     onScheduleClick?: () => void;
+    onFinanceClick?: () => void;
     onHomeClick?: () => void;
     onPagesClick?: () => void;
-    currentView?: 'home' | 'page' | 'pages' | 'settings' | 'schedule';
+    currentView?: 'home' | 'page' | 'pages' | 'settings' | 'schedule' | 'finance';
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ onPageSelect, onSettingsClick, onScheduleClick, onHomeClick, onPagesClick, currentView }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ onPageSelect, onSettingsClick, onScheduleClick, onFinanceClick, onHomeClick, onPagesClick, currentView }) => {
     const { pages, createPage, currentPage, setCurrentPage } = usePagesStore();
     const [isCreating, setIsCreating] = useState(false);
+    const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
     const [newPageTitle, setNewPageTitle] = useState('');
     const [isCollapsed, setIsCollapsed] = useState(false);
     const { theme, toggleTheme } = useTheme();
@@ -22,8 +26,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ onPageSelect, onSettingsClick,
     // Filter root pages (pages without parentId)
     const rootPages = pages.filter(p => !p.parentId);
 
-    const handleCreatePage = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleCreatePage = async (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
         if (!newPageTitle.trim()) return;
 
         try {
@@ -60,7 +64,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onPageSelect, onSettingsClick,
         >
             {/* Header with Toggle */}
             <div className={`
-                border-b border-secondary/50 flex items-center transition-all
+                border-b border-secondary/50 dark:border-neutral flex items-center transition-all
                 ${isCollapsed ? 'justify-center py-4 px-3' : 'justify-between px-4 py-4'}
             `}>
                 {!isCollapsed && (
@@ -134,11 +138,33 @@ export const Sidebar: React.FC<SidebarProps> = ({ onPageSelect, onSettingsClick,
                         </svg>
                         {!isCollapsed && <span>Schedule</span>}
                     </button>
+
+                    {/* Finance Button */}
+                    <button
+                        onClick={onFinanceClick}
+                        className={`
+                            flex items-center gap-2 transition-all font-medium
+                            ${isCollapsed
+                                ? 'w-10 h-10 rounded justify-center'
+                                : 'w-full px-3 py-1.5 text-left text-sm rounded'
+                            }
+                            ${currentView === 'finance'
+                                ? 'bg-white/10 dark:bg-primary text-text-primary dark:text-text-secondary shadow-md'
+                                : 'text-text-primary dark:text-text-secondary hover:bg-white/5 dark:hover:bg-primary/50 opacity-90 hover:opacity-100'
+                            }
+                        `}
+                        title={isCollapsed ? 'Finance' : ''}
+                    >
+                        <svg className="w-4 h-4 opacity-70 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        {!isCollapsed && <span>Finance</span>}
+                    </button>
                 </div>
 
                 {/* Pages Section */}
                 {!isCollapsed && (
-                    <div className="pt-3 border-t border-secondary/50">
+                    <div className="pt-3 ">
                         <div className="px-4 flex items-center justify-between mb-2">
                             <button
                                 onClick={onPagesClick}
@@ -160,22 +186,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ onPageSelect, onSettingsClick,
 
                         {/* New Page Form (Root) */}
                         {isCreating && (
-                            <div className="px-4 mb-2">
-                                <form onSubmit={handleCreatePage}>
-                                    <input
-                                        type="text"
-                                        value={newPageTitle}
-                                        onChange={(e) => setNewPageTitle(e.target.value)}
-                                        onBlur={() => {
-                                            if (!newPageTitle.trim()) {
-                                                setIsCreating(false);
-                                            }
-                                        }}
-                                        placeholder="Page name"
-                                        autoFocus
-                                        className="w-full px-3 py-1.5 text-sm bg-primary dark:bg-secondary border border-secondary rounded focus:outline-none focus:border-white text-text-primary dark:text-text-secondary placeholder-white/50"
-                                    />
-                                </form>
+                            <div className="px-5 pb-2">
+                                <Input
+                                    autoFocus
+                                    value={newPageTitle}
+                                    onChange={(e) => setNewPageTitle(e.target.value)}
+                                    onBlur={handleCreatePage}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') handleCreatePage();
+                                        if (e.key === 'Escape') setIsCreating(false);
+                                    }}
+                                    placeholder="Page title..."
+                                    className="py-1.5 text-sm bg-white/5 border-secondary/20 focus:bg-white/10"
+                                // Override background to match sidebar (darker/translucent) instead of default white
+                                // Use default shadow/border-none logic from Input
+                                />
                             </div>
                         )}
 
@@ -187,7 +212,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onPageSelect, onSettingsClick,
                         )}
 
                         <div className="flex flex-col">
-                            {rootPages.map((page) => (
+                            {rootPages.slice(0, 10).map((page) => (
                                 <SidebarItem
                                     key={page.id}
                                     page={page}
@@ -200,13 +225,37 @@ export const Sidebar: React.FC<SidebarProps> = ({ onPageSelect, onSettingsClick,
                                     onCreateSubPage={handleCreateSubPage}
                                 />
                             ))}
+
+                            {rootPages.length > 10 && (
+                                <div className="select-none mb-0.5">
+                                    <div
+                                        onClick={() => setIsSearchModalOpen(true)}
+                                        className="group flex items-center py-1.5 pr-2 mx-3 rounded-md cursor-pointer transition-colors text-text-primary dark:text-text-secondary hover:bg-white/5 dark:hover:bg-primary/50 opacity-90 hover:opacity-100 font-medium"
+                                        style={{ paddingLeft: '8px' }}
+                                        role="button"
+                                        title="Search pages"
+                                    >
+                                        {/* Chevron Placeholder for Alignment */}
+                                        <div className="w-4 h-4 mr-1 invisible" />
+
+                                        {/* Icon */}
+                                        <span className="mr-2 opacity-70 group-hover:opacity-100 transition-opacity">
+                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h.01M12 12h.01M19 12h.01" />
+                                            </svg>
+                                        </span>
+
+                                        <span className="flex-1 truncate text-sm">More</span>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}
 
                 {/* Collapsed Pages - Show only 2 buttons */}
                 {isCollapsed && (
-                    <div className="py-3 flex flex-col items-center gap-1 border-t border-secondary/50">
+                    <div className="py-3 flex flex-col items-center gap-1 border-t border-secondary/50 dark:border-neutral">
                         {/* Pages Button */}
                         <button
                             onClick={onPagesClick}
@@ -241,7 +290,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onPageSelect, onSettingsClick,
                 )}
             </div>
 
-            <div className={`border-t border-secondary/50 flex items-center bg-primary dark:bg-secondary/10 transition-all ${isCollapsed ? 'justify-center py-3 px-3' : 'justify-between px-4 py-3'}`}>
+            <div className={`border-t border-secondary/50 dark:border-neutral flex items-center bg-primary dark:bg-secondary/10 transition-all ${isCollapsed ? 'justify-center py-3 px-3' : 'justify-between px-4 py-3'}`}>
                 {!isCollapsed && (
                     <div className="text-xs text-text-primary dark:text-text-secondary font-medium opacity-80">
                         {pages.length} {pages.length === 1 ? 'page' : 'pages'}
@@ -288,6 +337,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ onPageSelect, onSettingsClick,
                     </button>
                 </div>
             </div>
+
+            <PagesSearchModal
+                isOpen={isSearchModalOpen}
+                onClose={() => setIsSearchModalOpen(false)}
+                onPageSelect={(pageId) => {
+                    const page = pages.find(p => p.id === pageId);
+                    if (page) {
+                        setCurrentPage(page);
+                        if (onPageSelect) onPageSelect(pageId);
+                    }
+                }}
+            />
         </aside>
     );
 };

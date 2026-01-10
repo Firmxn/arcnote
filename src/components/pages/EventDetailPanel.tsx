@@ -200,7 +200,7 @@ export const EventDetailPanel: React.FC<EventDetailPanelProps> = ({ event, onClo
     return (
         <div className="flex flex-col h-full bg-neutral shadow-2xl border-l border-secondary/20 w-full max-w-2xl transform transition-transform duration-300 ease-in-out">
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-secondary/20">
+            <div className="flex items-center justify-between px-6 py-4 h-14 border-b border-secondary/20">
                 <div className="flex items-center gap-2 text-text-neutral/70 text-sm">
                     <Button onClick={onClose} variant="ghost" size="icon" className="w-auto h-auto p-1">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" /></svg>
@@ -254,19 +254,17 @@ export const EventDetailPanel: React.FC<EventDetailPanelProps> = ({ event, onClo
                             Date
                         </div>
                         <div className="flex-1 relative">
-                            <div
-                                className="text-sm text-text-neutral underline decoration-dotted underline-offset-4 cursor-pointer hover:text-primary transition-colors inline-block"
-                                onClick={() => setShowDatePicker(!showDatePicker)}
+                            <DatePicker
+                                value={dayjs(dateStr).toDate()}
+                                onChange={handleDateChange}
+                                open={showDatePicker}
+                                onOpenChange={setShowDatePicker}
+                                align="left"
                             >
-                                {dayjs(dateStr).format('MMM D, YYYY')} ({getTimeContext(startTime)})
-                            </div>
-                            {showDatePicker && (
-                                <DatePicker
-                                    value={dayjs(dateStr).toDate()}
-                                    onChange={handleDateChange}
-                                    onClose={() => setShowDatePicker(false)}
-                                />
-                            )}
+                                <div className="text-sm text-text-neutral underline decoration-dotted underline-offset-4 cursor-pointer hover:text-primary transition-colors inline-block">
+                                    {dayjs(dateStr).format('MMM D, YYYY')} ({getTimeContext(startTime)})
+                                </div>
+                            </DatePicker>
                         </div>
                     </div>
 

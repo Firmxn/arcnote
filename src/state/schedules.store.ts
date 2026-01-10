@@ -11,6 +11,7 @@ interface SchedulesState {
     createEvent: (input: CreateEventInput) => Promise<ScheduleEvent>;
     updateEvent: (id: string, input: UpdateEventInput) => Promise<void>;
     deleteEvent: (id: string) => Promise<void>;
+    markEventAsVisited: (id: string) => Promise<void>;
 }
 
 export const useSchedulesStore = create<SchedulesState>((set) => ({
@@ -55,6 +56,17 @@ export const useSchedulesStore = create<SchedulesState>((set) => ({
             set((state) => ({ events: state.events.filter(e => e.id !== id) }));
         } catch (error) {
             set({ error: 'Failed to delete event' });
+        }
+    },
+
+    markEventAsVisited: async (id: string) => {
+        try {
+            await schedulesRepository.markAsVisited(id);
+            // Reload events untuk update lastVisitedAt di state
+            const events = await schedulesRepository.getAll();
+            set({ events });
+        } catch (error) {
+            console.error('Failed to mark event as visited:', error);
         }
     },
 }));

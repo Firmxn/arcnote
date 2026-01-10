@@ -10,6 +10,7 @@ export interface Page {
     content?: string; // HTML content dari Tiptap editor
     createdAt: Date;
     updatedAt: Date;
+    lastVisitedAt?: Date; // Tracking kapan terakhir dibuka (untuk Recently Visited)
 }
 
 export type CreatePageInput = Omit<Page, 'id' | 'createdAt' | 'updatedAt'>;

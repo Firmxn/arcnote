@@ -61,4 +61,13 @@ export const pagesRepository = {
     async delete(id: string): Promise<void> {
         await db.pages.delete(id);
     },
+
+    /**
+     * Mark page sebagai visited (update lastVisitedAt tanpa mengubah updatedAt)
+     */
+    async markAsVisited(id: string): Promise<void> {
+        await db.pages.update(id, {
+            lastVisitedAt: new Date(),
+        });
+    },
 };

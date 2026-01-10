@@ -91,8 +91,10 @@ export const SidebarItem: React.FC<SidebarItemProps> = ({
                 </span>
 
                 {/* Title */}
-                <span className="flex-1 truncate text-sm font-medium">
-                    {page.title || 'Untitled'}
+                <span className="flex-1 truncate text-sm font-medium" title={page.title || 'Untitled'}>
+                    {(page.title || 'Untitled').length > 9
+                        ? `${(page.title || 'Untitled').slice(0, 9)}...`
+                        : (page.title || 'Untitled')}
                 </span>
 
                 {/* Add Subpage Button (Visible on Hover) */}

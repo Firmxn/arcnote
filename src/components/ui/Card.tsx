@@ -40,17 +40,26 @@ export const Card: React.FC<CardProps> = ({
                 </div>
             </div>
 
-            {/* Title */}
-            <h3 className="font-bold text-lg text-text-neutral dark:text-text-primary mb-2 line-clamp-1">
-                {title}
+            {/* Title - Max 20 karakter */}
+            <h3
+                className="font-bold text-lg text-text-neutral dark:text-text-primary mb-2 line-clamp-1"
+                title={typeof title === 'string' ? title : undefined}
+            >
+                {typeof title === 'string' && title.length > 20
+                    ? `${title.slice(0, 20)}...`
+                    : title
+                }
             </h3>
 
-            {/* Description */}
+            {/* Description - Max 32 karakter */}
             <p
                 className="text-sm text-text-neutral/60 dark:text-text-secondary mb-3 line-clamp-1"
                 title={description}
             >
-                {description}
+                {typeof description === 'string' && description.length > 32
+                    ? `${description.slice(0, 32)}...`
+                    : description
+                }
             </p>
 
             {/* Badge (e.g., subpage count) */}

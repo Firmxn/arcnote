@@ -21,13 +21,13 @@ export const SettingsPage: React.FC = () => {
     return (
         <div className="flex-1 h-screen overflow-y-auto bg-neutral transition-colors duration-200">
             {/* Header */}
-            <div className="sticky top-0 z-10 bg-neutral/95 backdrop-blur-sm border-b border-secondary/20 px-8 py-4">
+            <div className="sticky top-0 z-10 bg-neutral/95 backdrop-blur-sm px-8 py-4">
                 <h1 className="text-2xl font-bold text-text-neutral">Settings</h1>
             </div>
 
             {/* Content */}
             <div className="max-w-3xl mx-auto px-8 py-8">
-                <div className="bg-white dark:bg-primary/5 rounded-lg border border-secondary/20 p-6 shadow-sm">
+                <div className="bg-white dark:bg-primary/5 rounded-lg border border-secondary/20  p-6 shadow-sm">
                     <h2 className="text-lg font-semibold text-text-neutral mb-4">Storage Preferences</h2>
 
                     <div className="flex items-center justify-between">

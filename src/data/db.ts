@@ -8,11 +8,13 @@ import type { Table } from 'dexie';
 import type { Page } from '../types/page';
 import type { Block } from '../types/block';
 import type { ScheduleEvent } from '../types/schedule';
+import type { FinanceTransaction } from '../types/finance';
 
 export class ArcNoteDatabase extends Dexie {
     pages!: Table<Page, string>;
     blocks!: Table<Block, string>;
     schedules!: Table<ScheduleEvent, string>;
+    finance!: Table<FinanceTransaction, string>;
 
     constructor() {
         super('ArcNoteDB');
@@ -35,6 +37,11 @@ export class ArcNoteDatabase extends Dexie {
         // Version 4: Add type index to schedules
         this.version(4).stores({
             schedules: 'id, title, date, type, isAllDay, createdAt, updatedAt'
+        });
+
+        // Version 5: Add finance table
+        this.version(5).stores({
+            finance: 'id, type, category, date, amount, createdAt, updatedAt'
         });
     }
 }

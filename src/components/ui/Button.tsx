@@ -25,7 +25,11 @@ export const Button: React.FC<ButtonProps> = ({
     circle = false,
     ...props
 }) => {
-    const baseStyles = 'inline-flex items-center justify-center font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
+    // Base styles dengan focus effect menggunakan accent color
+    const baseStyles = 'inline-flex items-center justify-center font-medium transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed';
+
+    // Focus effect: ganti background dan text dengan accent color
+    const focusStyles = 'focus:bg-accent focus:text-text-accent focus:hover:bg-accent/90 focus:hover:text-text-accent';
 
     const variants = {
         primary: 'bg-primary text-white hover:bg-primary/90 focus:ring-primary',
@@ -51,6 +55,7 @@ export const Button: React.FC<ButtonProps> = ({
         <button
             className={clsx(
                 baseStyles,
+                focusStyles,
                 circle ? 'rounded-full' : 'rounded-lg',
                 variants[variant],
                 sizes[size],

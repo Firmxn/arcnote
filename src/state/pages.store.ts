@@ -19,6 +19,7 @@ interface PagesState {
     updatePage: (id: string, input: UpdatePageInput) => Promise<void>;
     deletePage: (id: string) => Promise<void>;
     setCurrentPage: (page: Page | null) => void;
+    markPageAsVisited: (id: string) => Promise<void>;
 }
 
 export const usePagesStore = create<PagesState>((set) => ({
@@ -87,5 +88,20 @@ export const usePagesStore = create<PagesState>((set) => ({
 
     setCurrentPage: (page: Page | null) => {
         set({ currentPage: page });
+        // Auto-mark as visited saat page dibuka
+        if (page) {
+            pagesRepository.markAsVisited(page.id).catch(console.error);
+        }
+    },
+
+    markPageAsVisited: async (id: string) => {
+        try {
+            await pagesRepository.markAsVisited(id);
+            // Reload pages untuk update lastVisitedAt di state
+            const pages = await pagesRepository.getAll();
+            set({ pages });
+        } catch (error) {
+            console.error('Failed to mark page as visited:', error);
+        }
     },
 }));

@@ -15,6 +15,7 @@ export interface ScheduleEvent {
     customProperties?: Record<string, any>; // Dynamic properties
     createdAt: Date;
     updatedAt: Date;
+    lastVisitedAt?: Date; // Tracking kapan terakhir dibuka (untuk Recently Visited)
 }
 
 export type CreateEventInput = Omit<ScheduleEvent, 'id' | 'createdAt' | 'updatedAt'>;
