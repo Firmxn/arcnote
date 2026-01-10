@@ -1,139 +1,93 @@
-/**
- * ArcNote - Main Application Component
- * Block-based note-taking app dengan UI mirip Notion
- */
-
-import { useState, useEffect } from 'react';
-import { Sidebar } from './components/layout/Sidebar';
-import { PageEditor } from './components/pages/PageEditor';
+import { useEffect } from 'react';
+import { Routes, Route, useNavigate, useSearchParams } from 'react-router-dom';
+import { MainLayout } from './components/layout/MainLayout';
 import { HomePage } from './components/pages/HomePage';
 import { PagesListPage } from './components/pages/PagesListPage';
 import { SettingsPage } from './components/pages/SettingsPage';
 import { SchedulePage } from './components/pages/SchedulePage';
-import { FinancePage } from './components/pages/FinancePage';
+import { FinanceListPage } from './components/pages/FinanceListPage';
+import { FinanceDetailRoute } from './components/pages/FinanceDetailRoute';
+import { EditorRoute } from './components/pages/EditorRoute';
 import { usePagesStore } from './state/pages.store';
 import { useSchedulesStore } from './state/schedules.store';
 import { useFinanceStore } from './state/finance.store';
 
-type ViewState = 'home' | 'editor' | 'pages' | 'settings' | 'schedule' | 'finance';
+// --- Route Wrappers to Adapts Props to Router ---
 
-function App() {
-  const { loadPages, currentPage, setCurrentPage, pages, createPage } = usePagesStore();
-  const { loadEvents } = useSchedulesStore();
-  const { loadTransactions, loadSummary } = useFinanceStore();
-  const [currentView, setCurrentView] = useState<ViewState>('home');
-  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+const HomeWithNav = () => {
+  const navigate = useNavigate();
+  const { createPage, setCurrentPage } = usePagesStore();
 
-  // Load pages, events, dan finance saat aplikasi pertama kali dibuka
-  useEffect(() => {
-    loadPages();
-    loadEvents();
-    loadTransactions();
-    loadSummary();
-  }, [loadPages, loadEvents, loadTransactions, loadSummary]);
-
-  // Handler untuk membuat halaman baru
-  const handleCreatePage = async () => {
+  const handleCreate = async () => {
     try {
-      const newPage = await createPage('Untitled');
-      setCurrentPage(newPage);
-      setCurrentView('editor');
+      const page = await createPage('Untitled');
+      setCurrentPage(page);
+      navigate(`/page/${page.id}`);
     } catch (error) {
       console.error('Failed to create page:', error);
     }
   };
 
-  // Efek samping: Jika currentPage berubah, otomatis switch ke editor
-  useEffect(() => {
-    if (currentPage) {
-      setCurrentView('editor');
-    }
-  }, [currentPage]);
+  return (
+    <HomePage
+      onPageSelect={(id) => {
+        navigate(`/page/${id}`);
+      }}
+      onScheduleClick={() => navigate('/schedule')}
+      onEventSelect={(id) => navigate(`/schedule?eventId=${id}`)}
+      onFinanceClick={(id) => navigate(`/finance/${id}`)}
+      onNewPageClick={handleCreate}
+    />
+  );
+};
 
-  const renderContent = () => {
-    switch (currentView) {
-      case 'settings':
-        return <SettingsPage />;
-      case 'schedule':
-        return <SchedulePage initialEventId={selectedEventId} />;
-      case 'finance':
-        return <FinancePage />;
-      case 'pages':
-        return (
-          <PagesListPage
-            onPageSelect={(pageId) => {
-              const page = pages.find(p => p.id === pageId);
-              if (page) {
-                setCurrentPage(page);
-                setCurrentView('editor');
-              }
-            }}
-          />
-        );
-      case 'home':
-        return (
-          <HomePage
-            onPageSelect={(pageId) => {
-              const page = pages.find(p => p.id === pageId);
-              if (page) {
-                setCurrentPage(page);
-                setCurrentView('editor');
-              }
-            }}
-            onScheduleClick={() => setCurrentView('schedule')}
-            onEventSelect={(eventId) => {
-              setSelectedEventId(eventId);
-              setCurrentView('schedule');
-            }}
-            onNewPageClick={handleCreatePage}
-          />
-        );
-      case 'editor':
-      default:
-        return currentPage ? (
-          <PageEditor key={currentPage.id} page={currentPage} />
-        ) : (
-          <HomePage
-            onPageSelect={(pageId) => {
-              const page = pages.find(p => p.id === pageId);
-              if (page) {
-                setCurrentPage(page);
-                setCurrentView('editor');
-              }
-            }}
-            onScheduleClick={() => setCurrentView('schedule')}
-            onEventSelect={(eventId) => {
-              setSelectedEventId(eventId);
-              setCurrentView('schedule');
-            }}
-            onNewPageClick={handleCreatePage}
-          />
-        );
-    }
-  };
+const PagesListWithNav = () => {
+  const navigate = useNavigate();
+  return (
+    <PagesListPage
+      onPageSelect={(id) => navigate(`/page/${id}`)}
+    />
+  );
+};
+
+const ScheduleWithNav = () => {
+  const [searchParams] = useSearchParams();
+  const eventId = searchParams.get('eventId') || null;
+  return <SchedulePage initialEventId={eventId} />;
+};
+
+
+function App() {
+  const { loadPages } = usePagesStore();
+  const { loadEvents } = useSchedulesStore();
+  const { loadAccounts } = useFinanceStore();
+
+  // Load initial data
+  // Note: loadTransactions removed because it depends on active account
+  useEffect(() => {
+    loadPages();
+    loadEvents();
+    loadAccounts();
+    // loadSummary removed because it also depends on active account. 
+    // It should be called when account is selected.
+  }, [loadPages, loadEvents, loadAccounts]);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-white dark:bg-gray-950">
-      {/* Sidebar */}
-      <Sidebar
-        currentView={
-          currentView === 'home' ? 'home' :
-            currentView === 'pages' ? 'pages' :
-              currentView === 'editor' && !currentPage ? undefined :
-                currentView === 'editor' ? 'page' :
-                  currentView
-        }
-        onHomeClick={() => setCurrentView('home')}
-        onPagesClick={() => setCurrentView('pages')}
-        onSettingsClick={() => setCurrentView('settings')}
-        onScheduleClick={() => setCurrentView('schedule')}
-        onFinanceClick={() => setCurrentView('finance')}
-        onPageSelect={() => setCurrentView('editor')}
-      />
+    <Routes>
+      <Route element={<MainLayout />}>
+        <Route path="/" element={<HomeWithNav />} />
+        <Route path="/pages" element={<PagesListWithNav />} />
+        <Route path="/settings" element={<SettingsPage />} />
 
-      {/* Main Content */}
-      {renderContent()}
-    </div>
+        {/* Finance Routes */}
+        <Route path="/finance" element={<FinanceListPage />} />
+        <Route path="/finance/:accountId" element={<FinanceDetailRoute />} />
+
+        <Route path="/schedule" element={<ScheduleWithNav />} />
+        <Route path="/page/:pageId" element={<EditorRoute />} />
+        <Route path="*" element={<div className="p-10">404 Not Found</div>} />
+      </Route>
+    </Routes>
   );
 }
 

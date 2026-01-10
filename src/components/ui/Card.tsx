@@ -6,6 +6,7 @@ interface CardProps {
     title: React.ReactNode;
     description: string;
     badge?: string; // Badge text (e.g., "2 subpages")
+    extra?: React.ReactNode; // Optional extra content (e.g. Balance)
     createdAt?: string;
     updatedAt?: string;
     type?: 'page' | 'schedule';
@@ -17,6 +18,7 @@ export const Card: React.FC<CardProps> = ({
     title,
     description,
     badge,
+    extra,
     createdAt,
     updatedAt,
     type = 'page',
@@ -72,6 +74,13 @@ export const Card: React.FC<CardProps> = ({
                     >
                         {badge}
                     </Badge>
+                </div>
+            )}
+
+            {/* Extra Content (Custom) */}
+            {extra && (
+                <div className="mb-4">
+                    {extra}
                 </div>
             )}
 

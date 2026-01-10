@@ -1,0 +1,311 @@
+import React, { useState, useEffect } from 'react';
+import { useFinanceStore } from '../../state/finance.store';
+import { Card } from '../ui/Card';
+import { Modal } from '../ui/Modal';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
+import { Input } from '../ui/Input';
+import { useNavigate } from 'react-router-dom';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+import type { FinanceAccount } from '../../types/finance';
+
+dayjs.extend(relativeTime);
+
+const WalletIcon = ({ className = "w-6 h-6" }) => (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+    </svg>
+);
+
+export const FinanceListPage: React.FC = () => {
+    const {
+        accounts,
+        loadAccounts,
+        createAccount,
+        updateAccount,
+        deleteAccount,
+        isLoading,
+        balances,
+        loadBalances
+    } = useFinanceStore();
+    const navigate = useNavigate();
+
+    // Create State
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [newAccountTitle, setNewAccountTitle] = useState('');
+    const [newAccountDesc, setNewAccountDesc] = useState('');
+
+    // Edit State
+    const [editingAccount, setEditingAccount] = useState<FinanceAccount | null>(null);
+    const [editTitle, setEditTitle] = useState('');
+    const [editDesc, setEditDesc] = useState('');
+    const [accountToDelete, setAccountToDelete] = useState<FinanceAccount | null>(null);
+
+    useEffect(() => {
+        loadAccounts();
+    }, [loadAccounts]);
+
+    useEffect(() => {
+        if (accounts.length > 0) {
+            loadBalances();
+        }
+    }, [accounts]); // loadBalances dependency is stable from zustand
+
+    const handleCreate = async () => {
+        if (!newAccountTitle.trim()) return;
+        try {
+            await createAccount({
+                title: newAccountTitle,
+                description: newAccountDesc.trim() || undefined,
+                currency: 'IDR'
+            });
+            setIsCreateModalOpen(false);
+            setNewAccountTitle('');
+            setNewAccountDesc('');
+            // Balances will auto-refresh via accounts effect
+        } catch (error) {
+            console.error('Failed to create account:', error);
+        }
+    };
+
+    const handleEditStart = (account: FinanceAccount) => {
+        setEditingAccount(account);
+        setEditTitle(account.title);
+        setEditDesc(account.description || '');
+    };
+
+    const handleEditSave = async () => {
+        if (!editingAccount || !editTitle.trim()) return;
+        try {
+            await updateAccount(editingAccount.id, {
+                title: editTitle,
+                description: editDesc.trim() || undefined
+            });
+            setEditingAccount(null);
+            setEditTitle('');
+            setEditDesc('');
+        } catch (error) {
+            console.error('Failed to update account:', error);
+        }
+    };
+
+    const handleDelete = (account: FinanceAccount) => {
+        setAccountToDelete(account);
+    };
+
+    const confirmDelete = async () => {
+        if (!accountToDelete) return;
+        try {
+            await deleteAccount(accountToDelete.id);
+            setAccountToDelete(null);
+        } catch (error) {
+            console.error('Failed to delete account:', error);
+        }
+    };
+
+    return (
+        <div className="h-screen w-full overflow-y-auto bg-neutral dark:bg-primary">
+            <div className="max-w-7xl mx-auto px-8 py-12">
+                {/* Header */}
+                <div className="flex items-center justify-between mb-8">
+                    <div>
+                        <h1 className="text-3xl font-bold text-text-neutral dark:text-text-primary mb-2">
+                            Finance Trackers
+                        </h1>
+                        <p className="text-text-neutral/60 dark:text-text-secondary">
+                            Manage your wallets, accounts, and budgets
+                        </p>
+                    </div>
+
+                    <button
+                        onClick={() => setIsCreateModalOpen(true)}
+                        className="px-4 py-2 bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors flex items-center gap-2 font-medium"
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        New Tracker
+                    </button>
+                </div>
+
+                {/* Accounts Grid */}
+                {accounts.length === 0 && !isLoading ? (
+                    <div className="text-center py-20">
+                        <div className="text-6xl mb-4 text-text-neutral/20 dark:text-text-secondary/20">
+                            <WalletIcon className="w-16 h-16 mx-auto" />
+                        </div>
+                        <h3 className="text-xl font-semibold text-text-neutral dark:text-text-primary mb-2">
+                            No trackers yet
+                        </h3>
+                        <p className="text-text-neutral/60 dark:text-text-secondary cursor-pointer" onClick={() => setIsCreateModalOpen(true)}>
+                            Create your first finance tracker to get started
+                        </p>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        {accounts.map(account => {
+                            const balance = balances[account.id] || 0;
+                            const formattedBalance = new Intl.NumberFormat('id-ID', {
+                                style: 'currency',
+                                currency: account.currency || 'IDR',
+                                minimumFractionDigits: 0
+                            }).format(balance);
+
+                            return (
+                                <div key={account.id} className="relative group">
+                                    <div onClick={() => navigate(`/finance/${account.id}`)}>
+                                        <Card
+                                            icon={<WalletIcon />}
+                                            title={account.title}
+                                            description={account.description || `${account.currency} Account`}
+                                            extra={
+                                                <div className="text-xl font-bold text-primary dark:text-accent font-mono tracking-tight">
+                                                    {formattedBalance}
+                                                </div>
+                                            }
+                                            updatedAt={dayjs(account.updatedAt).fromNow()}
+                                            createdAt={dayjs(account.createdAt).format('MMM D, YYYY')}
+                                        />
+                                    </div>
+
+                                    {/* Action Buttons Overlay */}
+                                    <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity flex bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-100 dark:border-gray-700 z-10">
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); handleEditStart(account); }}
+                                            className="p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-l-lg text-blue-500 transition-colors"
+                                            title="Edit Info"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                            </svg>
+                                        </button>
+                                        <div className="w-px bg-gray-200 dark:bg-gray-700"></div>
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); handleDelete(account); }}
+                                            className="p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-r-lg text-red-500 transition-colors"
+                                            title="Delete"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+            </div>
+
+            {/* Create Account Modal */}
+            <Modal
+                isOpen={isCreateModalOpen}
+                onClose={() => setIsCreateModalOpen(false)}
+                title="Create Finance Tracker"
+            >
+                <div>
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-text-neutral dark:text-text-secondary mb-1">
+                                Tracker Title
+                            </label>
+                            <Input
+                                autoFocus
+                                placeholder="e.g. Personal Wallet"
+                                value={newAccountTitle}
+                                onChange={(e) => setNewAccountTitle(e.target.value)}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-text-neutral dark:text-text-secondary mb-1">
+                                Description (Optional)
+                            </label>
+                            <Input
+                                placeholder="e.g. Daily expenses and savings"
+                                value={newAccountDesc}
+                                onChange={(e) => setNewAccountDesc(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') handleCreate();
+                                }}
+                            />
+                        </div>
+                    </div>
+                    <div className="flex justify-end gap-3 pt-6">
+                        <button
+                            onClick={() => setIsCreateModalOpen(false)}
+                            className="px-4 py-2 text-sm text-text-neutral dark:text-text-secondary hover:bg-neutral-100 dark:hover:bg-white/5 rounded-md transition-colors"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={handleCreate}
+                            className="px-4 py-2 text-sm bg-accent hover:bg-accent-hover text-white rounded-md transition-colors font-medium"
+                        >
+                            Create Tracker
+                        </button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* Edit Account Modal */}
+            <Modal
+                isOpen={!!editingAccount}
+                onClose={() => setEditingAccount(null)}
+                title="Edit Tracker Info"
+            >
+                <div>
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-text-neutral dark:text-text-secondary mb-1">
+                                Tracker Title
+                            </label>
+                            <Input
+                                autoFocus
+                                value={editTitle}
+                                onChange={(e) => setEditTitle(e.target.value)}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-text-neutral dark:text-text-secondary mb-1">
+                                Description
+                            </label>
+                            <Input
+                                placeholder="Add a description..."
+                                value={editDesc}
+                                onChange={(e) => setEditDesc(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') handleEditSave();
+                                }}
+                            />
+                        </div>
+                    </div>
+                    <div className="flex justify-end gap-3 pt-6">
+                        <button
+                            onClick={() => setEditingAccount(null)}
+                            className="px-4 py-2 text-sm text-text-neutral dark:text-text-secondary hover:bg-neutral-100 dark:hover:bg-white/5 rounded-md transition-colors"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={handleEditSave}
+                            className="px-4 py-2 text-sm bg-accent hover:bg-accent-hover text-white rounded-md transition-colors font-medium"
+                        >
+                            Save Changes
+                        </button>
+                    </div>
+                </div>
+            </Modal>
+            {/* Delete Account Confirmation */}
+            <ConfirmDialog
+                isOpen={!!accountToDelete}
+                title="Delete Finance Tracker"
+                message={`Are you sure you want to delete "${accountToDelete?.title}"? All transactions in this tracker will be lost forever.`}
+                confirmText="Delete Tracker"
+                cancelText="Keep Rule"
+                type="danger"
+                onConfirm={confirmDelete}
+                onCancel={() => setAccountToDelete(null)}
+            />
+        </div>
+    );
+};

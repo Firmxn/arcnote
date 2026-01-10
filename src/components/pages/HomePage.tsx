@@ -1,41 +1,59 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { usePagesStore } from '../../state/pages.store';
 import { useSchedulesStore } from '../../state/schedules.store';
+import { useFinanceStore } from '../../state/finance.store';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import type { Page } from '../../types/page';
 import type { ScheduleEvent } from '../../types/schedule';
+import type { FinanceAccount } from '../../types/finance';
 import dayjs from 'dayjs';
 
 interface RecentItem {
     id: string;
-    type: 'page' | 'schedule';
+    type: 'page' | 'schedule' | 'finance';
     title: string;
     date: Date;
     icon: React.ReactNode;
-    data: Page | ScheduleEvent;
+    data: Page | ScheduleEvent | FinanceAccount;
 }
 
 interface HomePageProps {
     onPageSelect?: (pageId: string) => void;
     onScheduleClick?: () => void;  // Navigate to schedule page
     onEventSelect?: (eventId: string) => void;  // Open specific event
+    onFinanceClick?: (accountId: string) => void; // Open specific finance account
     onNewPageClick?: () => void; // Create new page
 }
 
-export const HomePage: React.FC<HomePageProps> = ({ onPageSelect, onScheduleClick, onEventSelect, onNewPageClick }) => {
+const WalletIcon = ({ className = "w-6 h-6" }) => (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+    </svg>
+);
+
+export const HomePage: React.FC<HomePageProps> = ({
+    onPageSelect,
+    onScheduleClick,
+    onEventSelect,
+    onFinanceClick,
+    onNewPageClick
+}) => {
     const { pages } = usePagesStore();
     const { events, markEventAsVisited } = useSchedulesStore();
+    const { accounts, loadAccounts, balances, loadBalances, markAccountAsVisited } = useFinanceStore();
+
     const [recentItems, setRecentItems] = useState<RecentItem[]>([]);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const [canScrollLeft, setCanScrollLeft] = useState(false);
     const [canScrollRight, setCanScrollRight] = useState(false);
 
+    // Check Scroll Logic
     const checkScroll = () => {
         if (scrollContainerRef.current) {
             const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
             setCanScrollLeft(scrollLeft > 0);
-            setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 1); // Check with small tolerance
+            setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 1);
         }
     };
 
@@ -45,17 +63,21 @@ export const HomePage: React.FC<HomePageProps> = ({ onPageSelect, onScheduleClic
         return () => window.removeEventListener('resize', checkScroll);
     }, [recentItems]);
 
-    // Reset scroll position ke awal saat recentItems berubah (agar card terbaru terlihat)
+    // Load Accounts
     useEffect(() => {
-        if (scrollContainerRef.current) {
-            scrollContainerRef.current.scrollLeft = 0;
+        loadAccounts();
+    }, [loadAccounts]);
+
+    useEffect(() => {
+        if (accounts.length > 0) {
+            loadBalances();
         }
-    }, [recentItems]);
+    }, [accounts, loadBalances]);
 
     const scroll = (direction: 'left' | 'right') => {
         if (scrollContainerRef.current) {
             const { current } = scrollContainerRef;
-            const scrollAmount = 300; // Width of a card + gap
+            const scrollAmount = 300;
             if (direction === 'left') {
                 current.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
             } else {
@@ -65,10 +87,10 @@ export const HomePage: React.FC<HomePageProps> = ({ onPageSelect, onScheduleClic
     };
 
     useEffect(() => {
-        // Combine pages and schedules into recent items
+        // Combine pages, schedules, and accounts into recent items
         const items: RecentItem[] = [];
 
-        // Add pages (using lastVisitedAt, fallback ke updatedAt atau createdAt)
+        // Add pages
         pages.forEach(page => {
             items.push({
                 id: page.id,
@@ -84,7 +106,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onPageSelect, onScheduleClic
             });
         });
 
-        // Add schedule events (using lastVisitedAt, fallback ke updatedAt atau createdAt)
+        // Add schedule events
         events.forEach((event: ScheduleEvent) => {
             items.push({
                 id: event.id,
@@ -100,21 +122,42 @@ export const HomePage: React.FC<HomePageProps> = ({ onPageSelect, onScheduleClic
             });
         });
 
-        // Sort by date (most recent first) - prioritas: lastVisitedAt > updatedAt > createdAt
+        // Add finance accounts
+        accounts.forEach((acc: FinanceAccount) => {
+            items.push({
+                id: acc.id,
+                type: 'finance',
+                title: acc.title,
+                date: acc.lastVisitedAt || acc.updatedAt || acc.createdAt,
+                icon: <WalletIcon />,
+                data: acc
+            });
+        });
+
+        // Sort by date (most recent first)
         const sorted = items
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
             .slice(0, 12);
 
         setRecentItems(sorted);
-    }, [pages, events]);
+    }, [pages, events, accounts]); // Added accounts dependency
+
+    // Reset scroll when items change
+    useEffect(() => {
+        if (scrollContainerRef.current) {
+            scrollContainerRef.current.scrollLeft = 0;
+        }
+    }, [recentItems]);
 
     const handleItemClick = (item: RecentItem) => {
         if (item.type === 'page' && onPageSelect) {
             onPageSelect(item.id);
-            // Page sudah auto-mark as visited di setCurrentPage()
         } else if (item.type === 'schedule' && onEventSelect) {
-            markEventAsVisited(item.id); // Mark as visited
-            onEventSelect(item.id);  // Pass event ID to open specific event
+            markEventAsVisited(item.id);
+            onEventSelect(item.id);
+        } else if (item.type === 'finance' && onFinanceClick) {
+            markAccountAsVisited(item.id);
+            onFinanceClick(item.id);
         }
     };
 
@@ -122,14 +165,23 @@ export const HomePage: React.FC<HomePageProps> = ({ onPageSelect, onScheduleClic
         const now = dayjs();
         const itemDate = dayjs(date);
         const diffMinutes = now.diff(itemDate, 'minute');
-        const diffHours = now.diff(itemDate, 'hour');
-        const diffDays = now.diff(itemDate, 'day');
-
+        // ... logic
         if (diffMinutes < 1) return 'Just now';
         if (diffMinutes < 60) return `${diffMinutes}m ago`;
+        const diffHours = now.diff(itemDate, 'hour');
         if (diffHours < 24) return `${diffHours}h ago`;
+        const diffDays = now.diff(itemDate, 'day');
         if (diffDays < 7) return `${diffDays}d ago`;
         return itemDate.format('MMM D');
+    };
+
+    // Helper for formatting balance
+    const formatBalance = (account: FinanceAccount) => {
+        const amount = balances[account.id] || 0;
+        return new Intl.NumberFormat('id-ID', {
+            style: 'currency', currency: account.currency || 'IDR',
+            minimumFractionDigits: 0
+        }).format(amount);
     };
 
     return (
@@ -167,7 +219,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onPageSelect, onScheduleClic
                             </h2>
                         </div>
                         <div className="relative group -mx-4 px-0.5">
-                            {/* Navigation Buttons - Visible on Hover */}
+                            {/* Navigation Buttons */}
                             {canScrollLeft && (
                                 <Button
                                     onClick={() => scroll('left')}
@@ -213,15 +265,26 @@ export const HomePage: React.FC<HomePageProps> = ({ onPageSelect, onScheduleClic
                                         <Card
                                             icon={item.icon}
                                             title={item.title}
+                                            // Description logic based on type
                                             description={
                                                 item.type === 'page'
-                                                    ? (item.data as Page).description || 'Click to open and edit this page'
-                                                    : 'Click to view event details'
+                                                    ? (item.data as Page).description || 'Page Document'
+                                                    : item.type === 'finance'
+                                                        ? (item.data as FinanceAccount).description || 'Finance Tracker'
+                                                        : (item.data as ScheduleEvent).type || 'Calendar Event'
                                             }
-                                            type={item.type}
+                                            // Extra content for Finance (Balance)
+                                            extra={
+                                                item.type === 'finance' ? (
+                                                    <div className="font-bold text-primary dark:text-accent font-mono">
+                                                        {formatBalance(item.data as FinanceAccount)}
+                                                    </div>
+                                                ) : undefined
+                                            }
+                                            type={item.type === 'finance' ? 'page' : item.type} // Finance gets 'page' styling mostly
                                             onClick={() => handleItemClick(item)}
                                             updatedAt={getRelativeTime(item.date)}
-                                            createdAt={getRelativeTime((item.data as Page | ScheduleEvent).createdAt)}
+                                            createdAt={getRelativeTime((item.data as any).createdAt)}
                                         />
                                     </div>
                                 ))}

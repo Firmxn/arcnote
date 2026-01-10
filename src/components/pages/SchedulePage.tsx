@@ -13,7 +13,7 @@ interface SchedulePageProps {
 }
 
 export const SchedulePage: React.FC<SchedulePageProps> = ({ initialEventId }) => {
-    const { events, loadEvents, createEvent } = useSchedulesStore();
+    const { events, loadEvents, createEvent, markEventAsVisited } = useSchedulesStore();
     const [currentDate, setCurrentDate] = useState(dayjs());
     const [selectedEventId, setSelectedEventId] = useState<string | null>(initialEventId || null);
     const [draftEvent, setDraftEvent] = useState<Partial<ScheduleEvent> | null>(null);
@@ -93,6 +93,7 @@ export const SchedulePage: React.FC<SchedulePageProps> = ({ initialEventId }) =>
 
     const handleEventClick = (e: React.MouseEvent, eventId: string) => {
         e.stopPropagation();
+        markEventAsVisited(eventId);
         setSelectedEventId(eventId);
         setDraftEvent(null);
     };

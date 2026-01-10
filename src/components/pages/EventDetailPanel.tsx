@@ -8,6 +8,7 @@ import type { ScheduleEvent } from '../../types/schedule';
 import { useSchedulesStore } from '../../state/schedules.store';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
 
 interface EventDetailPanelProps {
     event: ScheduleEvent;
@@ -41,6 +42,7 @@ export const EventDetailPanel: React.FC<EventDetailPanelProps> = ({ event, onClo
     const [customProps, setCustomProps] = useState<Record<string, string>>(event.customProperties || {});
     const [isAddingProperty, setIsAddingProperty] = useState(false);
     const [newPropertyName, setNewPropertyName] = useState('');
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
     // Debounce update helper
     const handleUpdate = async (updates: Partial<ScheduleEvent>) => {
@@ -148,13 +150,16 @@ export const EventDetailPanel: React.FC<EventDetailPanelProps> = ({ event, onClo
 
     const handleDelete = async () => {
         if (!isDraft) {
-            if (confirm('Delete this event?')) {
-                await deleteEvent(event.id);
-                onClose();
-            }
+            setShowDeleteConfirm(true);
         } else {
             onClose();
         }
+    };
+
+    const confirmDelete = async () => {
+        await deleteEvent(event.id);
+        setShowDeleteConfirm(false);
+        onClose();
     };
 
     const handleManualSave = async () => {
@@ -431,6 +436,17 @@ export const EventDetailPanel: React.FC<EventDetailPanelProps> = ({ event, onClo
                     <EditorContent editor={editor} />
                 </div>
             </div>
+            {/* Delete Confirmation Dialog */}
+            <ConfirmDialog
+                isOpen={showDeleteConfirm}
+                title="Delete Event"
+                message="Are you sure you want to delete this event? This action cannot be undone."
+                confirmText="Delete"
+                cancelText="Cancel"
+                type="danger"
+                onConfirm={confirmDelete}
+                onCancel={() => setShowDeleteConfirm(false)}
+            />
         </div>
     );
 };

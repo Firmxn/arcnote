@@ -1,18 +1,28 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useFinanceStore } from '../../state/finance.store';
 import { Button } from '../ui/Button';
 import { AddTransactionModal } from '../modals/AddTransactionModal';
 import dayjs from 'dayjs';
+import type { FinanceTransaction } from '../../types/finance';
 
 export const FinancePage: React.FC = () => {
-    const { transactions, summary, loadTransactions, loadSummary, createTransaction, isLoading } = useFinanceStore();
+    const {
+        currentAccount,
+        transactions,
+        summary,
+        createTransaction,
+        updateTransaction,
+        deleteTransaction,
+        isLoading
+    } = useFinanceStore();
+
     const [filter, setFilter] = useState<'all' | 'income' | 'expense'>('all');
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedTransaction, setSelectedTransaction] = useState<FinanceTransaction | undefined>(undefined);
+    const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
 
-    useEffect(() => {
-        loadTransactions();
-        loadSummary();
-    }, [loadTransactions, loadSummary]);
+    const navigate = useNavigate();
 
     const filteredTransactions = filter === 'all'
         ? transactions
@@ -21,22 +31,45 @@ export const FinancePage: React.FC = () => {
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('id-ID', {
             style: 'currency',
-            currency: 'IDR',
+            currency: currentAccount?.currency || 'IDR',
             minimumFractionDigits: 0,
         }).format(amount);
+    };
+
+    const handleTransactionClick = (transaction: FinanceTransaction) => {
+        setSelectedTransaction(transaction);
+        setModalMode('edit');
+        setIsModalOpen(true);
+    };
+
+    const handleAddClick = () => {
+        setSelectedTransaction(undefined);
+        setModalMode('create');
+        setIsModalOpen(true);
     };
 
     return (
         <div className="h-screen w-full overflow-y-auto bg-neutral dark:bg-primary">
             <div className="max-w-7xl mx-auto px-8 py-12">
-                {/* Header */}
-                <div className="mb-8">
-                    <h1 className="text-3xl font-bold text-text-neutral dark:text-text-primary mb-2">
-                        💰 Finance Tracker
-                    </h1>
-                    <p className="text-text-neutral/60 dark:text-text-secondary">
-                        Track your income and expenses
-                    </p>
+                {/* Header with Back Button */}
+                <div className="flex items-center gap-4 mb-8">
+                    <button
+                        onClick={() => navigate('/finance')}
+                        className="p-2 -ml-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-text-neutral dark:text-text-secondary transition-colors"
+                        title="Back to wallets"
+                    >
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                        </svg>
+                    </button>
+                    <div>
+                        <h1 className="text-3xl font-bold text-text-neutral dark:text-text-primary mb-1">
+                            {currentAccount?.title || 'Finance Tracker'}
+                        </h1>
+                        <p className="text-text-neutral/60 dark:text-text-secondary">
+                            {currentAccount?.description || 'Track your income and expenses'}
+                        </p>
+                    </div>
                 </div>
 
                 {/* Summary Cards */}
@@ -117,7 +150,7 @@ export const FinancePage: React.FC = () => {
 
                     <Button
                         variant="accent"
-                        onClick={() => setIsModalOpen(true)}
+                        onClick={handleAddClick}
                         leftIcon={
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -143,7 +176,7 @@ export const FinancePage: React.FC = () => {
                             <p className="text-text-neutral/60 dark:text-text-secondary mb-4">
                                 Start tracking your finances by adding a transaction
                             </p>
-                            <Button variant="accent" onClick={() => setIsModalOpen(true)}>
+                            <Button variant="accent" onClick={handleAddClick}>
                                 Add Your First Transaction
                             </Button>
                         </div>
@@ -151,7 +184,8 @@ export const FinancePage: React.FC = () => {
                         filteredTransactions.map((transaction) => (
                             <div
                                 key={transaction.id}
-                                className="bg-white dark:bg-secondary rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow"
+                                onClick={() => handleTransactionClick(transaction)}
+                                className="bg-white dark:bg-secondary rounded-xl p-4 shadow-sm hover:shadow-md cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 active:scale-[0.99] transition-all duration-200"
                             >
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-4">
@@ -195,12 +229,22 @@ export const FinancePage: React.FC = () => {
                 </div>
             </div>
 
-            {/* Add Transaction Modal */}
+            {/* Add/Edit Transaction Modal */}
             <AddTransactionModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
+                initialData={selectedTransaction}
+                mode={modalMode}
+                onDelete={modalMode === 'edit' && selectedTransaction ? async () => {
+                    await deleteTransaction(selectedTransaction.id);
+                } : undefined}
                 onSubmit={async (data) => {
-                    await createTransaction(data);
+                    if (modalMode === 'create') {
+                        if (!currentAccount) return;
+                        await createTransaction({ ...data, accountId: currentAccount.id });
+                    } else if (modalMode === 'edit' && selectedTransaction) {
+                        await updateTransaction(selectedTransaction.id, data);
+                    }
                 }}
             />
         </div>

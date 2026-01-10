@@ -21,8 +21,21 @@ export type TransactionCategory =
     | 'Education'
     | 'Other Expense';
 
+
+export interface FinanceAccount {
+    id: string;
+    title: string;
+    description?: string;
+    currency: string;
+    theme?: string; // Menyimpan warna hex/class
+    createdAt: Date;
+    updatedAt: Date;
+    lastVisitedAt?: Date;
+}
+
 export interface FinanceTransaction {
     id: string;
+    accountId: string; // Reference to FinanceAccount
     type: TransactionType;
     amount: number;
     category: TransactionCategory;
@@ -32,6 +45,9 @@ export interface FinanceTransaction {
     updatedAt: Date;
     lastVisitedAt?: Date; // Untuk Recently Visited
 }
+
+export type CreateAccountInput = Omit<FinanceAccount, 'id' | 'createdAt' | 'updatedAt'>;
+export type UpdateAccountInput = Partial<CreateAccountInput>;
 
 export type CreateTransactionInput = Omit<FinanceTransaction, 'id' | 'createdAt' | 'updatedAt' | 'lastVisitedAt'>;
 export type UpdateTransactionInput = Partial<CreateTransactionInput>;

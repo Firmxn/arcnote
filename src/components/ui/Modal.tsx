@@ -7,6 +7,8 @@ interface ModalProps {
     title?: string;
     children: React.ReactNode;
     className?: string; // Class for the panel container
+    footer?: React.ReactNode; // Sticky footer
+    noPadding?: boolean; // Remove default padding
 }
 
 export const Modal: React.FC<ModalProps> = ({
@@ -14,7 +16,9 @@ export const Modal: React.FC<ModalProps> = ({
     onClose,
     title,
     children,
-    className = ''
+    className = '',
+    footer,
+    noPadding = false
 }) => {
     // Close on Escape key
     useEffect(() => {
@@ -26,13 +30,10 @@ export const Modal: React.FC<ModalProps> = ({
 
         if (isOpen) {
             window.addEventListener('keydown', handleKeyDown);
-            // Prevent body scroll? Optional but good practice.
-            // document.body.style.overflow = 'hidden';
         }
 
         return () => {
             window.removeEventListener('keydown', handleKeyDown);
-            // document.body.style.overflow = '';
         };
     }, [isOpen, onClose]);
 
@@ -49,9 +50,9 @@ export const Modal: React.FC<ModalProps> = ({
 
             {/* Panel */}
             <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[210] animate-in fade-in zoom-in-95 duration-200 w-full max-w-lg px-4 pointer-events-none">
-                <div className={`bg-neutral rounded-xl shadow-2xl border border-secondary/20 p-6 pointer-events-auto w-full max-h-[85vh] flex flex-col ${className}`}>
+                <div className={`bg-neutral rounded-xl shadow-2xl border border-secondary/20 pointer-events-auto w-full max-h-[85vh] flex flex-col overflow-hidden ${className}`}>
                     {title && (
-                        <div className="flex justify-between items-center mb-4 shrink-0">
+                        <div className={`flex justify-between items-center shrink-0 ${noPadding ? 'px-6 py-4 border-b border-secondary/10' : 'px-6 pt-6 pb-4'}`}>
                             <h3 className="text-lg font-bold text-text-neutral">
                                 {title}
                             </h3>
@@ -65,9 +66,16 @@ export const Modal: React.FC<ModalProps> = ({
                             </button>
                         </div>
                     )}
-                    <div className="overflow-y-auto flex-1">
+
+                    <div className={`overflow-y-auto flex-1 ${noPadding ? '' : 'px-6 pb-6'}`}>
                         {children}
                     </div>
+
+                    {footer && (
+                        <div className="shrink-0">
+                            {footer}
+                        </div>
+                    )}
                 </div>
             </div>
         </>
