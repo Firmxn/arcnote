@@ -27,7 +27,7 @@ Tailwind v4 sekarang diintegrasikan lewat plugin Vite:
 
 | Komponen              | Versi      | Keterangan                                              |
 | --------------------- | ---------- | ------------------------------------------------------- |
-| **@tailwindcss/vite** | **4.1.18** | Plugin resmi Tailwind v4 untuk Vite.([Tailwind CSS][5]) |
+| **@tailwindcss/vite** | **4.1.18** | Plugin resmi Tailwind v4 untuk Vite                          |
 
 Lalu di global CSS kamu cukup:
 
@@ -69,6 +69,13 @@ Untuk project baru, lebih masuk akal langsung pakai **Tiptap v3** (bukan v2 lagi
 | Package     | Versi     | Keterangan                                          |
 | ----------- | --------- | --------------------------------------------------- |
 | **zustand** | **5.0.9** | Latest stable, kompatibel React 18.([npmjs.com][9]) |
+| **react-router-dom** | **7.12.0** | Routing library untuk navigasi antar halaman |
+
+### Cloud Storage (Supabase)
+
+| Package                   | Versi      | Keterangan                                     |
+| ------------------------- | ---------- | ---------------------------------------------- |
+| **@supabase/supabase-js** | **2.90.1** | Client library resmi untuk Supabase integration |
 
 ---
 
@@ -107,6 +114,7 @@ Ini contoh minimal supaya kamu bisa langsung `npm install` dan mulai:
   "dependencies": {
     "react": "18.2.0",
     "react-dom": "18.2.0",
+    "react-router-dom": "7.12.0",
 
     "@tiptap/react": "3.15.3",
     "@tiptap/core": "3.15.3",
@@ -115,6 +123,8 @@ Ini contoh minimal supaya kamu bisa langsung `npm install` dan mulai:
 
     "dexie": "4.2.1",
     "dexie-react-hooks": "4.2.0",
+
+    "@supabase/supabase-js": "2.90.1",
 
     "zustand": "5.0.9",
 
@@ -128,7 +138,8 @@ Ini contoh minimal supaya kamu bisa langsung `npm install` dan mulai:
 
     "@tailwindcss/vite": "4.1.18",
 
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "vite-plugin-pwa": "1.0.0"
   }
 }
 ```

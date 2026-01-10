@@ -10,7 +10,8 @@ interface PagesListPageProps {
 }
 
 export const PagesListPage: React.FC<PagesListPageProps> = ({ onPageSelect }) => {
-    const { pages, setCurrentPage, syncToCloud } = usePagesStore();
+    const { pages, setCurrentPage, syncToCloud, syncToLocal } = usePagesStore();
+    const isBackendMode = localStorage.getItem('arcnote_storage_preference') === 'backend';
     const [expandedPages, setExpandedPages] = useState<Set<string>>(new Set());
     const [contextMenu, setContextMenu] = useState<{ x: number; y: number; pageId: string } | null>(null);
 
@@ -154,20 +155,32 @@ export const PagesListPage: React.FC<PagesListPageProps> = ({ onPageSelect }) =>
                     onClose={() => setContextMenu(null)}
                     items={[
                         {
-                            label: 'Sync to Online',
+                            label: isBackendMode ? 'Save to Local' : 'Sync to Cloud',
                             onClick: async () => {
-                                if (window.confirm('Upload this page to Cloud Storage? Current content will overwrite cloud version.')) {
+                                const action = isBackendMode ? 'Save to Local' : 'Upload to Cloud';
+                                const msg = isBackendMode
+                                    ? 'Save this page to Local Storage? This will overwrite the local copy with the current cloud version.'
+                                    : 'Upload this page to Cloud Storage? Current content will overwrite cloud version.';
+
+                                if (window.confirm(msg)) {
                                     try {
-                                        await syncToCloud(contextMenu.pageId);
-                                        alert('Synced successfully!');
+                                        if (isBackendMode) {
+                                            await syncToLocal(contextMenu.pageId);
+                                        } else {
+                                            await syncToCloud(contextMenu.pageId);
+                                        }
+                                        alert(`${action} successful!`);
                                     } catch (e: any) {
-                                        alert('Sync failed: ' + e.message);
+                                        alert(`${action} failed: ` + e.message);
                                     }
                                 }
                             },
                             icon: (
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={isBackendMode
+                                        ? "M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" // Download icon
+                                        : "M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" // Cloud Upload icon
+                                    } />
                                 </svg>
                             )
                         }

@@ -19,7 +19,10 @@ interface SchedulesRepo {
 /**
  * Local Implementation
  */
-const localRepository: SchedulesRepo = {
+/**
+ * Local Implementation
+ */
+export const localSchedulesRepository = {
     async getAll(): Promise<ScheduleEvent[]> {
         return await db.schedules.orderBy('date').toArray();
     },
@@ -51,6 +54,10 @@ const localRepository: SchedulesRepo = {
             lastVisitedAt: new Date(),
         });
     },
+
+    async sync(event: ScheduleEvent): Promise<void> {
+        await db.schedules.put(event);
+    }
 };
 
 /**
@@ -154,7 +161,7 @@ export const backendSchedulesRepository = {
 
 const getRepo = (): SchedulesRepo => {
     const pref = localStorage.getItem('arcnote_storage_preference');
-    return pref === 'backend' ? backendSchedulesRepository : localRepository;
+    return pref === 'backend' ? backendSchedulesRepository : localSchedulesRepository;
 };
 
 export const schedulesRepository: SchedulesRepo = {

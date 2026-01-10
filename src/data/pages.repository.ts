@@ -24,7 +24,10 @@ interface PagesRepo {
 /**
  * Local Implementation (IndexedDB via Dexie)
  */
-const localRepository: PagesRepo = {
+/**
+ * Local Implementation (IndexedDB via Dexie)
+ */
+export const localPagesRepository = {
     async getAll(): Promise<Page[]> {
         return await db.pages.orderBy('updatedAt').reverse().toArray();
     },
@@ -69,6 +72,11 @@ const localRepository: PagesRepo = {
             lastVisitedAt: new Date(),
         });
     },
+
+    async sync(page: Page): Promise<void> {
+        // Upsert to local Dexie
+        await db.pages.put(page);
+    }
 };
 
 /**
@@ -200,7 +208,7 @@ export const backendPagesRepository = {
  */
 const getRepo = (): PagesRepo => {
     const pref = localStorage.getItem('arcnote_storage_preference');
-    return pref === 'backend' ? backendPagesRepository : localRepository;
+    return pref === 'backend' ? backendPagesRepository : localPagesRepository;
 };
 
 /**

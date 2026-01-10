@@ -14,7 +14,8 @@ interface SchedulePageProps {
 }
 
 export const SchedulePage: React.FC<SchedulePageProps> = ({ initialEventId }) => {
-    const { events, loadEvents, createEvent, markEventAsVisited, syncToCloud } = useSchedulesStore();
+    const { events, loadEvents, createEvent, markEventAsVisited, syncToCloud, syncToLocal } = useSchedulesStore();
+    const isBackendMode = localStorage.getItem('arcnote_storage_preference') === 'backend';
     const [currentDate, setCurrentDate] = useState(dayjs());
     const [selectedEventId, setSelectedEventId] = useState<string | null>(initialEventId || null);
     const [draftEvent, setDraftEvent] = useState<Partial<ScheduleEvent> | null>(null);
@@ -271,20 +272,32 @@ export const SchedulePage: React.FC<SchedulePageProps> = ({ initialEventId }) =>
                     onClose={() => setContextMenu(null)}
                     items={[
                         {
-                            label: 'Upload Event to Cloud',
+                            label: isBackendMode ? 'Save to Local' : 'Upload Event to Cloud',
                             onClick: async () => {
-                                if (window.confirm('Sync this event to Cloud?')) {
+                                const action = isBackendMode ? 'Save to Local' : 'Upload to Cloud';
+                                const msg = isBackendMode
+                                    ? 'Save this event to Local Storage? This will overwrite the local backup.'
+                                    : 'Sync this event to Cloud? This will overwrite existing cloud data.';
+
+                                if (window.confirm(msg)) {
                                     try {
-                                        await syncToCloud(contextMenu.eventId);
-                                        alert('Event synced successfully!');
+                                        if (isBackendMode) {
+                                            await syncToLocal(contextMenu.eventId);
+                                        } else {
+                                            await syncToCloud(contextMenu.eventId);
+                                        }
+                                        alert(`${action} successful!`);
                                     } catch (e: any) {
-                                        alert('Sync failed: ' + e.message);
+                                        alert(`${action} failed: ` + e.message);
                                     }
                                 }
                             },
                             icon: (
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={isBackendMode
+                                        ? "M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                                        : "M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                                    } />
                                 </svg>
                             )
                         }

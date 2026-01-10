@@ -41,7 +41,10 @@ interface FinanceRepo {
 /**
  * Local Implementation (IndexedDB)
  */
-const localRepository: FinanceRepo = {
+/**
+ * Local Implementation (IndexedDB)
+ */
+export const localFinanceRepository = {
     async getAllAccounts(): Promise<FinanceAccount[]> {
         return await db.financeAccounts.orderBy('createdAt').toArray();
     },
@@ -161,6 +164,13 @@ const localRepository: FinanceRepo = {
             transactionCount: transactions.length,
         };
     },
+
+    async syncAccount(account: FinanceAccount, transactions: FinanceTransaction[] = []): Promise<void> {
+        await db.financeAccounts.put(account);
+        if (transactions.length > 0) {
+            await db.finance.bulkPut(transactions);
+        }
+    }
 };
 
 /**
@@ -416,7 +426,7 @@ export const backendFinanceRepository = {
 
 const getRepo = (): FinanceRepo => {
     const pref = localStorage.getItem('arcnote_storage_preference');
-    return pref === 'backend' ? backendFinanceRepository : localRepository;
+    return pref === 'backend' ? backendFinanceRepository : localFinanceRepository;
 };
 
 export const financeRepository: FinanceRepo = {

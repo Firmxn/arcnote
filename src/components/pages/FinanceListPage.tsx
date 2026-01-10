@@ -28,9 +28,11 @@ export const FinanceListPage: React.FC = () => {
         isLoading,
         balances,
         loadBalances,
-        syncAccountToCloud
+        syncAccountToCloud,
+        syncAccountToLocal
     } = useFinanceStore();
     const navigate = useNavigate();
+    const isBackendMode = localStorage.getItem('arcnote_storage_preference') === 'backend';
 
     // Create State
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -321,20 +323,32 @@ export const FinanceListPage: React.FC = () => {
                     onClose={() => setContextMenu(null)}
                     items={[
                         {
-                            label: 'Sync Tracker to Cloud',
+                            label: isBackendMode ? 'Save Tracker to Local' : 'Sync Tracker to Cloud',
                             onClick: async () => {
-                                if (window.confirm('Sync this tracker and ALL its transactions to Cloud? This will overwrite existing cloud data.')) {
+                                const action = isBackendMode ? 'Save to Local' : 'Upload to Cloud';
+                                const msg = isBackendMode
+                                    ? 'Save this tracker and ALL transactions to Local Storage? This will overwrite local data.'
+                                    : 'Sync this tracker and ALL its transactions to Cloud? This will overwrite existing cloud data.';
+
+                                if (window.confirm(msg)) {
                                     try {
-                                        await syncAccountToCloud(contextMenu.accountId);
-                                        alert('Tracker synced successfully!');
+                                        if (isBackendMode) {
+                                            await syncAccountToLocal(contextMenu.accountId);
+                                        } else {
+                                            await syncAccountToCloud(contextMenu.accountId);
+                                        }
+                                        alert(`${action} successful!`);
                                     } catch (e: any) {
-                                        alert('Sync failed: ' + e.message);
+                                        alert(`${action} failed: ` + e.message);
                                     }
                                 }
                             },
                             icon: (
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={isBackendMode
+                                        ? "M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                                        : "M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                                    } />
                                 </svg>
                             )
                         }
