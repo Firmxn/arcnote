@@ -57,20 +57,52 @@ const ScheduleWithNav = () => {
 };
 
 
+import { LoginPage } from './components/pages/LoginPage';
+import { useAuthStore } from './state/auth.store';
+
+// ... (existing helper components HomeWithNav etc)
+
 function App() {
+  // Auth State
+  const { user, initialize: initAuth, isLoading: isAuthLoading } = useAuthStore();
+
+  // Data State
   const { loadPages } = usePagesStore();
   const { loadEvents } = useSchedulesStore();
   const { loadAccounts } = useFinanceStore();
 
-  // Load initial data
-  // Note: loadTransactions removed because it depends on active account
+  const isBackend = localStorage.getItem('arcnote_storage_preference') === 'backend';
+
+  // Initialize Auth
   useEffect(() => {
-    loadPages();
-    loadEvents();
-    loadAccounts();
-    // loadSummary removed because it also depends on active account. 
-    // It should be called when account is selected.
-  }, [loadPages, loadEvents, loadAccounts]);
+    initAuth();
+  }, [initAuth]);
+
+  // Load Data only when ready
+  useEffect(() => {
+    // If backend, wait for user. If local, load immediately.
+    const canLoad = !isBackend || (isBackend && user);
+
+    if (canLoad) {
+      loadPages();
+      loadEvents();
+      loadAccounts();
+    }
+  }, [loadPages, loadEvents, loadAccounts, user, isBackend]);
+
+  // Auth Guard for Backend Mode
+  if (isBackend) {
+    if (isAuthLoading) {
+      return (
+        <div className="h-screen w-full flex items-center justify-center bg-primary text-white">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-brand"></div>
+        </div>
+      );
+    }
+    if (!user) {
+      return <LoginPage />;
+    }
+  }
 
   return (
     <Routes>
@@ -85,7 +117,7 @@ function App() {
 
         <Route path="/schedule" element={<ScheduleWithNav />} />
         <Route path="/page/:pageId" element={<EditorRoute />} />
-        <Route path="*" element={<div className="p-10">404 Not Found</div>} />
+        <Route path="*" element={<div className="p-10 dark:text-white">404 Not Found</div>} />
       </Route>
     </Routes>
   );

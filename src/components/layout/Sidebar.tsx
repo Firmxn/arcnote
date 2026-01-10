@@ -4,6 +4,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { SidebarItem } from './SidebarItem';
 import { PagesSearchModal } from '../modals/PagesSearchModal';
 import { Input } from '../ui/Input';
+import { useAuthStore } from '../../state/auth.store';
 
 interface SidebarProps {
     onPageSelect?: (pageId: string) => void;
@@ -16,6 +17,7 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ onPageSelect, onSettingsClick, onScheduleClick, onFinanceClick, onHomeClick, onPagesClick, currentView }) => {
+    const { user, signOut } = useAuthStore();
     const { pages, createPage, currentPage, setCurrentPage } = usePagesStore();
     const [isCreating, setIsCreating] = useState(false);
     const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
@@ -298,6 +300,27 @@ export const Sidebar: React.FC<SidebarProps> = ({ onPageSelect, onSettingsClick,
                 )}
 
                 <div className={`flex items-center gap-1 ${isCollapsed ? 'flex-col' : ''}`}>
+                    {/* Logout Button (Only if logged in) */}
+                    {user && (
+                        <button
+                            onClick={async () => {
+                                if (window.confirm('Are you sure you want to sign out?')) {
+                                    await signOut();
+                                }
+                            }}
+                            className={`
+                                rounded-md transition-all flex items-center justify-center text-red-400 hover:text-red-500
+                                ${isCollapsed ? 'w-10 h-10' : 'p-1.5'}
+                                hover:bg-white/5 dark:hover:bg-primary/50 opacity-80 hover:opacity-100
+                            `}
+                            title="Sign Out"
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                            </svg>
+                        </button>
+                    )}
+
                     <button
                         onClick={onSettingsClick}
                         className={`
