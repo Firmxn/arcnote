@@ -46,33 +46,33 @@ export const LoginPage = () => {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-primary text-gray-900 dark:text-white px-4">
-            <div className="bg-white dark:bg-secondary rounded-2xl shadow-xl w-full max-w-md p-8 border border-white/5">
+        <div className="min-h-screen flex items-center justify-center bg-primary text-text-primary px-4">
+            <div className="bg-neutral dark:bg-secondary rounded-2xl shadow-xl w-full max-w-md p-8 border border-white/10 relative overflow-hidden">
                 <div className="text-center mb-8">
-                    <h1 className="text-3xl font-bold mb-2 tracking-tight">ArcNote</h1>
-                    <p className="text-gray-500 dark:text-gray-400">
+                    <h1 className="text-3xl font-bold mb-2 tracking-tight text-info dark:text-text-primary">ArcNote</h1>
+                    <p className="text-text-neutral dark:text-text-neutral">
                         {mode === 'login' ? 'Sync your notes securely.' : 'Create secure account.'}
                     </p>
                 </div>
 
                 {error && (
-                    <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-3 rounded-lg mb-4 text-sm border border-red-200 dark:border-red-900/30">
+                    <div className="bg-danger/10 text-text-danger p-3 rounded-lg mb-4 text-sm border border-danger/20">
                         {error}
                     </div>
                 )}
 
                 {message && (
-                    <div className="bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 p-3 rounded-lg mb-4 text-sm border border-green-200 dark:border-green-900/30">
+                    <div className="bg-success/10 text-text-success p-3 rounded-lg mb-4 text-sm border border-success/20">
                         {message}
                     </div>
                 )}
 
                 <form onSubmit={handleAuth} className="space-y-5">
                     <div>
-                        <label className="block text-sm font-medium mb-1.5 ml-1">Email</label>
+                        <label className="block text-sm font-medium mb-1.5 ml-1 text-text-neutral dark:text-text-primary">Email</label>
                         <input
                             type="email"
-                            className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 focus:ring-2 focus:ring-brand focus:border-transparent outline-none transition-all"
+                            className="w-full px-4 py-2.5 rounded-xl border border-secondary/30 bg-white/50 dark:bg-primary/50 text-text-neutral dark:text-text-primary focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-text-neutral/50"
                             placeholder="hello@example.com"
                             value={email}
                             onChange={e => setEmail(e.target.value)}
@@ -80,10 +80,10 @@ export const LoginPage = () => {
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium mb-1.5 ml-1">Password</label>
+                        <label className="block text-sm font-medium mb-1.5 ml-1 text-text-neutral dark:text-text-primary">Password</label>
                         <input
                             type="password"
-                            className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 focus:ring-2 focus:ring-brand focus:border-transparent outline-none transition-all"
+                            className="w-full px-4 py-2.5 rounded-xl border border-secondary/30 bg-white/50 dark:bg-primary/50 text-text-neutral dark:text-text-primary focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-text-neutral/50"
                             placeholder="••••••••"
                             value={password}
                             onChange={e => setPassword(e.target.value)}
@@ -95,32 +95,43 @@ export const LoginPage = () => {
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full bg-brand hover:bg-brand/90 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-brand/20 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed mt-2"
+                        className="w-full bg-primary hover:bg-primary/90 text-text-primary font-bold py-3 rounded-xl transition-all shadow-lg shadow-primary/20 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed mt-2"
                     >
                         {loading ? 'Processing...' : (mode === 'login' ? 'Sign In' : 'Create Account')}
                     </button>
                 </form>
 
-                <div className="mt-8 text-center text-sm text-gray-500">
+                <div className="mt-8 text-center text-sm text-text-neutral">
                     {mode === 'login' ? (
                         <>
                             New to ArcNote?{' '}
-                            <button onClick={() => { setMode('register'); setError(null); setMessage(null); }} className="text-brand hover:underline font-semibold ml-1">
+                            <button onClick={() => { setMode('register'); setError(null); setMessage(null); }} className="text-primary hover:underline font-semibold ml-1">
                                 Sign up now
                             </button>
                         </>
                     ) : (
                         <>
                             Already have an account?{' '}
-                            <button onClick={() => { setMode('login'); setError(null); setMessage(null); }} className="text-brand hover:underline font-semibold ml-1">
+                            <button onClick={() => { setMode('login'); setError(null); setMessage(null); }} className="text-primary hover:underline font-semibold ml-1">
                                 Sign in
                             </button>
                         </>
                     )}
                 </div>
 
-                <div className="mt-8 pt-6 border-t border-gray-100 dark:border-white/5 text-xs text-center text-gray-400">
+                <div className="mt-8 pt-6 border-t border-secondary/20 text-xs text-center text-text-neutral/70 space-y-3">
                     <p>Secured by Supabase Auth</p>
+                    <button
+                        onClick={() => {
+                            if (window.confirm('Switch to Local Mode? You will access your local data instead of the cloud.')) {
+                                localStorage.setItem('arcnote_storage_preference', 'local');
+                                window.location.reload();
+                            }
+                        }}
+                        className="text-text-secondary hover:text-text-primary transition-colors underline decoration-dotted"
+                    >
+                        Use Offline Mode
+                    </button>
                 </div>
             </div>
         </div>
