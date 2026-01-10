@@ -46,7 +46,7 @@ export const LoginPage = () => {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-primary text-text-primary dark:text-text-secondary px-4">
+        <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-primary text-gray-900 dark:text-white px-4">
             <div className="bg-white dark:bg-secondary rounded-2xl shadow-xl w-full max-w-md p-8 border border-white/5">
                 <div className="text-center mb-8">
                     <h1 className="text-3xl font-bold mb-2 tracking-tight">ArcNote</h1>
