@@ -16,6 +16,8 @@ export const SettingsPage: React.FC = () => {
         const newValue = !useBackend;
         setUseBackend(newValue);
         localStorage.setItem('arcnote_storage_preference', newValue ? 'backend' : 'local');
+        // Force reload to apply storage change globally (reset stores)
+        window.location.reload();
     };
 
     return (
