@@ -2,7 +2,7 @@ import { ReactRenderer } from '@tiptap/react';
 import tippy from 'tippy.js';
 import type { Instance } from 'tippy.js';
 import { CommandList } from '../../components/editor/CommandList';
-import React from 'react';
+
 
 // Color Palette Dot Component
 const ColorDot = ({ color }: { color: string }) => (

@@ -13,7 +13,7 @@ interface SchedulesState {
     deleteEvent: (id: string) => Promise<void>;
 }
 
-export const useSchedulesStore = create<SchedulesState>((set, get) => ({
+export const useSchedulesStore = create<SchedulesState>((set) => ({
     events: [],
     isLoading: false,
     error: null,
