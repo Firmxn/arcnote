@@ -5,7 +5,7 @@
 
 import { create } from 'zustand';
 import type { Page, UpdatePageInput } from '../types/page';
-import { pagesRepository } from '../data/pages.repository';
+import { pagesRepository, backendPagesRepository } from '../data/pages.repository';
 
 interface PagesState {
     pages: Page[];
@@ -20,9 +20,10 @@ interface PagesState {
     deletePage: (id: string) => Promise<void>;
     setCurrentPage: (page: Page | null) => void;
     markPageAsVisited: (id: string) => Promise<void>;
+    syncToCloud: (id: string) => Promise<void>;
 }
 
-export const usePagesStore = create<PagesState>((set) => ({
+export const usePagesStore = create<PagesState>((set, get) => ({
     pages: [],
     currentPage: null,
     isLoading: false,
@@ -103,5 +104,11 @@ export const usePagesStore = create<PagesState>((set) => ({
         } catch (error) {
             console.error('Failed to mark page as visited:', error);
         }
+    },
+
+    syncToCloud: async (id: string) => {
+        const page = get().pages.find(p => p.id === id);
+        if (!page) throw new Error("Page not found locally");
+        await backendPagesRepository.sync(page);
     },
 }));

@@ -119,7 +119,7 @@ export const LoginPage = () => {
                     )}
                 </div>
 
-                <div className="mt-8 pt-6 border-t border-secondary/20 text-xs text-center text-text-neutral/70 space-y-3">
+                <div className="mt-8 pt-6 border-t border-secondary text-xs text-center text-text-neutral/70 space-y-3">
                     <p>Secured by Supabase Auth</p>
                     <button
                         onClick={() => {
@@ -128,7 +128,7 @@ export const LoginPage = () => {
                                 window.location.reload();
                             }
                         }}
-                        className="text-text-secondary hover:text-text-primary transition-colors underline decoration-dotted"
+                        className="text-text-neutral hover:text-primary transition-colors underline decoration-dotted"
                     >
                         Use Offline Mode
                     </button>

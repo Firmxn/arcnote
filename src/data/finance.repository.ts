@@ -166,7 +166,7 @@ const localRepository: FinanceRepo = {
 /**
  * Backend Implementation (Supabase)
  */
-const backendRepository: FinanceRepo = {
+export const backendFinanceRepository = {
     // --- ACCOUNTS ---
     async getAllAccounts(): Promise<FinanceAccount[]> {
         const { data, error } = await supabase
@@ -314,9 +314,6 @@ const backendRepository: FinanceRepo = {
             ...input,
             createdAt: now.toISOString(),
             updatedAt: now.toISOString()
-            // input.date is Date? Supabase needs string.
-            // But createClient handles Date -> String usually. Let's explicitly convert input.date?.toISOString() if needed.
-            // To match local repo, input usually has date object.
         };
 
         const { data, error } = await supabase
@@ -388,12 +385,38 @@ const backendRepository: FinanceRepo = {
             balance: totalIncome - totalExpense,
             transactionCount: data.length,
         };
+    },
+
+    // --- SYNC METHODS ---
+    async syncAccount(account: FinanceAccount, transactions: FinanceTransaction[] = []): Promise<void> {
+        // 1. Upsert Account
+        const accPayload = {
+            ...account,
+            createdAt: account.createdAt.toISOString(),
+            updatedAt: account.updatedAt.toISOString(),
+            lastVisitedAt: account.lastVisitedAt?.toISOString()
+        };
+        const { error: accError } = await supabase.from('finance_accounts').upsert(accPayload);
+        if (accError) throw accError;
+
+        // 2. Upsert Transactions
+        if (transactions.length > 0) {
+            const txPayloads = transactions.map(t => ({
+                ...t,
+                date: t.date.toISOString(),
+                createdAt: t.createdAt.toISOString(),
+                updatedAt: t.updatedAt.toISOString(),
+                lastVisitedAt: t.lastVisitedAt?.toISOString()
+            }));
+            const { error: txError } = await supabase.from('finance_transactions').upsert(txPayloads);
+            if (txError) throw txError;
+        }
     }
 };
 
 const getRepo = (): FinanceRepo => {
     const pref = localStorage.getItem('arcnote_storage_preference');
-    return pref === 'backend' ? backendRepository : localRepository;
+    return pref === 'backend' ? backendFinanceRepository : localRepository;
 };
 
 export const financeRepository: FinanceRepo = {

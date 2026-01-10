@@ -11,6 +11,7 @@ interface CardProps {
     updatedAt?: string;
     type?: 'page' | 'schedule';
     onClick?: () => void;
+    onContextMenu?: (e: React.MouseEvent) => void;
 }
 
 export const Card: React.FC<CardProps> = ({
@@ -22,11 +23,13 @@ export const Card: React.FC<CardProps> = ({
     createdAt,
     updatedAt,
     type = 'page',
-    onClick
+    onClick,
+    onContextMenu
 }) => {
     return (
         <button
             onClick={onClick}
+            onContextMenu={onContextMenu}
             className="group relative bg-white dark:bg-secondary rounded-2xl p-6 text-left transition-all hover:shadow-lg hover:-translate-y-1 shadow-sm w-full"
         >
             {/* Icon in rounded square */}

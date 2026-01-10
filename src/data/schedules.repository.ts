@@ -56,7 +56,10 @@ const localRepository: SchedulesRepo = {
 /**
  * Backend Implementation (Supabase)
  */
-const backendRepository: SchedulesRepo = {
+/**
+ * Backend Implementation (Supabase)
+ */
+export const backendSchedulesRepository = {
     async getAll(): Promise<ScheduleEvent[]> {
         const { data, error } = await supabase
             .from('schedules')
@@ -75,7 +78,6 @@ const backendRepository: SchedulesRepo = {
             createdAt: new Date(e.createdAt),
             updatedAt: new Date(e.updatedAt),
             lastVisitedAt: e.lastVisitedAt ? new Date(e.lastVisitedAt) : undefined,
-            // Ensure array fields like attendees/customProperties are handled correctly by Supabase JSON
         }));
     },
 
@@ -86,9 +88,6 @@ const backendRepository: SchedulesRepo = {
             ...input,
             createdAt: now.toISOString(),
             updatedAt: now.toISOString(),
-            // Date objects in input need to be ISO strings for Supabase if not auto-converted? 
-            // Supabase client usually handles Date object -> ISO string in insert.
-            // But let's be safe if input.date is Date.
         };
 
         const { data, error } = await supabase
@@ -114,8 +113,6 @@ const backendRepository: SchedulesRepo = {
             updatedAt: new Date().toISOString()
         };
 
-        // Ensure Dates are strings if passed (though supabase-js handles Date objects usually)
-
         const { error } = await supabase
             .from('schedules')
             .update(updateData)
@@ -139,11 +136,25 @@ const backendRepository: SchedulesRepo = {
             .update({ lastVisitedAt: new Date().toISOString() })
             .eq('id', id);
     },
+
+    // Custom method for Syncing Local -> Cloud
+    async sync(event: ScheduleEvent): Promise<void> {
+        const payload = {
+            ...event,
+            date: event.date.toISOString(),
+            endDate: event.endDate ? event.endDate.toISOString() : null,
+            createdAt: event.createdAt.toISOString(),
+            updatedAt: event.updatedAt.toISOString(),
+            lastVisitedAt: event.lastVisitedAt ? event.lastVisitedAt.toISOString() : null
+        };
+        const { error } = await supabase.from('schedules').upsert(payload);
+        if (error) throw error;
+    }
 };
 
 const getRepo = (): SchedulesRepo => {
     const pref = localStorage.getItem('arcnote_storage_preference');
-    return pref === 'backend' ? backendRepository : localRepository;
+    return pref === 'backend' ? backendSchedulesRepository : localRepository;
 };
 
 export const schedulesRepository: SchedulesRepo = {

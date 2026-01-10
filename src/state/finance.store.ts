@@ -13,7 +13,7 @@ import type {
     UpdateAccountInput,
     FinanceSummary
 } from '../types/finance';
-import { financeRepository } from '../data/finance.repository';
+import { financeRepository, backendFinanceRepository } from '../data/finance.repository';
 
 interface FinanceState {
     // Accounts State
@@ -46,6 +46,7 @@ interface FinanceState {
     deleteTransaction: (id: string) => Promise<void>;
     markTransactionAsVisited: (id: string) => Promise<void>;
     filterByType: (type: 'income' | 'expense' | 'all') => void;
+    syncAccountToCloud: (id: string) => Promise<void>;
 }
 
 export const useFinanceStore = create<FinanceState>((set, get) => ({
@@ -296,5 +297,16 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
         } catch (error) {
             set({ error: 'Failed to filter transactions', isLoading: false });
         }
+    },
+
+    syncAccountToCloud: async (id: string) => {
+        const account = get().accounts.find(a => a.id === id);
+        if (!account) throw new Error("Account not found locally");
+
+        // Fetch all transactions for this account locally
+        const transactions = await financeRepository.getAll(id);
+
+        // Push to cloud
+        await backendFinanceRepository.syncAccount(account, transactions);
     },
 }));

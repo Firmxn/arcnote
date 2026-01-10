@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { usePagesStore } from '../../state/pages.store';
 import { Card } from '../ui/Card';
+import { ContextMenu } from '../ui/ContextMenu';
 import type { Page } from '../../types/page';
 import dayjs from 'dayjs';
 
@@ -9,8 +10,9 @@ interface PagesListPageProps {
 }
 
 export const PagesListPage: React.FC<PagesListPageProps> = ({ onPageSelect }) => {
-    const { pages, setCurrentPage } = usePagesStore();
+    const { pages, setCurrentPage, syncToCloud } = usePagesStore();
     const [expandedPages, setExpandedPages] = useState<Set<string>>(new Set());
+    const [contextMenu, setContextMenu] = useState<{ x: number; y: number; pageId: string } | null>(null);
 
     // Filter root pages (pages without parentId)
     const rootPages = pages.filter(p => !p.parentId);
@@ -91,6 +93,10 @@ export const PagesListPage: React.FC<PagesListPageProps> = ({ onPageSelect }) =>
                     description={page.description || 'No description'}
                     type="page"
                     onClick={() => handlePageClick(page, hasSubPages)}
+                    onContextMenu={(e) => {
+                        e.preventDefault();
+                        setContextMenu({ x: e.pageX, y: e.pageY, pageId: page.id });
+                    }}
                     updatedAt={dayjs(page.updatedAt || page.createdAt).format('MMM D, YYYY')}
                     createdAt={dayjs(page.createdAt).format('MMM D, YYYY')}
                 />
@@ -140,6 +146,34 @@ export const PagesListPage: React.FC<PagesListPageProps> = ({ onPageSelect }) =>
                     </>
                 )}
             </div>
+
+            {contextMenu && (
+                <ContextMenu
+                    x={contextMenu.x}
+                    y={contextMenu.y}
+                    onClose={() => setContextMenu(null)}
+                    items={[
+                        {
+                            label: 'Sync to Online',
+                            onClick: async () => {
+                                if (window.confirm('Upload this page to Cloud Storage? Current content will overwrite cloud version.')) {
+                                    try {
+                                        await syncToCloud(contextMenu.pageId);
+                                        alert('Synced successfully!');
+                                    } catch (e: any) {
+                                        alert('Sync failed: ' + e.message);
+                                    }
+                                }
+                            },
+                            icon: (
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                </svg>
+                            )
+                        }
+                    ]}
+                />
+            )}
         </div>
     );
 };

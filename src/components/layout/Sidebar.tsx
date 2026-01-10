@@ -309,7 +309,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onPageSelect, onSettingsClick,
                                 }
                             }}
                             className={`
-                                rounded-md transition-all flex items-center justify-center text-red-400 hover:text-red-500
+                                rounded-md transition-all flex items-center justify-center text-neutral 
                                 ${isCollapsed ? 'w-10 h-10' : 'p-1.5'}
                                 hover:bg-white/5 dark:hover:bg-primary/50 opacity-80 hover:opacity-100
                             `}

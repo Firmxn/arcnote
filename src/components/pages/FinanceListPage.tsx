@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useFinanceStore } from '../../state/finance.store';
 import { Card } from '../ui/Card';
 import { Modal } from '../ui/Modal';
+import { ContextMenu } from '../ui/ContextMenu';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { Input } from '../ui/Input';
 import { useNavigate } from 'react-router-dom';
@@ -26,7 +27,8 @@ export const FinanceListPage: React.FC = () => {
         deleteAccount,
         isLoading,
         balances,
-        loadBalances
+        loadBalances,
+        syncAccountToCloud
     } = useFinanceStore();
     const navigate = useNavigate();
 
@@ -40,6 +42,7 @@ export const FinanceListPage: React.FC = () => {
     const [editTitle, setEditTitle] = useState('');
     const [editDesc, setEditDesc] = useState('');
     const [accountToDelete, setAccountToDelete] = useState<FinanceAccount | null>(null);
+    const [contextMenu, setContextMenu] = useState<{ x: number; y: number; accountId: string } | null>(null);
 
     useEffect(() => {
         loadAccounts();
@@ -165,6 +168,10 @@ export const FinanceListPage: React.FC = () => {
                                             }
                                             updatedAt={dayjs(account.updatedAt).fromNow()}
                                             createdAt={dayjs(account.createdAt).format('MMM D, YYYY')}
+                                            onContextMenu={(e) => {
+                                                e.preventDefault();
+                                                setContextMenu({ x: e.pageX, y: e.pageY, accountId: account.id });
+                                            }}
                                         />
                                     </div>
 
@@ -306,6 +313,34 @@ export const FinanceListPage: React.FC = () => {
                 onConfirm={confirmDelete}
                 onCancel={() => setAccountToDelete(null)}
             />
+            {/* Context Menu */}
+            {contextMenu && (
+                <ContextMenu
+                    x={contextMenu.x}
+                    y={contextMenu.y}
+                    onClose={() => setContextMenu(null)}
+                    items={[
+                        {
+                            label: 'Sync Tracker to Cloud',
+                            onClick: async () => {
+                                if (window.confirm('Sync this tracker and ALL its transactions to Cloud? This will overwrite existing cloud data.')) {
+                                    try {
+                                        await syncAccountToCloud(contextMenu.accountId);
+                                        alert('Tracker synced successfully!');
+                                    } catch (e: any) {
+                                        alert('Sync failed: ' + e.message);
+                                    }
+                                }
+                            },
+                            icon: (
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                </svg>
+                            )
+                        }
+                    ]}
+                />
+            )}
         </div>
     );
 };

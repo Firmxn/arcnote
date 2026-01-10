@@ -74,7 +74,10 @@ const localRepository: PagesRepo = {
 /**
  * Backend Implementation (Supabase)
  */
-const backendRepository: PagesRepo = {
+/**
+ * Backend Implementation (Supabase)
+ */
+export const backendPagesRepository = {
     async getAll(): Promise<Page[]> {
         const { data, error } = await supabase
             .from('pages')
@@ -173,6 +176,23 @@ const backendRepository: PagesRepo = {
             .update({ lastVisitedAt: new Date().toISOString() })
             .eq('id', id);
     },
+
+    // Custom method for Syncing Local -> Cloud
+    async sync(page: Page): Promise<void> {
+        const payload = {
+            ...page,
+            createdAt: page.createdAt.toISOString(),
+            updatedAt: page.updatedAt.toISOString(),
+            lastVisitedAt: page.lastVisitedAt?.toISOString()
+        };
+
+        // Upsert allows inserting with existing ID
+        const { error } = await supabase
+            .from('pages')
+            .upsert(payload);
+
+        if (error) throw error;
+    }
 };
 
 /**
@@ -180,7 +200,7 @@ const backendRepository: PagesRepo = {
  */
 const getRepo = (): PagesRepo => {
     const pref = localStorage.getItem('arcnote_storage_preference');
-    return pref === 'backend' ? backendRepository : localRepository;
+    return pref === 'backend' ? backendPagesRepository : localRepository;
 };
 
 /**

@@ -7,20 +7,23 @@ import { MonthYearPicker } from '../ui/MonthYearPicker';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
+import { ContextMenu } from '../ui/ContextMenu';
 
 interface SchedulePageProps {
     initialEventId?: string | null;
 }
 
 export const SchedulePage: React.FC<SchedulePageProps> = ({ initialEventId }) => {
-    const { events, loadEvents, createEvent, markEventAsVisited } = useSchedulesStore();
+    const { events, loadEvents, createEvent, markEventAsVisited, syncToCloud } = useSchedulesStore();
     const [currentDate, setCurrentDate] = useState(dayjs());
     const [selectedEventId, setSelectedEventId] = useState<string | null>(initialEventId || null);
     const [draftEvent, setDraftEvent] = useState<Partial<ScheduleEvent> | null>(null);
     const [showMonthPicker, setShowMonthPicker] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
     const [confirmMessage, setConfirmMessage] = useState('');
+
     const [pendingDate, setPendingDate] = useState<dayjs.Dayjs | null>(null);
+    const [contextMenu, setContextMenu] = useState<{ x: number; y: number; eventId: string } | null>(null);
 
     useEffect(() => {
         if (initialEventId) {
@@ -207,6 +210,11 @@ export const SchedulePage: React.FC<SchedulePageProps> = ({ initialEventId }) =>
                                             <Badge
                                                 key={event.id}
                                                 onClick={(e: React.MouseEvent) => handleEventClick(e, event.id)}
+                                                onContextMenu={(e: React.MouseEvent) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    setContextMenu({ x: e.pageX, y: e.pageY, eventId: event.id });
+                                                }}
                                                 variant="soft"
                                                 size="sm"
                                                 color={
@@ -255,6 +263,34 @@ export const SchedulePage: React.FC<SchedulePageProps> = ({ initialEventId }) =>
                 onConfirm={handleConfirm}
                 onCancel={handleCancelConfirm}
             />
+            {/* Context Menu */}
+            {contextMenu && (
+                <ContextMenu
+                    x={contextMenu.x}
+                    y={contextMenu.y}
+                    onClose={() => setContextMenu(null)}
+                    items={[
+                        {
+                            label: 'Upload Event to Cloud',
+                            onClick: async () => {
+                                if (window.confirm('Sync this event to Cloud?')) {
+                                    try {
+                                        await syncToCloud(contextMenu.eventId);
+                                        alert('Event synced successfully!');
+                                    } catch (e: any) {
+                                        alert('Sync failed: ' + e.message);
+                                    }
+                                }
+                            },
+                            icon: (
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                </svg>
+                            )
+                        }
+                    ]}
+                />
+            )}
         </div>
     );
 };
