@@ -45,14 +45,8 @@ export default {
                 input.onchange = async () => {
                     const file = input.files?.[0];
                     if (file) {
-                        const reader = new FileReader();
-                        reader.onload = (e) => {
-                            const result = e.target?.result as string;
-                            if (result) {
-                                editor.chain().focus().setImage({ src: result }).run();
-                            }
-                        };
-                        reader.readAsDataURL(file);
+                        const { handleImagePlacement } = await import('../utils/image-handler');
+                        await handleImagePlacement(file, editor);
                     }
                 };
                 input.click();

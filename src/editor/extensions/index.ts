@@ -11,6 +11,7 @@ import { TextStyle } from '@tiptap/extension-text-style';
 import Image from '@tiptap/extension-image';
 import { SlashCommand } from './SlashCommand';
 import suggestionUtils from './SuggestionList';
+import { ImageUpload } from './ImageUpload';
 
 export const extensions = [
     StarterKit.configure({
@@ -43,4 +44,5 @@ export const extensions = [
     SlashCommand.configure({
         suggestion: suggestionUtils,
     }),
+    ImageUpload,
 ];
