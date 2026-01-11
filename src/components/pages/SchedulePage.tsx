@@ -163,7 +163,7 @@ export const SchedulePage: React.FC<SchedulePageProps> = ({ initialEventId }) =>
             ) : (
                 <>
                     {/* Desktop Calendar View - Header Toolbar */}
-                    <div className="flex items-center justify-between px-4 md:px-8 py-3 md:py-4 border-b border-secondary/20 bg-neutral/95 backdrop-blur-sm sticky top-0 z-10">
+                    <div className="flex items-center justify-between px-4 md:px-8 py-[1.6vh] md:py-[1.65vh] border-b border-secondary/20 bg-neutral/95 backdrop-blur-sm sticky top-0 z-10">
                         <div className="flex items-center gap-4">
                             <div className="relative">
                                 <Button
@@ -252,7 +252,8 @@ export const SchedulePage: React.FC<SchedulePageProps> = ({ initialEventId }) =>
                                                             event.type === 'Meeting' ? 'info' :
                                                                 event.type === 'Task' ? 'success' :
                                                                     event.type === 'Deadlines' ? 'error' :
-                                                                        'neutral'
+                                                                        event.type === 'Personal' ? 'purple' :
+                                                                            'neutral'
                                                         }
                                                         className="w-full justify-start truncate mb-1"
                                                     >

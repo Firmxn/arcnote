@@ -10,7 +10,7 @@ import { usePagesStore } from '../../state/pages.store';
 import { extensions } from '../../editor/extensions';
 import { debounce } from '../../utils/debounce';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
-import { Button } from '../ui/Button';
+import { ActionGroup, ActionButton } from '../ui/ActionGroup';
 
 interface PageEditorProps {
     page: Page;
@@ -22,7 +22,7 @@ export const PageEditor: React.FC<PageEditorProps> = ({ page }) => {
     const [description, setDescription] = useState(page.description || '');
     const [isEditingTitle, setIsEditingTitle] = useState(false);
     const [isEditingDescription, setIsEditingDescription] = useState(false);
-    const [showMenu, setShowMenu] = useState(false);
+
 
     // State untuk Dialog Delete
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -79,12 +79,7 @@ export const PageEditor: React.FC<PageEditorProps> = ({ page }) => {
         }
     };
 
-    // Handler saat tombol delete di menu diklik
-    const handleDeleteClick = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        setShowMenu(false); // Tutup menu dropdown
-        setIsDeleteDialogOpen(true); // Buka dialog konfirmasi
-    };
+
 
     // Handler konfirmasi delete
     const handleConfirmDelete = async () => {
@@ -107,7 +102,7 @@ export const PageEditor: React.FC<PageEditorProps> = ({ page }) => {
 
             {/* Top Bar */}
             <div className="sticky top-0 z-10 bg-neutral/95 backdrop-blur-sm border-b border-secondary/20 transition-colors duration-200">
-                <div className="max-w-6xl mx-auto px-8 py-3 flex items-center justify-between">
+                <div className="max-w-6xl mx-auto px-8 py-[2.7vh] md:py-[1.6vh] flex items-center justify-between">
                     <div className="text-xs font-medium text-text-neutral opacity-70">
                         {new Date(page.updatedAt).toLocaleDateString('en-US', {
                             month: 'short',
@@ -117,34 +112,20 @@ export const PageEditor: React.FC<PageEditorProps> = ({ page }) => {
                     </div>
 
                     <div className="relative">
-                        <Button
-                            onClick={() => setShowMenu(!showMenu)}
-                            variant="ghost"
-                            size="icon"
-                            className="h-auto w-auto p-1 text-text-neutral/70 hover:text-text-neutral"
-                        >
-                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                            </svg>
-                        </Button>
-
-                        {showMenu && (
-                            <>
-                                <div
-                                    className="fixed inset-0 z-10"
-                                    onClick={() => setShowMenu(false)}
-                                />
-                                <div className="absolute right-0 mt-1 w-40 bg-white border border-secondary/20 rounded shadow-lg py-1 z-20">
-                                    <Button
-                                        onClick={handleDeleteClick}
-                                        variant="ghost"
-                                        className="w-full justify-start px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-none h-auto"
-                                    >
-                                        Delete
-                                    </Button>
-                                </div>
-                            </>
-                        )}
+                        <ActionGroup>
+                            <ActionButton
+                                icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>}
+                                variant="primary" 
+                                onClick={() => { }} // Future Archive feature
+                                title="Archive"
+                            />
+                            <ActionButton
+                                icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>}
+                                variant="danger"
+                                onClick={() => setIsDeleteDialogOpen(true)}
+                                title="Delete Page"
+                            />
+                        </ActionGroup>
                     </div>
                 </div>
             </div>

@@ -9,6 +9,7 @@ import { useSchedulesStore } from '../../state/schedules.store';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
+import { Input } from '../ui/Input';
 
 interface EventDetailPanelProps {
     event: ScheduleEvent;
@@ -205,13 +206,17 @@ export const EventDetailPanel: React.FC<EventDetailPanelProps> = ({ event, onClo
     return (
         <div className="flex flex-col h-full bg-neutral shadow-2xl border-l border-secondary/20 w-full max-w-full md:max-w-2xl transform transition-transform duration-300 ease-in-out">
             {/* Header */}
-            <div className="flex items-center justify-between px-3 md:px-6 py-3 md:py-4 h-12 md:h-14 border-b border-secondary/20">
-                <div className="flex items-center gap-2 text-text-neutral/70 text-sm">
+            <div className="flex items-center justify-between px-3 md:px-6 py-[2.1vh] md:py-4 h-auto md:h-14 border-b border-secondary/20">
+                <div className="flex items-center gap-3 text-text-neutral/70 text-sm">
                     <Button onClick={onClose} variant="ghost" size="icon" className="w-auto h-auto p-1">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" /></svg>
                     </Button>
-                    <span>{dayjs(event.date).format('MMMM D, YYYY')}</span>
-                    {isDraft && <Badge color="info" variant="soft" size="sm">New Event</Badge>}
+                    <div className="flex flex-col md:flex-row md:items-center gap-0.5 md:gap-3">
+                        <span className="font-medium text-text-neutral dark:text-text-primary">
+                            {dayjs(event.date).format('MMMM D, YYYY')}
+                        </span>
+                        {isDraft && <Badge color="info" variant="soft" size="sm" className="w-fit">New Event</Badge>}
+                    </div>
                 </div>
                 <div className="flex items-center gap-2">
                     {isDraft ? (
@@ -251,10 +256,10 @@ export const EventDetailPanel: React.FC<EventDetailPanelProps> = ({ event, onClo
                     autoFocus={isDraft}
                 />
 
-                <div className="space-y-1 mb-8">
+                <div className="space-y-5 mb-8">
                     {/* Fixed Property: Date */}
-                    <div className="flex items-center py-1 group relative z-30">
-                        <div className="w-32 flex items-center text-text-neutral/70 text-sm">
+                    <div className="flex items-start py-1 group relative z-30">
+                        <div className="w-32 shrink-0 flex items-center text-text-neutral/70 text-sm h-6">
                             <svg className="w-4 h-4 mr-2 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                             Date
                         </div>
@@ -274,8 +279,8 @@ export const EventDetailPanel: React.FC<EventDetailPanelProps> = ({ event, onClo
                     </div>
 
                     {/* Property: Time */}
-                    <div className="flex items-center py-1 group relative z-20 h-8">
-                        <div className="w-32 flex items-center text-text-neutral/70 text-sm">
+                    <div className="flex items-start py-1 group relative z-20">
+                        <div className="w-32 shrink-0 flex items-center text-text-neutral/70 text-sm h-7">
                             <svg className="w-4 h-4 mr-2 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                             Time
                         </div>
@@ -288,7 +293,7 @@ export const EventDetailPanel: React.FC<EventDetailPanelProps> = ({ event, onClo
                                         setShowStartTimePicker(!showStartTimePicker);
                                         setShowEndTimePicker(false);
                                     }}
-                                    className="text-sm text-text-neutral hover:bg-black/5 dark:hover:bg-white/10 px-2 py-0.5 rounded transition-colors border border-transparent hover:border-secondary/20"
+                                    className="text-sm text-text-neutral hover:bg-black/5 dark:hover:bg-white/10 px-2 py-0.5 rounded transition-colors border border-transparent hover:border-secondary/20 -ml-2"
                                 >
                                     {format12Hour(startTime)}
                                 </button>
@@ -327,26 +332,26 @@ export const EventDetailPanel: React.FC<EventDetailPanelProps> = ({ event, onClo
                     </div>
 
                     {/* Property: Attendees */}
-                    <div className="flex items-center py-1 group z-10">
-                        <div className="w-32 flex items-center text-text-neutral/70 text-sm">
+                    <div className="flex items-start py-1 group z-10">
+                        <div className="w-32 shrink-0 flex items-center text-text-neutral/70 text-sm h-6">
                             <svg className="w-4 h-4 mr-2 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
                             Attendees
                         </div>
                         <div className="flex-1">
-                            <input
-                                type="text"
+                            <Input
+                                variant="ghost"
                                 value={attendees}
                                 onChange={(e) => setAttendees(e.target.value)}
                                 onBlur={handleAttendeesBlur}
                                 placeholder="Empty"
-                                className="w-full bg-transparent text-sm focus:outline-none focus:bg-primary/5 rounded px-1 -ml-1 text-text-neutral"
+                                className="-ml-1"
                             />
                         </div>
                     </div>
 
                     {/* Property: Type */}
-                    <div className="flex items-center py-1 group">
-                        <div className="w-32 flex items-center text-text-neutral/70 text-sm">
+                    <div className="flex items-start py-1 group">
+                        <div className="w-32 shrink-0 flex items-center text-text-neutral/70 text-sm h-[34px]">
                             <svg className="w-4 h-4 mr-2 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
                             Type
                         </div>
@@ -373,12 +378,12 @@ export const EventDetailPanel: React.FC<EventDetailPanelProps> = ({ event, onClo
                                 <span className="truncate">{key}</span>
                             </div>
                             <div className="flex-1 flex items-center gap-2">
-                                <input
-                                    type="text"
+                                <Input
+                                    variant="ghost"
                                     value={value}
                                     onChange={(e) => handleCustomPropertyChange(key, e.target.value)}
                                     placeholder="Empty"
-                                    className="flex-1 bg-transparent text-sm focus:outline-none focus:bg-primary/5 rounded px-1 -ml-1 text-text-neutral"
+                                    className="-ml-1"
                                 />
                                 <Button
                                     onClick={() => handleDeleteProperty(key)}
@@ -395,11 +400,11 @@ export const EventDetailPanel: React.FC<EventDetailPanelProps> = ({ event, onClo
 
                     {/* Add Property Button/Input */}
                     {isAddingProperty ? (
-                        <div className="flex items-center py-1 mt-2">
-                            <div className="w-32 flex items-center text-text-neutral/70 text-sm">
-                                <svg className="w-4 h-4 mr-2 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
-                                <input
-                                    type="text"
+                        <div className="flex items-start py-1 group mt-2">
+                            <div className="w-32 shrink-0 flex items-center text-text-neutral/70 text-sm h-6">
+                                <svg className="w-4 h-4 mr-2 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" /></svg>
+                                <Input
+                                    variant="ghost"
                                     value={newPropertyName}
                                     onChange={(e) => setNewPropertyName(e.target.value)}
                                     onKeyDown={(e) => {
@@ -411,21 +416,20 @@ export const EventDetailPanel: React.FC<EventDetailPanelProps> = ({ event, onClo
                                         else { setIsAddingProperty(false); setNewPropertyName(''); }
                                     }}
                                     placeholder="Property name"
-                                    className="flex-1 bg-transparent text-sm focus:outline-none focus:bg-primary/5 rounded px-1 text-text-neutral"
+                                    className="-ml-1 font-medium"
                                     autoFocus
                                 />
                             </div>
                         </div>
                     ) : (
-                        <div className="flex items-center py-1 mt-2">
-                            <Button
+                        <div className="flex items-start py-1 group mt-2">
+                            <button
                                 onClick={() => setIsAddingProperty(true)}
-                                variant="ghost"
-                                className="text-text-neutral/50 hover:text-text-neutral text-sm h-auto p-0 hover:bg-transparent"
-                                leftIcon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>}
+                                className="w-32 shrink-0 flex items-center text-text-neutral/50 hover:text-accent text-sm h-6 transition-colors"
                             >
+                                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                                 Add a property
-                            </Button>
+                            </button>
                         </div>
                     )}
                 </div>

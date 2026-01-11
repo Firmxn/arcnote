@@ -4,6 +4,8 @@ import { useSchedulesStore } from '../../state/schedules.store';
 import { useFinanceStore } from '../../state/finance.store';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
+import { ActionGroup, ActionButton } from '../ui/ActionGroup';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
 import type { Page } from '../../types/page';
 import type { ScheduleEvent } from '../../types/schedule';
 import type { FinanceAccount } from '../../types/finance';
@@ -39,11 +41,12 @@ export const HomePage: React.FC<HomePageProps> = ({
     onFinanceClick,
     onNewPageClick
 }) => {
-    const { pages } = usePagesStore();
-    const { events, markEventAsVisited } = useSchedulesStore();
-    const { accounts, loadAccounts, balances, loadBalances, markAccountAsVisited } = useFinanceStore();
+    const { pages, deletePage } = usePagesStore();
+    const { events, markEventAsVisited, deleteEvent } = useSchedulesStore();
+    const { accounts, loadAccounts, balances, loadBalances, markAccountAsVisited, deleteAccount } = useFinanceStore();
 
     const [recentItems, setRecentItems] = useState<RecentItem[]>([]);
+    const [itemToDelete, setItemToDelete] = useState<RecentItem | null>(null);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const [canScrollLeft, setCanScrollLeft] = useState(false);
     const [canScrollRight, setCanScrollRight] = useState(false);
@@ -140,7 +143,24 @@ export const HomePage: React.FC<HomePageProps> = ({
             .slice(0, 12);
 
         setRecentItems(sorted);
-    }, [pages, events, accounts]); // Added accounts dependency
+    }, [pages, events, accounts]);
+
+    const handleConfirmDelete = async () => {
+        if (!itemToDelete) return;
+
+        try {
+            if (itemToDelete.type === 'page') {
+                await deletePage(itemToDelete.id);
+            } else if (itemToDelete.type === 'schedule') {
+                await deleteEvent(itemToDelete.id);
+            } else if (itemToDelete.type === 'finance') {
+                await deleteAccount(itemToDelete.id);
+            }
+            setItemToDelete(null);
+        } catch (error) {
+            console.error('Failed to delete item:', error);
+        }
+    };
 
     // Reset scroll when items change
     useEffect(() => {
@@ -185,10 +205,10 @@ export const HomePage: React.FC<HomePageProps> = ({
     };
 
     return (
-        <div className="h-screen w-full overflow-y-auto bg-neutral dark:bg-primary">
-            <div className="max-w-7xl mx-auto px-4 md:px-8 py-6 md:py-12">
+        <div className="h-screen w-full overflow-y-auto bg-neutral dark:bg-primary flex flex-col">
+            <div className="max-w-7xl w-full mx-auto px-4 md:px-8 py-6 md:py-12 flex-1 flex flex-col">
                 {/* Header */}
-                <div className="mb-6 md:mb-8">
+                <div className="mb-6 md:mb-8 shrink-0">
                     <h1 className="text-2xl md:text-3xl font-bold text-text-neutral dark:text-text-primary mb-2">
                         Welcome back! 👋
                     </h1>
@@ -199,7 +219,7 @@ export const HomePage: React.FC<HomePageProps> = ({
 
                 {/* Recent Items Grid */}
                 {recentItems.length === 0 ? (
-                    <div className="text-center py-20">
+                    <div className="flex-1 flex flex-col items-center justify-center text-center pb-20">
                         <div className="text-6xl mb-4">📝</div>
                         <h3 className="text-xl font-semibold text-text-neutral dark:text-text-primary mb-2">
                             Nothing here yet
@@ -261,7 +281,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                                 }}
                             >
                                 {recentItems.map((item) => (
-                                    <div key={`${item.type}-${item.id}`} className="min-w-[240px] w-[240px] md:min-w-[260px] md:w-[260px] snap-start first:ml-2 md:first:ml-4 last:mr-2 md:last:mr-4">
+                                    <div key={`${item.type}-${item.id}`} className="min-w-[240px] w-[240px] md:min-w-[260px] md:w-[260px] snap-start first:ml-2 md:first:ml-4 last:mr-2 md:last:mr-4 relative group">
                                         <Card
                                             icon={item.icon}
                                             title={item.title}
@@ -286,12 +306,39 @@ export const HomePage: React.FC<HomePageProps> = ({
                                             updatedAt={getRelativeTime(item.date)}
                                             createdAt={getRelativeTime((item.data as any).createdAt)}
                                         />
+
+                                        {/* Action Overlay */}
+                                        <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                            <ActionGroup>
+                                                <ActionButton
+                                                    icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>}
+                                                    onClick={(e) => { e.stopPropagation(); /* Archive Feature */ }}
+                                                    title="Archive"
+                                                />
+                                                <ActionButton
+                                                    icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>}
+                                                    variant="danger"
+                                                    onClick={(e) => { e.stopPropagation(); setItemToDelete(item); }}
+                                                    title="Delete"
+                                                />
+                                            </ActionGroup>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
                         </div>
                     </>
                 )}
+
+                <ConfirmDialog
+                    isOpen={!!itemToDelete}
+                    title={`Delete ${itemToDelete?.type === 'finance' ? 'Tracker' : itemToDelete?.type === 'schedule' ? 'Event' : 'Page'}`}
+                    message={`Are you sure you want to delete "${itemToDelete?.title}"? This action cannot be undone.`}
+                    confirmText="Delete"
+                    danger
+                    onConfirm={handleConfirmDelete}
+                    onCancel={() => setItemToDelete(null)}
+                />
 
                 {/* Quick Actions */}
                 {recentItems.length > 0 && (

@@ -1,6 +1,7 @@
 import React, { useMemo, useEffect, useRef } from 'react';
 import dayjs from 'dayjs';
 import type { ScheduleEvent } from '../../types/schedule';
+import { EventCard } from '../ui/EventCard';
 
 interface ScheduleMobileViewProps {
     selectedDate: dayjs.Dayjs;
@@ -117,16 +118,7 @@ export const ScheduleMobileView: React.FC<ScheduleMobileViewProps> = ({
     // Filter events for selected date
     const dayEvents = events.filter(e => dayjs(e.date).isSame(selectedDate, 'day'));
 
-    // Generate time slots (00:00 - 23:00)
-    const timeSlots = Array.from({ length: 24 }, (_, i) => i);
 
-    // Helper to get events at specific hour
-    const getEventsAtHour = (hour: number) => {
-        return dayEvents.filter(e => {
-            const eventHour = dayjs(e.date).hour();
-            return eventHour === hour;
-        });
-    };
 
     return (
         <div className="flex-1 flex flex-col overflow-hidden">
@@ -188,9 +180,9 @@ export const ScheduleMobileView: React.FC<ScheduleMobileViewProps> = ({
                                     className={`
                                         w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium transition-colors
                                         ${isSelected
-                                            ? 'bg-accent text-white'
+                                            ? 'bg-accent text-white shadow-lg shadow-accent/30'
                                             : isToday
-                                                ? 'border-2 border-primary dark:border-accent text-primary dark:text-accent font-bold'
+                                                ? 'bg-primary dark:bg-secondary text-white shadow-md shadow-primary/20 dark:shadow-secondary/20'
                                                 : 'text-text-neutral dark:text-text-secondary hover:bg-neutral-100 dark:hover:bg-white/5'
                                         }
                                     `}
@@ -203,82 +195,47 @@ export const ScheduleMobileView: React.FC<ScheduleMobileViewProps> = ({
                 </div>
             </div>
 
-            {/* Timeline View */}
-            <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col">
+            {/* Timeline View - Event List with Top/Bottom Time Labels */}
+            <div className="flex-1 overflow-y-auto bg-neutral px-4 py-6 flex flex-col">
                 {dayEvents.length === 0 ? (
-                    <div className="flex-1 flex items-center justify-center">
-                        <div className="text-center">
-                            <svg className="w-16 h-16 mx-auto mb-4 text-text-neutral/30 dark:text-text-secondary/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                            <p className="text-text-neutral/60 dark:text-text-secondary text-sm">
-                                No events for this day
-                            </p>
+                    <div className="flex-1 flex flex-col items-center justify-center text-center pb-20">
+                        <div className="text-6xl mb-4">
+                            🗓️
                         </div>
+                        <h3 className="text-xl font-semibold text-text-neutral dark:text-text-primary mb-2">
+                            No events for this day
+                        </h3>
+                        <p className="text-text-neutral/60 dark:text-text-secondary cursor-pointer" onClick={() => onDateClick(selectedDate)}>
+                            Tap + to add an event
+                        </p>
                     </div>
                 ) : (
-                    <div className="space-y-4">
-                        {timeSlots.map((hour) => {
-                            const hourEvents = getEventsAtHour(hour);
-                            if (hourEvents.length === 0) return null;
+                    <div className="space-y-6">
+                        {dayEvents.map((event) => {
+                            const start = dayjs(event.date);
+                            const end = event.endDate ? dayjs(event.endDate) : start.add(1, 'hour');
 
                             return (
-                                <div key={hour} className="flex gap-3">
-                                    {/* Time Label */}
-                                    <div className="w-16 shrink-0 text-sm text-text-neutral/60 dark:text-text-secondary pt-1">
-                                        {String(hour).padStart(2, '0')}:00
+                                <div key={event.id} className="flex gap-4 border-b border-text-neutral/10 dark:border-white/5 pb-6 last:border-0 last:pb-0">
+                                    {/* Left Side: Start & End Time */}
+                                    <div className="w-16 shrink-0 flex flex-col justify-between py-1 text-right">
+                                        <span className="text-xs font-medium text-text-neutral/60 dark:text-text-secondary/70 leading-tight">
+                                            {start.format('h:mm A')}
+                                        </span>
+                                        <span className="text-xs font-medium text-text-neutral/60 dark:text-text-secondary/70 leading-tight">
+                                            {end.format('h:mm A')}
+                                        </span>
                                     </div>
 
-                                    {/* Events */}
-                                    <div className="flex-1 space-y-2">
-                                        {hourEvents.map((event) => (
-                                            <button
-                                                key={event.id}
-                                                onClick={() => onEventClick(event.id)}
-                                                className={`
-                                                    w-full text-left p-3 rounded-xl transition-all
-                                                    ${event.type === 'Meeting'
-                                                        ? 'bg-blue-500/10 dark:bg-blue-500/20 border-l-4 border-blue-500'
-                                                        : event.type === 'Task'
-                                                            ? 'bg-green-500/10 dark:bg-green-500/20 border-l-4 border-green-500'
-                                                            : 'bg-red-500/10 dark:bg-red-500/20 border-l-4 border-red-500'
-                                                    }
-                                                `}
-                                            >
-                                                <div className="flex items-start justify-between gap-2">
-                                                    <div className="flex-1">
-                                                        <p className="text-xs text-text-neutral/60 dark:text-text-secondary mb-1">
-                                                            {dayjs(event.date).format('HH:mm')}
-                                                        </p>
-                                                        <p className="font-medium text-text-neutral dark:text-text-primary">
-                                                            {event.title || 'Untitled Event'}
-                                                        </p>
-                                                        {event.content && (
-                                                            <p className="text-sm text-text-neutral/60 dark:text-text-secondary mt-1 line-clamp-2">
-                                                                {event.content}
-                                                            </p>
-                                                        )}
-                                                    </div>
-                                                    {event.attendees && event.attendees.length > 0 && (
-                                                        <div className="flex -space-x-2">
-                                                            {event.attendees.slice(0, 3).map((attendee, idx) => (
-                                                                <div
-                                                                    key={idx}
-                                                                    className="w-6 h-6 rounded-full bg-primary dark:bg-accent flex items-center justify-center text-white text-xs font-medium border-2 border-white dark:border-gray-800"
-                                                                >
-                                                                    {attendee.charAt(0).toUpperCase()}
-                                                                </div>
-                                                            ))}
-                                                            {event.attendees.length > 3 && (
-                                                                <div className="w-6 h-6 rounded-full bg-gray-400 flex items-center justify-center text-white text-xs font-medium border-2 border-white dark:border-gray-800">
-                                                                    +{event.attendees.length - 3}
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </button>
-                                        ))}
+                                    {/* Right Side: Event Card */}
+                                    <div className="flex-1 relative">
+                                        <EventCard
+                                            type={(event.type === 'Meeting' || event.type === 'Task' || event.type === 'Personal') ? event.type : 'Deadlines'}
+                                            time={event.date}
+                                            title={event.title}
+                                            onClick={() => onEventClick(event.id)}
+                                            className="min-h-[80px]"
+                                        />
                                     </div>
                                 </div>
                             );

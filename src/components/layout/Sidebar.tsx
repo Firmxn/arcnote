@@ -3,7 +3,6 @@ import { usePagesStore } from '../../state/pages.store';
 import { useTheme } from '../../hooks/useTheme';
 import { SidebarItem } from './SidebarItem';
 import { PagesSearchModal } from '../modals/PagesSearchModal';
-import { Input } from '../ui/Input';
 import { useAuthStore } from '../../state/auth.store';
 
 interface SidebarProps {
@@ -19,10 +18,8 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ onPageSelect, onSettingsClick, onScheduleClick, onFinanceClick, onHomeClick, onPagesClick, currentView }) => {
     const { user, signOut } = useAuthStore();
     const { pages, createPage, currentPage, setCurrentPage } = usePagesStore();
-    const [isCreating, setIsCreating] = useState(false);
     const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
-    const [newPageTitle, setNewPageTitle] = useState('');
-    const [isCollapsed, setIsCollapsed] = useState(false);
+    const [isCollapsed, setIsCollapsed] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 768 : false);
     const { theme, toggleTheme } = useTheme();
 
     // Auto-collapse sidebar di mobile saat pertama kali load
@@ -40,15 +37,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ onPageSelect, onSettingsClick,
     // Filter root pages (pages without parentId)
     const rootPages = pages.filter(p => !p.parentId);
 
-    const handleCreatePage = async (e?: React.FormEvent) => {
-        if (e) e.preventDefault();
-        if (!newPageTitle.trim()) return;
-
+    const handleCreatePage = async () => {
         try {
-            const page = await createPage(newPageTitle);
+            const page = await createPage('Untitled');
             setCurrentPage(page);
-            setNewPageTitle('');
-            setIsCreating(false);
             if (onPageSelect) {
                 onPageSelect(page.id);
             }
@@ -198,7 +190,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onPageSelect, onSettingsClick,
                                     Pages
                                 </button>
                                 <button
-                                    onClick={() => setIsCreating(true)}
+                                    onClick={handleCreatePage}
                                     className="text-text-primary dark:text-text-secondary hover:text-white dark:hover:text-white transition-opacity opacity-80 hover:opacity-100"
                                     title="New page"
                                 >
@@ -208,28 +200,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ onPageSelect, onSettingsClick,
                                 </button>
                             </div>
 
-                            {/* New Page Form (Root) */}
-                            {isCreating && (
-                                <div className="px-5 pb-2">
-                                    <Input
-                                        autoFocus
-                                        value={newPageTitle}
-                                        onChange={(e) => setNewPageTitle(e.target.value)}
-                                        onBlur={handleCreatePage}
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Enter') handleCreatePage();
-                                            if (e.key === 'Escape') setIsCreating(false);
-                                        }}
-                                        placeholder="Page title..."
-                                        className="py-1.5 text-sm bg-white/5 border-secondary/20 focus:bg-white/10"
-                                    // Override background to match sidebar (darker/translucent) instead of default white
-                                    // Use default shadow/border-none logic from Input
-                                    />
-                                </div>
-                            )}
-
                             {/* Pages List */}
-                            {pages.length === 0 && !isCreating && (
+                            {pages.length === 0 && (
                                 <div className="px-4 py-6 text-xs text-text-primary dark:text-text-secondary text-center opacity-60">
                                     No pages
                                 </div>
@@ -299,10 +271,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onPageSelect, onSettingsClick,
 
                             {/* New Page Button */}
                             <button
-                                onClick={() => {
-                                    setIsCreating(true);
-                                    setIsCollapsed(false); // Expand to show input
-                                }}
+                                onClick={handleCreatePage}
                                 className="w-10 h-10 rounded flex items-center justify-center transition-all text-text-primary dark:text-text-secondary hover:bg-white/5 dark:hover:bg-primary/50 opacity-80 hover:opacity-100"
                                 title="New page"
                             >

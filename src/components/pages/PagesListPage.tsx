@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { usePagesStore } from '../../state/pages.store';
 import { Card } from '../ui/Card';
+import { ActionGroup, ActionButton } from '../ui/ActionGroup';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { ContextMenu } from '../ui/ContextMenu';
 import type { Page } from '../../types/page';
 import dayjs from 'dayjs';
@@ -10,10 +12,11 @@ interface PagesListPageProps {
 }
 
 export const PagesListPage: React.FC<PagesListPageProps> = ({ onPageSelect }) => {
-    const { pages, setCurrentPage, syncToCloud, syncToLocal } = usePagesStore();
+    const { pages, setCurrentPage, syncToCloud, syncToLocal, deletePage } = usePagesStore();
     const isBackendMode = localStorage.getItem('arcnote_storage_preference') === 'backend';
     const [expandedPages, setExpandedPages] = useState<Set<string>>(new Set());
     const [contextMenu, setContextMenu] = useState<{ x: number; y: number; pageId: string } | null>(null);
+    const [pageToDelete, setPageToDelete] = useState<Page | null>(null);
 
     // Filter root pages (pages without parentId)
     const rootPages = pages.filter(p => !p.parentId);
@@ -73,34 +76,54 @@ export const PagesListPage: React.FC<PagesListPageProps> = ({ onPageSelect }) =>
 
         return (
             <div key={page.id}>
-                <Card
-                    icon={<PageIcon />}
-                    title={
-                        <div className="flex items-center justify-between w-full">
-                            <span>{page.title}</span>
-                            {hasSubPages && (
-                                <svg
-                                    className={`w-4 h-4 transition-transform text-text-neutral/50 dark:text-text-secondary ${isExpanded ? 'rotate-90' : ''}`}
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                </svg>
-                            )}
-                        </div>
-                    }
-                    badge={hasSubPages ? `${subPages.length} ${subPages.length === 1 ? 'subpage' : 'subpages'}` : undefined}
-                    description={page.description || 'No description'}
-                    type="page"
-                    onClick={() => handlePageClick(page, hasSubPages)}
-                    onContextMenu={(e) => {
-                        e.preventDefault();
-                        setContextMenu({ x: e.pageX, y: e.pageY, pageId: page.id });
-                    }}
-                    updatedAt={dayjs(page.updatedAt || page.createdAt).format('MMM D, YYYY')}
-                    createdAt={dayjs(page.createdAt).format('MMM D, YYYY')}
-                />
+                <div className="relative group">
+                    <Card
+                        icon={<PageIcon />}
+                        title={
+                            <div className="flex items-center justify-between w-full">
+                                <span>{page.title}</span>
+                                {hasSubPages && (
+                                    <svg
+                                        className={`w-4 h-4 transition-transform text-text-neutral/50 dark:text-text-secondary ${isExpanded ? 'rotate-90' : ''}`}
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                    </svg>
+                                )}
+                            </div>
+                        }
+                        badge={hasSubPages ? `${subPages.length} ${subPages.length === 1 ? 'subpage' : 'subpages'}` : undefined}
+                        description={page.description || 'No description'}
+                        type="page"
+                        onClick={() => handlePageClick(page, hasSubPages)}
+                        onContextMenu={(e) => {
+                            e.preventDefault();
+                            setContextMenu({ x: e.pageX, y: e.pageY, pageId: page.id });
+                        }}
+                        updatedAt={dayjs(page.updatedAt || page.createdAt).format('MMM D, YYYY')}
+                        createdAt={dayjs(page.createdAt).format('MMM D, YYYY')}
+                    />
+
+                    {/* Action Overlay */}
+                    <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                        <ActionGroup>
+                            <ActionButton
+                                icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>}
+                                variant="primary"
+                                onClick={(e) => { e.stopPropagation(); /* Archive Feature */ }}
+                                title="Archive"
+                            />
+                            <ActionButton
+                                icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>}
+                                variant="danger"
+                                onClick={(e) => { e.stopPropagation(); setPageToDelete(page); }}
+                                title="Delete"
+                            />
+                        </ActionGroup>
+                    </div>
+                </div>
 
                 {/* Render subpages if expanded */}
                 {hasSubPages && isExpanded && (
@@ -113,22 +136,22 @@ export const PagesListPage: React.FC<PagesListPageProps> = ({ onPageSelect }) =>
     };
 
     return (
-        <div className="h-screen w-full overflow-y-auto bg-neutral dark:bg-primary">
-            <div className="max-w-7xl mx-auto px-8 py-12">
+        <div className="h-screen w-full overflow-y-auto bg-neutral dark:bg-primary flex flex-col">
+            <div className="max-w-7xl w-full mx-auto px-4 md:px-8 py-6 md:py-12 flex-1 flex flex-col">
                 {/* Header */}
-                <div className="mb-8">
-                    <h1 className="text-3xl font-bold text-text-neutral dark:text-text-primary mb-2">
+                <div className="mb-6 md:mb-8 shrink-0">
+                    <h1 className="text-2xl md:text-3xl font-bold text-text-neutral dark:text-text-primary mb-2">
                         All Pages
                     </h1>
-                    <p className="text-text-neutral/60 dark:text-text-secondary">
+                    <p className="text-sm md:text-base text-text-neutral/60 dark:text-text-secondary">
                         Manage and organize your pages
                     </p>
                 </div>
 
                 {/* Pages List */}
                 {rootPages.length === 0 ? (
-                    <div className="text-center py-20">
-                        <div className="text-6xl mb-4">📄</div>
+                    <div className="flex-1 flex flex-col items-center justify-center text-center pb-20">
+                        <div className="text-6xl mb-4">📝</div>
                         <h3 className="text-xl font-semibold text-text-neutral dark:text-text-primary mb-2">
                             No pages yet
                         </h3>
@@ -147,6 +170,21 @@ export const PagesListPage: React.FC<PagesListPageProps> = ({ onPageSelect }) =>
                     </>
                 )}
             </div>
+
+            <ConfirmDialog
+                isOpen={!!pageToDelete}
+                title="Delete Page"
+                message={`Are you sure you want to delete "${pageToDelete?.title}"? This action cannot be undone.`}
+                confirmText="Delete"
+                danger
+                onConfirm={async () => {
+                    if (pageToDelete) {
+                        await deletePage(pageToDelete.id);
+                        setPageToDelete(null);
+                    }
+                }}
+                onCancel={() => setPageToDelete(null)}
+            />
 
             {contextMenu && (
                 <ContextMenu

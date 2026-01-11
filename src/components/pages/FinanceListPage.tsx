@@ -109,10 +109,10 @@ export const FinanceListPage: React.FC = () => {
     };
 
     return (
-        <div className="h-screen w-full overflow-y-auto bg-neutral dark:bg-primary">
-            <div className="max-w-7xl mx-auto px-4 md:px-8 py-6 md:py-12">
+        <div className="h-screen w-full overflow-y-auto bg-neutral dark:bg-primary flex flex-col">
+            <div className="max-w-7xl w-full mx-auto px-4 md:px-8 py-6 md:py-12 flex-1 flex flex-col">
                 {/* Header */}
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 md:mb-8">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 md:mb-8 shrink-0">
                     <div>
                         <h1 className="text-2xl md:text-3xl font-bold text-text-neutral dark:text-text-primary mb-2">
                             Finance Trackers
@@ -135,9 +135,9 @@ export const FinanceListPage: React.FC = () => {
 
                 {/* Accounts Grid */}
                 {accounts.length === 0 && !isLoading ? (
-                    <div className="text-center py-20">
-                        <div className="text-6xl mb-4 text-text-neutral/20 dark:text-text-secondary/20">
-                            <WalletIcon className="w-16 h-16 mx-auto" />
+                    <div className="flex-1 flex flex-col items-center justify-center text-center pb-20">
+                        <div className="text-6xl mb-4">
+                            💰
                         </div>
                         <h3 className="text-xl font-semibold text-text-neutral dark:text-text-primary mb-2">
                             No trackers yet
