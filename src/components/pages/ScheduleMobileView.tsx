@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo, useEffect, useRef } from 'react';
 import dayjs from 'dayjs';
 import type { ScheduleEvent } from '../../types/schedule';
 
@@ -18,19 +18,49 @@ export const ScheduleMobileView: React.FC<ScheduleMobileViewProps> = ({
     onEventClick,
     onDateClick
 }) => {
-    // Generate multiple weeks for horizontal scroll (2 weeks before, current week, 2 weeks after)
-    const currentWeekStart = selectedDate.startOf('week').add(1, 'day'); // Start from Monday
-    const weeksToShow = 5; // Total weeks to display
-    const centerWeekIndex = 2; // Current week is in the middle
+    // Generate multiple weeks for horizontal scroll - use today as base to keep it stable
+    const allDates = useMemo(() => {
+        const today = dayjs();
+        const baseWeekStart = today.startOf('week').add(1, 'day'); // Start from Monday
+        const weeksToShow = 5; // Total weeks to display
+        const centerWeekIndex = 2; // Current week is in the middle
 
-    // Generate dates for multiple weeks
-    const allDates: dayjs.Dayjs[] = [];
-    for (let weekOffset = -centerWeekIndex; weekOffset < weeksToShow - centerWeekIndex; weekOffset++) {
-        const weekStart = currentWeekStart.add(weekOffset * 7, 'day');
-        for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
-            allDates.push(weekStart.add(dayOffset, 'day'));
+        const dates: dayjs.Dayjs[] = [];
+        for (let weekOffset = -centerWeekIndex; weekOffset < weeksToShow - centerWeekIndex; weekOffset++) {
+            const weekStart = baseWeekStart.add(weekOffset * 7, 'day');
+            for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
+                dates.push(weekStart.add(dayOffset, 'day'));
+            }
         }
-    }
+        return dates;
+    }, []); // Empty dependency array - only calculate once on mount
+
+    // Ref for scroll container
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+    // Auto-scroll to today on mount
+    useEffect(() => {
+        if (scrollContainerRef.current) {
+            const today = dayjs();
+            const todayIndex = allDates.findIndex(date => date.isSame(today, 'day'));
+
+            if (todayIndex !== -1) {
+                // Calculate scroll position to show today at the left (first visible date)
+                const container = scrollContainerRef.current;
+                const buttonWidth = 48; // min-w-[48px]
+                const gap = 12; // gap-3 = 0.75rem = 12px
+
+                // Position to scroll: (index * (width + gap))
+                // This will place today as the first visible date on the left
+                const scrollPosition = todayIndex * (buttonWidth + gap);
+
+                container.scrollTo({
+                    left: scrollPosition,
+                    behavior: 'smooth'
+                });
+            }
+        }
+    }, []); // Run once on mount
 
     // Filter events for selected date
     const dayEvents = events.filter(e => dayjs(e.date).isSame(selectedDate, 'day'));
@@ -48,17 +78,17 @@ export const ScheduleMobileView: React.FC<ScheduleMobileViewProps> = ({
 
     return (
         <div className="flex-1 flex flex-col overflow-hidden">
-            {/* Header: Day Name with Swipe Indicator */}
-            <div className="px-4 py-3 bg-neutral dark:bg-primary">
+            {/* Header: Day Name with Swipe Indicator - Fixed Width */}
+            <div className="shrink-0 w-full px-4 py-3 bg-neutral dark:bg-primary">
                 <p className="text-sm text-text-neutral/60 dark:text-text-secondary">
                     {selectedDate.format('dddd')}
                 </p>
-                <div className="flex items-center justify-between">
-                    <h2 className="text-xl font-bold text-text-neutral dark:text-text-primary">
+                <div className="flex items-center justify-between gap-2">
+                    <h2 className="text-xl font-bold text-text-neutral dark:text-text-primary flex-1 min-w-0 truncate">
                         {selectedDate.format('MMMM YYYY')}
                     </h2>
                     {/* Swipe Indicator */}
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 shrink-0">
                         <svg className="w-4 h-4 text-text-neutral/40 dark:text-text-secondary/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                         </svg>
@@ -74,9 +104,9 @@ export const ScheduleMobileView: React.FC<ScheduleMobileViewProps> = ({
                 </div>
             </div>
 
-            {/* Week Dates Selector - Horizontal Scroll (No Month Labels) */}
-            <div className="border-b border-secondary/20">
-                <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory scroll-smooth px-4 py-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
+            {/* Week Dates Selector - Horizontal Scroll (No Month Labels) - Fixed Width */}
+            <div className="shrink-0 w-full border-b border-secondary/20 overflow-hidden">
+                <div ref={scrollContainerRef} className="flex gap-3 overflow-x-auto snap-x snap-mandatory scroll-smooth px-4 py-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
                     {allDates.map((date) => {
                         const isSelected = date.isSame(selectedDate, 'day');
                         const isToday = date.isSame(dayjs(), 'day');
@@ -85,7 +115,7 @@ export const ScheduleMobileView: React.FC<ScheduleMobileViewProps> = ({
                             <button
                                 key={date.format('YYYY-MM-DD')}
                                 onClick={() => onDateSelect(date)}
-                                className="flex flex-col items-center gap-1 min-w-[48px] snap-center"
+                                className="flex flex-col items-center gap-1 min-w-[48px] snap-center shrink-0"
                             >
                                 <span className="text-xs text-text-neutral/60 dark:text-text-secondary">
                                     {date.format('ddd')}
@@ -96,7 +126,7 @@ export const ScheduleMobileView: React.FC<ScheduleMobileViewProps> = ({
                                         ${isSelected
                                             ? 'bg-accent text-white'
                                             : isToday
-                                                ? 'bg-primary/10 dark:bg-accent/20 text-primary dark:text-accent'
+                                                ? 'border-2 border-primary dark:border-accent text-primary dark:text-accent font-bold'
                                                 : 'text-text-neutral dark:text-text-secondary hover:bg-neutral-100 dark:hover:bg-white/5'
                                         }
                                     `}
@@ -110,13 +140,17 @@ export const ScheduleMobileView: React.FC<ScheduleMobileViewProps> = ({
             </div>
 
             {/* Timeline View */}
-            <div className="flex-1 overflow-y-auto px-4 py-4">
+            <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col">
                 {dayEvents.length === 0 ? (
-                    <div className="text-center py-20">
-                        <div className="text-4xl mb-2">📅</div>
-                        <p className="text-text-neutral/60 dark:text-text-secondary text-sm">
-                            No events for this day
-                        </p>
+                    <div className="flex-1 flex items-center justify-center">
+                        <div className="text-center">
+                            <svg className="w-16 h-16 mx-auto mb-4 text-text-neutral/30 dark:text-text-secondary/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <p className="text-text-neutral/60 dark:text-text-secondary text-sm">
+                                No events for this day
+                            </p>
+                        </div>
                     </div>
                 ) : (
                     <div className="space-y-4">
@@ -198,6 +232,6 @@ export const ScheduleMobileView: React.FC<ScheduleMobileViewProps> = ({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
             </button>
-        </div>
+        </div >
     );
 };

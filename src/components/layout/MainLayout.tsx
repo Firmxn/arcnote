@@ -30,7 +30,7 @@ export const MainLayout: React.FC = () => {
                 onPageSelect={(id) => navigate(`/page/${id}`)}
             />
             {/* Main Content Area - margin-left untuk sidebar collapsed di mobile */}
-            <div className="flex-1 ml-16 md:ml-0">
+            <div className="flex-1 ml-16 md:ml-0 max-w-full overflow-hidden">
                 <Outlet />
             </div>
         </div>

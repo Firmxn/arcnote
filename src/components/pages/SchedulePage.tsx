@@ -145,7 +145,7 @@ export const SchedulePage: React.FC<SchedulePageProps> = ({ initialEventId }) =>
     const isDraft = !!draftEvent;
 
     return (
-        <div className="flex-1 h-screen flex flex-col bg-neutral text-text-neutral relative overflow-hidden">
+        <div className="flex-1 h-screen flex flex-col bg-neutral text-text-neutral relative overflow-hidden max-w-full">
             {/* Mobile Day View */}
             {isMobile ? (
                 <ScheduleMobileView

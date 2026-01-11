@@ -203,9 +203,9 @@ export const EventDetailPanel: React.FC<EventDetailPanelProps> = ({ event, onClo
     };
 
     return (
-        <div className="flex flex-col h-full bg-neutral shadow-2xl border-l border-secondary/20 w-full max-w-2xl transform transition-transform duration-300 ease-in-out">
+        <div className="flex flex-col h-full bg-neutral shadow-2xl border-l border-secondary/20 w-full max-w-full md:max-w-2xl transform transition-transform duration-300 ease-in-out">
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 h-14 border-b border-secondary/20">
+            <div className="flex items-center justify-between px-3 md:px-6 py-3 md:py-4 h-12 md:h-14 border-b border-secondary/20">
                 <div className="flex items-center gap-2 text-text-neutral/70 text-sm">
                     <Button onClick={onClose} variant="ghost" size="icon" className="w-auto h-auto p-1">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" /></svg>
@@ -239,14 +239,14 @@ export const EventDetailPanel: React.FC<EventDetailPanelProps> = ({ event, onClo
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto px-8 py-8 h-full">
+            <div className="flex-1 overflow-y-auto px-4 md:px-8 py-4 md:py-8 h-full">
                 {/* Title */}
                 <input
                     type="text"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     onBlur={handleTitleBlur}
-                    className="w-full text-4xl font-bold bg-transparent border-none focus:outline-none focus:ring-0 placeholder:text-text-neutral/20 text-text-neutral mb-8"
+                    className="w-full text-2xl md:text-4xl font-bold bg-transparent border-none focus:outline-none focus:ring-0 placeholder:text-text-neutral/20 text-text-neutral mb-4 md:mb-8"
                     placeholder="Event Title"
                     autoFocus={isDraft}
                 />
@@ -350,7 +350,7 @@ export const EventDetailPanel: React.FC<EventDetailPanelProps> = ({ event, onClo
                             <svg className="w-4 h-4 mr-2 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
                             Type
                         </div>
-                        <div className="flex-1 flex gap-2">
+                        <div className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-2">
                             {['Meeting', 'Task', 'Personal', 'Deadlines'].map(opt => (
                                 <Badge
                                     key={opt}
