@@ -22,8 +22,8 @@ export const ScheduleMobileView: React.FC<ScheduleMobileViewProps> = ({
     const allDates = useMemo(() => {
         const today = dayjs();
         const baseWeekStart = today.startOf('week').add(1, 'day'); // Start from Monday
-        const weeksToShow = 5; // Total weeks to display
-        const centerWeekIndex = 2; // Current week is in the middle
+        const weeksToShow = 26; // Total weeks to display (~6 months: 3 months before + 3 months after)
+        const centerWeekIndex = 13; // Current week is in the middle (13 weeks before, current week, 13 weeks after)
 
         const dates: dayjs.Dayjs[] = [];
         for (let weekOffset = -centerWeekIndex; weekOffset < weeksToShow - centerWeekIndex; weekOffset++) {
@@ -62,6 +62,58 @@ export const ScheduleMobileView: React.FC<ScheduleMobileViewProps> = ({
         }
     }, []); // Run once on mount
 
+    // Auto-update selected date based on scroll position
+    useEffect(() => {
+        const container = scrollContainerRef.current;
+        if (!container) return;
+
+        const handleScroll = () => {
+            const scrollLeft = container.scrollLeft;
+            const buttonWidth = 48;
+            const gap = 12;
+            const itemWidth = buttonWidth + gap;
+
+            // Calculate which date index is at the leftmost visible position
+            const visibleIndex = Math.round(scrollLeft / itemWidth);
+
+            // Update selected date if it's different
+            const newDate = allDates[visibleIndex];
+            if (newDate && !newDate.isSame(selectedDate, 'day')) {
+                onDateSelect(newDate);
+            }
+        };
+
+        // Debounce scroll handler to avoid too many updates
+        let scrollTimeout: NodeJS.Timeout;
+        const debouncedHandleScroll = () => {
+            clearTimeout(scrollTimeout);
+            scrollTimeout = setTimeout(handleScroll, 150);
+        };
+
+        container.addEventListener('scroll', debouncedHandleScroll);
+        return () => {
+            container.removeEventListener('scroll', debouncedHandleScroll);
+            clearTimeout(scrollTimeout);
+        };
+    }, [allDates, selectedDate, onDateSelect]);
+
+    // Scroll to previous/next week
+    const scrollToWeek = (direction: 'prev' | 'next') => {
+        if (scrollContainerRef.current) {
+            const container = scrollContainerRef.current;
+            const buttonWidth = 48; // min-w-[48px]
+            const gap = 12; // gap-3 = 0.75rem = 12px
+            const weekWidth = 7 * (buttonWidth + gap); // 7 days per week
+
+            const scrollAmount = direction === 'prev' ? -weekWidth : weekWidth;
+
+            container.scrollBy({
+                left: scrollAmount,
+                behavior: 'smooth'
+            });
+        }
+    };
+
     // Filter events for selected date
     const dayEvents = events.filter(e => dayjs(e.date).isSame(selectedDate, 'day'));
 
@@ -89,17 +141,29 @@ export const ScheduleMobileView: React.FC<ScheduleMobileViewProps> = ({
                     </h2>
                     {/* Swipe Indicator */}
                     <div className="flex items-center gap-1 shrink-0">
-                        <svg className="w-4 h-4 text-text-neutral/40 dark:text-text-secondary/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                        </svg>
+                        <button
+                            onClick={() => scrollToWeek('prev')}
+                            className="p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded transition-colors"
+                            aria-label="Previous week"
+                        >
+                            <svg className="w-4 h-4 text-text-neutral/40 dark:text-text-secondary/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                            </svg>
+                        </button>
                         <div className="flex gap-1">
                             <div className="w-1.5 h-1.5 rounded-full bg-text-neutral/20 dark:bg-text-secondary/20"></div>
                             <div className="w-1.5 h-1.5 rounded-full bg-accent"></div>
                             <div className="w-1.5 h-1.5 rounded-full bg-text-neutral/20 dark:bg-text-secondary/20"></div>
                         </div>
-                        <svg className="w-4 h-4 text-text-neutral/40 dark:text-text-secondary/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
+                        <button
+                            onClick={() => scrollToWeek('next')}
+                            className="p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded transition-colors"
+                            aria-label="Next week"
+                        >
+                            <svg className="w-4 h-4 text-text-neutral/40 dark:text-text-secondary/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                        </button>
                     </div>
                 </div>
             </div>
