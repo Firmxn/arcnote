@@ -50,23 +50,23 @@ export const FinancePage: React.FC = () => {
 
     return (
         <div className="h-screen w-full overflow-y-auto bg-neutral dark:bg-primary">
-            <div className="max-w-7xl mx-auto px-8 py-12">
+            <div className="max-w-7xl mx-auto px-4 md:px-8 py-6 md:py-12">
                 {/* Header with Back Button */}
-                <div className="flex items-center gap-4 mb-8">
+                <div className="flex items-center gap-3 md:gap-4 mb-6 md:mb-8">
                     <button
                         onClick={() => navigate('/finance')}
                         className="p-2 -ml-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-text-neutral dark:text-text-secondary transition-colors"
                         title="Back to wallets"
                     >
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                         </svg>
                     </button>
                     <div>
-                        <h1 className="text-3xl font-bold text-text-neutral dark:text-text-primary mb-1">
+                        <h1 className="text-2xl md:text-3xl font-bold text-text-neutral dark:text-text-primary mb-1">
                             {currentAccount?.title || 'Finance Tracker'}
                         </h1>
-                        <p className="text-text-neutral/60 dark:text-text-secondary">
+                        <p className="text-sm md:text-base text-text-neutral/60 dark:text-text-secondary">
                             {currentAccount?.description || 'Track your income and expenses'}
                         </p>
                     </div>
@@ -76,46 +76,46 @@ export const FinancePage: React.FC = () => {
                 {summary && (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
                         {/* Total Income */}
-                        <div className="bg-white dark:bg-secondary rounded-2xl p-6 shadow-sm">
+                        <div className="bg-white dark:bg-secondary rounded-2xl p-4 md:p-6 shadow-sm">
                             <div className="flex items-center gap-3 mb-2">
-                                <div className="w-10 h-10 rounded-xl bg-green-500/10 dark:bg-green-500/20 flex items-center justify-center">
-                                    <svg className="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-green-500/10 dark:bg-green-500/20 flex items-center justify-center">
+                                    <svg className="w-4 h-4 md:w-5 md:h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                                     </svg>
                                 </div>
-                                <h3 className="text-sm font-medium text-text-neutral/60 dark:text-text-secondary">Total Income</h3>
+                                <h3 className="text-xs md:text-sm font-medium text-text-neutral/60 dark:text-text-secondary">Total Income</h3>
                             </div>
-                            <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                            <p className="text-xl md:text-2xl font-bold text-green-600 dark:text-green-400">
                                 {formatCurrency(summary.totalIncome)}
                             </p>
                         </div>
 
                         {/* Total Expense */}
-                        <div className="bg-white dark:bg-secondary rounded-2xl p-6 shadow-sm">
+                        <div className="bg-white dark:bg-secondary rounded-2xl p-4 md:p-6 shadow-sm">
                             <div className="flex items-center gap-3 mb-2">
-                                <div className="w-10 h-10 rounded-xl bg-red-500/10 dark:bg-red-500/20 flex items-center justify-center">
-                                    <svg className="w-5 h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-red-500/10 dark:bg-red-500/20 flex items-center justify-center">
+                                    <svg className="w-4 h-4 md:w-5 md:h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
                                     </svg>
                                 </div>
-                                <h3 className="text-sm font-medium text-text-neutral/60 dark:text-text-secondary">Total Expense</h3>
+                                <h3 className="text-xs md:text-sm font-medium text-text-neutral/60 dark:text-text-secondary">Total Expense</h3>
                             </div>
-                            <p className="text-2xl font-bold text-red-600 dark:text-red-400">
+                            <p className="text-xl md:text-2xl font-bold text-red-600 dark:text-red-400">
                                 {formatCurrency(summary.totalExpense)}
                             </p>
                         </div>
 
                         {/* Balance */}
-                        <div className="bg-white dark:bg-secondary rounded-2xl p-6 shadow-sm">
+                        <div className="bg-white dark:bg-secondary rounded-2xl p-4 md:p-6 shadow-sm">
                             <div className="flex items-center gap-3 mb-2">
-                                <div className="w-10 h-10 rounded-xl bg-primary/10 dark:bg-primary/20 flex items-center justify-center">
-                                    <svg className="w-5 h-5 text-primary dark:text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-primary/10 dark:bg-primary/20 flex items-center justify-center">
+                                    <svg className="w-4 h-4 md:w-5 md:h-5 text-primary dark:text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
                                 </div>
-                                <h3 className="text-sm font-medium text-text-neutral/60 dark:text-text-secondary">Balance</h3>
+                                <h3 className="text-xs md:text-sm font-medium text-text-neutral/60 dark:text-text-secondary">Balance</h3>
                             </div>
-                            <p className={`text-2xl font-bold ${summary.balance >= 0 ? 'text-primary dark:text-accent' : 'text-red-600 dark:text-red-400'}`}>
+                            <p className={`text-xl md:text-2xl font-bold ${summary.balance >= 0 ? 'text-primary dark:text-accent' : 'text-red-600 dark:text-red-400'}`}>
                                 {formatCurrency(summary.balance)}
                             </p>
                         </div>
@@ -123,8 +123,8 @@ export const FinancePage: React.FC = () => {
                 )}
 
                 {/* Actions & Filters */}
-                <div className="flex items-center justify-between mb-6">
-                    <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-6">
+                    <div className="flex gap-2 overflow-x-auto pb-1">
                         <Button
                             variant={filter === 'all' ? 'accent' : 'ghost'}
                             size="sm"
@@ -150,6 +150,7 @@ export const FinancePage: React.FC = () => {
 
                     <Button
                         variant="accent"
+                        className="w-full sm:w-auto"
                         onClick={handleAddClick}
                         leftIcon={
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

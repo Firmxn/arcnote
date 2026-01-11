@@ -148,9 +148,10 @@ npm run lint
 
 ## 🎯 Next Steps
 
-Sesuai roadmap Week 1 di `doc/prd.md`:
+Sesuai roadmap di `doc/prd.md`:
 1. ✅ Setup project (Vite + React + TS) - **DONE**
 2. ✅ Tailwind - **DONE**
-3. ⏳ Page list UI
-4. ⏳ CRUD pages (local memory)
-5. ⏳ Integrasi Dexie & IndexedDB
+3. ✅ Google Authentication (Supabase) - **DONE**
+4. ⏳ Page list UI
+5. ⏳ CRUD pages (local memory)
+6. ⏳ Integrasi Dexie & IndexedDB

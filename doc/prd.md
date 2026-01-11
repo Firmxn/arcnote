@@ -32,15 +32,14 @@ Paragraph, heading, bullet list, numbered list, todo, quote, divider.
 
 ### ✔ Penyimpanan lokal (IndexedDB)
 
-### ❌ Tidak ada login
+### ✔ Login & Auth (Supabase)
+Google Login, Email/Password.
 
-### ❌ Tidak ada sync
+### ✔ Sinkronisasi Cloud (Supabase)
+Sinkronisasi data antar perangkat.
 
 ### ❌ Tidak ada kolaborasi
-
 ### ❌ Tidak ada file upload
-
-### ❌ Tidak ada cloud
 
 Goal MVP:
 
@@ -50,11 +49,10 @@ Goal MVP:
 
 # 3. **Future Scope (Tahapan Jangka Panjang)**
 
-## Phase 2:
-
+## Phase 2 (Completed):
 - Cloud sync via Supabase
-- Auth login
-- Backup/restore
+- Google Auth login
+- Backup/restore (Local/Cloud)
 
 ## Phase 3:
 

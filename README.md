@@ -31,6 +31,7 @@ Aplikasi ini menggunakan pendekatan **Hybrid Storage**: Anda dapat menggunakan A
 ### 4. 🔄 Hybrid Storage & Sync
 -   **Offline-first**: Semua data secara default disimpan di IndexedDB (Local Storage) perangkat Anda.
 -   **Cloud Mode**: Integrasi opsional dengan **Supabase** untuk sinkronisasi data antar perangkat.
+-   **Google Authentication**: Masuk dengan mudah dan aman menggunakan akun Google.
 -   **Bidirectional Sync**: 
     -   **Sync to Cloud**: Unggah data lokal Anda ke cloud saat online.
     -   **Save to Local**: Unduh dan simpan data cloud Anda ke penyimpanan lokal untuk akses offline.

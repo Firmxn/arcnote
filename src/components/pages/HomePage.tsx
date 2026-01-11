@@ -186,13 +186,13 @@ export const HomePage: React.FC<HomePageProps> = ({
 
     return (
         <div className="h-screen w-full overflow-y-auto bg-neutral dark:bg-primary">
-            <div className="max-w-7xl mx-auto px-8 py-12">
+            <div className="max-w-7xl mx-auto px-4 md:px-8 py-6 md:py-12">
                 {/* Header */}
-                <div className="mb-8">
-                    <h1 className="text-3xl font-bold text-text-neutral dark:text-text-primary mb-2">
+                <div className="mb-6 md:mb-8">
+                    <h1 className="text-2xl md:text-3xl font-bold text-text-neutral dark:text-text-primary mb-2">
                         Welcome back! 👋
                     </h1>
-                    <p className="text-text-neutral/60 dark:text-text-secondary">
+                    <p className="text-sm md:text-base text-text-neutral/60 dark:text-text-secondary">
                         Here's what you've been working on recently
                     </p>
                 </div>
@@ -218,15 +218,15 @@ export const HomePage: React.FC<HomePageProps> = ({
                                 Recently visited
                             </h2>
                         </div>
-                        <div className="relative group -mx-4 px-0.5">
-                            {/* Navigation Buttons */}
+                        <div className="relative group -mx-2 md:-mx-4 px-0.5">
+                            {/* Navigation Buttons - Hidden on mobile */}
                             {canScrollLeft && (
                                 <Button
                                     onClick={() => scroll('left')}
                                     variant="ghost"
                                     size="icon"
                                     circle
-                                    className="absolute left-0 top-1/2 -translate-y-1/2 z-10 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity bg-white dark:bg-secondary border border-secondary/10 dark:border-primary/10 p-0"
+                                    className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 z-10 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity bg-white dark:bg-secondary border border-secondary/10 dark:border-primary/10 p-0"
                                     aria-label="Scroll left"
                                 >
                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -241,7 +241,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                                     variant="ghost"
                                     size="icon"
                                     circle
-                                    className="absolute right-0 top-1/2 -translate-y-1/2 z-10 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity bg-white dark:bg-secondary border border-secondary/10 dark:border-primary/10 p-0"
+                                    className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 z-10 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity bg-white dark:bg-secondary border border-secondary/10 dark:border-primary/10 p-0"
                                     aria-label="Scroll right"
                                 >
                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -254,14 +254,14 @@ export const HomePage: React.FC<HomePageProps> = ({
                             <div
                                 ref={scrollContainerRef}
                                 onScroll={checkScroll}
-                                className="flex overflow-x-auto gap-4 pb-4 mx-1 snap-x scroll-pl-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']"
+                                className="flex overflow-x-auto gap-3 md:gap-4 pb-4 mx-1 snap-x scroll-pl-2 md:scroll-pl-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']"
                                 style={{
                                     maskImage: `linear-gradient(to right, ${canScrollLeft ? 'transparent, black 48px' : 'black 0%'}, ${canScrollRight ? 'black calc(100% - 48px), transparent' : 'black 100%'})`,
                                     WebkitMaskImage: `linear-gradient(to right, ${canScrollLeft ? 'transparent, black 48px' : 'black 0%'}, ${canScrollRight ? 'black calc(100% - 48px), transparent' : 'black 100%'})`
                                 }}
                             >
                                 {recentItems.map((item) => (
-                                    <div key={`${item.type}-${item.id}`} className="min-w-[260px] w-[260px] snap-start first:ml-4 last:mr-4">
+                                    <div key={`${item.type}-${item.id}`} className="min-w-[240px] w-[240px] md:min-w-[260px] md:w-[260px] snap-start first:ml-2 md:first:ml-4 last:mr-2 md:last:mr-4">
                                         <Card
                                             icon={item.icon}
                                             title={item.title}
@@ -295,14 +295,15 @@ export const HomePage: React.FC<HomePageProps> = ({
 
                 {/* Quick Actions */}
                 {recentItems.length > 0 && (
-                    <div className="mt-12 pt-8">
-                        <h2 className="text-sm font-bold text-text-neutral dark:text-text-secondary uppercase tracking-wider mb-4 opacity-80">
+                    <div className="mt-8 md:mt-12 pt-6 md:pt-8">
+                        <h2 className="text-xs md:text-sm font-bold text-text-neutral dark:text-text-secondary uppercase tracking-wider mb-3 md:mb-4 opacity-80">
                             Quick Actions
                         </h2>
-                        <div className="flex gap-3">
+                        <div className="flex flex-col sm:flex-row gap-3">
                             <Button
                                 onClick={onScheduleClick}
                                 variant="accent"
+                                className="w-full sm:w-auto"
                                 leftIcon={
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -314,6 +315,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                             <Button
                                 onClick={onNewPageClick}
                                 variant="outline"
+                                className="w-full sm:w-auto"
                                 leftIcon={
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />

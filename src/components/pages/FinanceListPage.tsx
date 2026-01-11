@@ -110,21 +110,21 @@ export const FinanceListPage: React.FC = () => {
 
     return (
         <div className="h-screen w-full overflow-y-auto bg-neutral dark:bg-primary">
-            <div className="max-w-7xl mx-auto px-8 py-12">
+            <div className="max-w-7xl mx-auto px-4 md:px-8 py-6 md:py-12">
                 {/* Header */}
-                <div className="flex items-center justify-between mb-8">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 md:mb-8">
                     <div>
-                        <h1 className="text-3xl font-bold text-text-neutral dark:text-text-primary mb-2">
+                        <h1 className="text-2xl md:text-3xl font-bold text-text-neutral dark:text-text-primary mb-2">
                             Finance Trackers
                         </h1>
-                        <p className="text-text-neutral/60 dark:text-text-secondary">
+                        <p className="text-sm md:text-base text-text-neutral/60 dark:text-text-secondary">
                             Manage your wallets, accounts, and budgets
                         </p>
                     </div>
 
                     <button
                         onClick={() => setIsCreateModalOpen(true)}
-                        className="px-4 py-2 bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors flex items-center gap-2 font-medium"
+                        className="w-full sm:w-auto px-4 py-2 bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors flex items-center justify-center gap-2 font-medium"
                     >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />

@@ -29,8 +29,10 @@ export const MainLayout: React.FC = () => {
                 onFinanceClick={() => navigate('/finance')}
                 onPageSelect={(id) => navigate(`/page/${id}`)}
             />
-            {/* Main Content Area */}
-            <Outlet />
+            {/* Main Content Area - margin-left untuk sidebar collapsed di mobile */}
+            <div className="flex-1 ml-16 md:ml-0">
+                <Outlet />
+            </div>
         </div>
     );
 };
