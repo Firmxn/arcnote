@@ -11,7 +11,7 @@ export const ImageUpload = Extension.create({
                 key: new PluginKey('imageUpload'),
                 props: {
                     // Handle Paste
-                    handlePaste: (view, event, slice) => {
+                    handlePaste: (_view, event, _slice) => {
                         const items = Array.from(event.clipboardData?.items || []);
                         const imageItem = items.find((item) => item.type.startsWith('image/'));
 
@@ -28,7 +28,7 @@ export const ImageUpload = Extension.create({
                     },
 
                     // Handle Drop
-                    handleDrop: (view, event, slice, moved) => {
+                    handleDrop: (view, event, _slice, moved) => {
                         if (!moved && event.dataTransfer?.files?.length) {
                             const file = event.dataTransfer.files[0];
                             if (file.type.startsWith('image/')) {
