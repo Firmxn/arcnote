@@ -39,21 +39,24 @@ export const ScheduleMobileView: React.FC<ScheduleMobileViewProps> = ({
     // Ref for scroll container
     const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-    // Auto-scroll to today on mount
+    // Scroll to selected date when it changes (centering it)
     useEffect(() => {
         if (scrollContainerRef.current) {
-            const today = dayjs();
-            const todayIndex = allDates.findIndex(date => date.isSame(today, 'day'));
+            const index = allDates.findIndex(date => date.isSame(selectedDate, 'day'));
 
-            if (todayIndex !== -1) {
-                // Calculate scroll position to show today at the left (first visible date)
+            if (index !== -1) {
                 const container = scrollContainerRef.current;
                 const buttonWidth = 48; // min-w-[48px]
-                const gap = 12; // gap-3 = 0.75rem = 12px
+                const gap = 12; // gap-3 = 12px
+                const itemWidth = buttonWidth + gap;
+                const containerWidth = container.clientWidth;
 
-                // Position to scroll: (index * (width + gap))
-                // This will place today as the first visible date on the left
-                const scrollPosition = todayIndex * (buttonWidth + gap);
+                // Center logic:
+                // Position of item center = (index * itemWidth) + (itemWidth / 2)
+                // Viewport center = containerWidth / 2
+                // Scroll needed = Item Center - Viewport Center
+
+                const scrollPosition = (index * itemWidth) - (containerWidth / 2) + (itemWidth / 2);
 
                 container.scrollTo({
                     left: scrollPosition,
@@ -61,42 +64,10 @@ export const ScheduleMobileView: React.FC<ScheduleMobileViewProps> = ({
                 });
             }
         }
-    }, []); // Run once on mount
+    }, [selectedDate, allDates]);
 
-    // Auto-update selected date based on scroll position
-    useEffect(() => {
-        const container = scrollContainerRef.current;
-        if (!container) return;
+    // Initial scroll is handled by the above effect since selectedDate is set on mount
 
-        const handleScroll = () => {
-            const scrollLeft = container.scrollLeft;
-            const buttonWidth = 48;
-            const gap = 12;
-            const itemWidth = buttonWidth + gap;
-
-            // Calculate which date index is at the leftmost visible position
-            const visibleIndex = Math.round(scrollLeft / itemWidth);
-
-            // Update selected date if it's different
-            const newDate = allDates[visibleIndex];
-            if (newDate && !newDate.isSame(selectedDate, 'day')) {
-                onDateSelect(newDate);
-            }
-        };
-
-        // Debounce scroll handler to avoid too many updates
-        let scrollTimeout: NodeJS.Timeout;
-        const debouncedHandleScroll = () => {
-            clearTimeout(scrollTimeout);
-            scrollTimeout = setTimeout(handleScroll, 150);
-        };
-
-        container.addEventListener('scroll', debouncedHandleScroll);
-        return () => {
-            container.removeEventListener('scroll', debouncedHandleScroll);
-            clearTimeout(scrollTimeout);
-        };
-    }, [allDates, selectedDate, onDateSelect]);
 
     // Scroll to previous/next week
     const scrollToWeek = (direction: 'prev' | 'next') => {
@@ -121,7 +92,7 @@ export const ScheduleMobileView: React.FC<ScheduleMobileViewProps> = ({
 
 
     return (
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 flex flex-col overflow-hidden min-h-0">
             {/* Header: Day Name with Swipe Indicator - Fixed Width */}
             <div className="shrink-0 w-full px-4 py-3 bg-neutral dark:bg-primary">
                 <p className="text-sm text-text-neutral/60 dark:text-text-secondary">
@@ -162,7 +133,7 @@ export const ScheduleMobileView: React.FC<ScheduleMobileViewProps> = ({
 
             {/* Week Dates Selector - Horizontal Scroll (No Month Labels) - Fixed Width */}
             <div className="shrink-0 w-full border-b border-secondary/20 overflow-hidden">
-                <div ref={scrollContainerRef} className="flex gap-3 overflow-x-auto snap-x snap-mandatory scroll-smooth px-4 py-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
+                <div ref={scrollContainerRef} className="flex gap-3 overflow-x-auto snap-x snap-mandatory scroll-smooth px-8 py-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
                     {allDates.map((date) => {
                         const isSelected = date.isSame(selectedDate, 'day');
                         const isToday = date.isSame(dayjs(), 'day');
@@ -196,7 +167,7 @@ export const ScheduleMobileView: React.FC<ScheduleMobileViewProps> = ({
             </div>
 
             {/* Timeline View - Event List with Top/Bottom Time Labels */}
-            <div className="flex-1 overflow-y-auto bg-neutral px-4 py-6 flex flex-col">
+            <div className="flex-1 overflow-y-auto bg-neutral px-4 pt-6 pb-[100px] flex flex-col min-h-0">
                 {dayEvents.length === 0 ? (
                     <div className="flex-1 flex flex-col items-center justify-center text-center pb-20">
                         <div className="text-6xl mb-4">
@@ -244,15 +215,6 @@ export const ScheduleMobileView: React.FC<ScheduleMobileViewProps> = ({
                 )}
             </div>
 
-            {/* FAB - Add Event */}
-            <button
-                onClick={() => onDateClick(selectedDate)}
-                className="fixed bottom-6 right-6 w-14 h-14 bg-accent hover:bg-accent-hover text-white rounded-full shadow-lg flex items-center justify-center transition-all active:scale-95 md:hidden"
-            >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-            </button>
         </div >
     );
 };

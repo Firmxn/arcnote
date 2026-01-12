@@ -1,4 +1,5 @@
 import React from 'react';
+import { useKeyboardStatus } from '../../hooks/useKeyboardStatus';
 
 interface BottomNavProps {
     onHomeClick?: () => void;
@@ -20,6 +21,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
     currentView
 }) => {
     const isOnPagesView = currentView === 'pages';
+    const isKeyboardOpen = useKeyboardStatus();
 
     // FAB click handler - context aware
     const handleFABClick = () => {
@@ -79,6 +81,11 @@ export const BottomNav: React.FC<BottomNavProps> = ({
             isActive: currentView === 'settings'
         }
     ];
+
+    // Hide bottom nav when keyboard is open
+    if (isKeyboardOpen) {
+        return null;
+    }
 
     return (
         <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 pb-safe">

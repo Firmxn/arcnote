@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import type { FinanceAccount } from '../../types/finance';
+import { FAB } from '../ui/FAB';
 
 dayjs.extend(relativeTime);
 
@@ -109,10 +110,10 @@ export const FinanceListPage: React.FC = () => {
     };
 
     return (
-        <div className="h-full w-full bg-neutral dark:bg-primary flex flex-col">
-            <div className="max-w-7xl w-full mx-auto px-4 md:px-8 py-6 md:py-12 flex-1 flex flex-col min-h-0">
+        <div className="h-full w-full bg-neutral dark:bg-primary flex flex-col min-h-0">
+            <div className="flex-1 flex flex-col min-h-0">
                 {/* Header */}
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 md:mb-8 shrink-0">
+                <div className="max-w-7xl w-full mx-auto px-4 md:px-8 pt-6 md:pt-12 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 md:mb-8 shrink-0">
                     <div>
                         <h1 className="text-2xl md:text-3xl font-bold text-text-neutral dark:text-text-primary mb-2">
                             Finance Trackers
@@ -122,9 +123,10 @@ export const FinanceListPage: React.FC = () => {
                         </p>
                     </div>
 
+                    {/* Desktop Button - Hidden on Mobile */}
                     <button
                         onClick={() => setIsCreateModalOpen(true)}
-                        className="w-full sm:w-auto px-4 py-2 bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors flex items-center justify-center gap-2 font-medium"
+                        className="hidden md:flex px-4 py-2 bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors items-center justify-center gap-2 font-medium"
                     >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -134,9 +136,9 @@ export const FinanceListPage: React.FC = () => {
                 </div>
 
                 {/* Accounts Grid */}
-                <div className="flex-1 overflow-y-auto min-h-0">
+                <div className="flex-1 overflow-y-auto min-h-0 pb-[100px]">
                     {accounts.length === 0 && !isLoading ? (
-                        <div className="flex flex-col items-center justify-center text-center py-20">
+                        <div className="h-full max-w-7xl mx-auto w-full flex flex-col items-center justify-center text-center px-4">
                             <div className="text-6xl mb-4">
                                 💰
                             </div>
@@ -148,7 +150,7 @@ export const FinanceListPage: React.FC = () => {
                             </p>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-6">
+                        <div className="max-w-7xl mx-auto w-full px-4 md:px-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                             {accounts.map(account => {
                                 const balance = balances[account.id] || 0;
                                 const formattedBalance = new Intl.NumberFormat('id-ID', {
@@ -357,6 +359,9 @@ export const FinanceListPage: React.FC = () => {
                     ]}
                 />
             )}
+
+            {/* Floating Action Button - Mobile Only */}
+            <FAB onClick={() => setIsCreateModalOpen(true)} title="New Tracker" />
         </div>
     );
 };

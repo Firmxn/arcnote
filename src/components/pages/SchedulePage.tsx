@@ -9,6 +9,7 @@ import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { ContextMenu } from '../ui/ContextMenu';
+import { FAB } from '../ui/FAB';
 
 interface SchedulePageProps {
     initialEventId?: string | null;
@@ -145,21 +146,26 @@ export const SchedulePage: React.FC<SchedulePageProps> = ({ initialEventId }) =>
     const isDraft = !!draftEvent;
 
     return (
-        <div className="flex-1 h-full flex flex-col bg-neutral text-text-neutral relative overflow-hidden max-w-full">
+        <div className="flex-1 h-full flex flex-col bg-neutral text-text-neutral relative overflow-hidden max-w-full min-h-0">
             {/* Mobile Day View */}
             {isMobile ? (
-                <ScheduleMobileView
-                    selectedDate={selectedDate}
-                    currentDate={currentDate}
-                    events={events}
-                    onDateSelect={setSelectedDate}
-                    onEventClick={(eventId) => {
-                        markEventAsVisited(eventId);
-                        setSelectedEventId(eventId);
-                        setDraftEvent(null);
-                    }}
-                    onDateClick={handleDateClick}
-                />
+                <>
+                    <ScheduleMobileView
+                        selectedDate={selectedDate}
+                        currentDate={currentDate}
+                        events={events}
+                        onDateSelect={setSelectedDate}
+                        onEventClick={(eventId) => {
+                            markEventAsVisited(eventId);
+                            setSelectedEventId(eventId);
+                            setDraftEvent(null);
+                        }}
+                        onDateClick={handleDateClick}
+                    />
+
+                    {/* Floating Action Button - Mobile Only */}
+                    <FAB onClick={() => handleDateClick(selectedDate)} title="Add new schedule" />
+                </>
             ) : (
                 <>
                     {/* Desktop Calendar View - Header Toolbar */}

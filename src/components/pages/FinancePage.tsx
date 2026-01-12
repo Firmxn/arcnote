@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFinanceStore } from '../../state/finance.store';
 import { Button } from '../ui/Button';
 import { AddTransactionModal } from '../modals/AddTransactionModal';
 import dayjs from 'dayjs';
 import type { FinanceTransaction } from '../../types/finance';
+import { FAB } from '../ui/FAB';
 
 export const FinancePage: React.FC = () => {
     const {
@@ -21,6 +22,15 @@ export const FinancePage: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedTransaction, setSelectedTransaction] = useState<FinanceTransaction | undefined>(undefined);
     const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+    useEffect(() => {
+        const handleResize = () => {
+            setIsMobile(window.innerWidth < 768);
+        };
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     const navigate = useNavigate();
 
@@ -50,7 +60,7 @@ export const FinancePage: React.FC = () => {
 
     return (
         <div className="h-full w-full overflow-y-auto bg-neutral dark:bg-primary">
-            <div className="max-w-7xl mx-auto px-4 md:px-8 py-6 md:py-12">
+            <div className="max-w-7xl mx-auto px-4 md:px-8 py-6 md:py-12 pb-[100px] md:pb-12">
                 {/* Header with Back Button */}
                 <div className="flex items-center gap-3 md:gap-4 mb-6 md:mb-8">
                     <button
@@ -123,7 +133,7 @@ export const FinancePage: React.FC = () => {
                 )}
 
                 {/* Actions & Filters */}
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-6">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-2 md:mb-6">
                     <div className="flex gap-2 overflow-x-auto pb-1">
                         <Button
                             variant={filter === 'all' ? 'accent' : 'ghost'}
@@ -148,18 +158,20 @@ export const FinancePage: React.FC = () => {
                         </Button>
                     </div>
 
-                    <Button
-                        variant="accent"
-                        className="w-full sm:w-auto"
-                        onClick={handleAddClick}
-                        leftIcon={
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                            </svg>
-                        }
-                    >
-                        Add Transaction
-                    </Button>
+                    {!isMobile && (
+                        <Button
+                            variant="accent"
+                            className="w-full lg:w-auto"
+                            onClick={handleAddClick}
+                            leftIcon={
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                </svg>
+                            }
+                        >
+                            Add Transaction
+                        </Button>
+                    )}
                 </div>
 
                 {/* Transactions List */}
@@ -177,9 +189,11 @@ export const FinancePage: React.FC = () => {
                             <p className="text-text-neutral/60 dark:text-text-secondary mb-4">
                                 Start tracking your finances by adding a transaction
                             </p>
-                            <Button variant="accent" onClick={handleAddClick}>
-                                Add Your First Transaction
-                            </Button>
+                            {!isMobile && (
+                                <Button variant="accent" onClick={handleAddClick}>
+                                    Add Your First Transaction
+                                </Button>
+                            )}
                         </div>
                     ) : (
                         filteredTransactions.map((transaction) => (
@@ -229,6 +243,11 @@ export const FinancePage: React.FC = () => {
                     )}
                 </div>
             </div>
+
+
+
+            {/* Floating Action Button - Mobile Only */}
+            <FAB onClick={handleAddClick} title="Add Transaction" />
 
             {/* Add/Edit Transaction Modal */}
             <AddTransactionModal

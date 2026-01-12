@@ -136,10 +136,10 @@ export const PagesListPage: React.FC<PagesListPageProps> = ({ onPageSelect }) =>
     };
 
     return (
-        <div className="h-full w-full bg-neutral dark:bg-primary flex flex-col">
-            <div className="max-w-7xl w-full mx-auto px-4 md:px-8 py-6 md:py-12 flex-1 flex flex-col min-h-0">
+        <div className="h-full w-full bg-neutral dark:bg-primary flex flex-col min-h-0">
+            <div className="flex-1 flex flex-col min-h-0">
                 {/* Header */}
-                <div className="mb-6 md:mb-8 shrink-0">
+                <div className="max-w-7xl w-full mx-auto px-4 md:px-8 pt-6 md:pt-12 mb-6 md:mb-8 shrink-0">
                     <h1 className="text-2xl md:text-3xl font-bold text-text-neutral dark:text-text-primary mb-2">
                         All Pages
                     </h1>
@@ -149,9 +149,9 @@ export const PagesListPage: React.FC<PagesListPageProps> = ({ onPageSelect }) =>
                 </div>
 
                 {/* Pages List */}
-                <div className="flex-1 overflow-y-auto min-h-0">
+                <div className="flex-1 overflow-y-auto min-h-0 pb-[100px]">
                     {rootPages.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center text-center py-20">
+                        <div className="max-w-7xl w-full mx-auto px-4 flex flex-col items-center justify-center text-center py-20">
                             <div className="text-6xl mb-4">📝</div>
                             <h3 className="text-xl font-semibold text-text-neutral dark:text-text-primary mb-2">
                                 No pages yet
@@ -161,14 +161,14 @@ export const PagesListPage: React.FC<PagesListPageProps> = ({ onPageSelect }) =>
                             </p>
                         </div>
                     ) : (
-                        <>
+                        <div className="max-w-7xl w-full mx-auto px-4 md:px-8">
                             <h2 className="text-sm font-bold text-text-neutral dark:text-text-secondary uppercase tracking-wider mb-4 opacity-80">
                                 Your Pages
                             </h2>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                                 {rootPages.map(page => renderPageCard(page))}
                             </div>
-                        </>
+                        </div>
                     )}
                 </div>
             </div>

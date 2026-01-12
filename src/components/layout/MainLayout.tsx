@@ -52,7 +52,7 @@ export const MainLayout: React.FC = () => {
             </div>
 
             {/* Main Content Area */}
-            <div className="flex-1 h-full overflow-y-auto">
+            <div className="flex-1 h-full overflow-hidden relative min-h-0">
                 <Outlet />
             </div>
 
