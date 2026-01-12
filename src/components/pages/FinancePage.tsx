@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFinanceStore } from '../../state/finance.store';
 import { Button } from '../ui/Button';
@@ -6,6 +6,7 @@ import { AddTransactionModal } from '../modals/AddTransactionModal';
 import dayjs from 'dayjs';
 import type { FinanceTransaction } from '../../types/finance';
 import { FAB } from '../ui/FAB';
+import { MiniFAB } from '../ui/MiniFAB';
 
 export const FinancePage: React.FC = () => {
     const {
@@ -23,6 +24,7 @@ export const FinancePage: React.FC = () => {
     const [selectedTransaction, setSelectedTransaction] = useState<FinanceTransaction | undefined>(undefined);
     const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+    const [isFabHidden, setIsFabHidden] = useState(false);
 
     useEffect(() => {
         const handleResize = () => {
@@ -52,14 +54,32 @@ export const FinancePage: React.FC = () => {
         setIsModalOpen(true);
     };
 
+    // Ref for scroll to top
+    const containerRef = useRef<HTMLDivElement>(null);
+
     const handleAddClick = () => {
         setSelectedTransaction(undefined);
         setModalMode('create');
         setIsModalOpen(true);
     };
 
+    const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+        const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+        // Hide FAB when reached bottom (threshold 50px)
+        const isBottom = Math.abs(scrollHeight - scrollTop - clientHeight) < 50;
+        setIsFabHidden(isBottom);
+    };
+
+    const scrollToTop = () => {
+        containerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
     return (
-        <div className="h-full w-full overflow-y-auto bg-neutral dark:bg-primary">
+        <div
+            ref={containerRef}
+            className="h-full w-full overflow-y-auto bg-neutral dark:bg-primary"
+            onScroll={handleScroll}
+        >
             <div className="max-w-7xl mx-auto px-4 md:px-8 py-6 md:py-12 pb-[100px] md:pb-12">
                 {/* Header with Back Button */}
                 <div className="flex items-center gap-3 md:gap-4 mb-6 md:mb-8">
@@ -244,10 +264,9 @@ export const FinancePage: React.FC = () => {
                 </div>
             </div>
 
-
-
             {/* Floating Action Button - Mobile Only */}
-            <FAB onClick={handleAddClick} title="Add Transaction" />
+            <FAB onClick={handleAddClick} title="Add Transaction" hide={isFabHidden} />
+            <MiniFAB onClick={scrollToTop} show={isFabHidden} />
 
             {/* Add/Edit Transaction Modal */}
             <AddTransactionModal

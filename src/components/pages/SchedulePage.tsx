@@ -9,7 +9,6 @@ import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { ContextMenu } from '../ui/ContextMenu';
-import { FAB } from '../ui/FAB';
 
 interface SchedulePageProps {
     initialEventId?: string | null;
@@ -162,9 +161,6 @@ export const SchedulePage: React.FC<SchedulePageProps> = ({ initialEventId }) =>
                         }}
                         onDateClick={handleDateClick}
                     />
-
-                    {/* Floating Action Button - Mobile Only */}
-                    <FAB onClick={() => handleDateClick(selectedDate)} title="Add new schedule" />
                 </>
             ) : (
                 <>

@@ -1,4 +1,6 @@
-import React, { useMemo, useEffect, useRef } from 'react';
+import React, { useMemo, useEffect, useRef, useState } from 'react';
+import { FAB } from '../ui/FAB';
+import { MiniFAB } from '../ui/MiniFAB';
 import dayjs from 'dayjs';
 import type { ScheduleEvent } from '../../types/schedule';
 import { EventCard } from '../ui/EventCard';
@@ -19,12 +21,12 @@ export const ScheduleMobileView: React.FC<ScheduleMobileViewProps> = ({
     onEventClick,
     onDateClick
 }) => {
-    // Generate multiple weeks for horizontal scroll - use today as base to keep it stable
+    // Generate multiple weeks for horizontal scroll
     const allDates = useMemo(() => {
         const today = dayjs();
         const baseWeekStart = today.startOf('week').add(1, 'day'); // Start from Monday
-        const weeksToShow = 26; // Total weeks to display (~6 months: 3 months before + 3 months after)
-        const centerWeekIndex = 13; // Current week is in the middle (13 weeks before, current week, 13 weeks after)
+        const weeksToShow = 26;
+        const centerWeekIndex = 13;
 
         const dates: dayjs.Dayjs[] = [];
         for (let weekOffset = -centerWeekIndex; weekOffset < weeksToShow - centerWeekIndex; weekOffset++) {
@@ -34,10 +36,24 @@ export const ScheduleMobileView: React.FC<ScheduleMobileViewProps> = ({
             }
         }
         return dates;
-    }, []); // Empty dependency array - only calculate once on mount
+    }, []);
 
     // Ref for scroll container
     const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const timelineRef = useRef<HTMLDivElement>(null);
+
+    // FAB Visibility State
+    const [isFabHidden, setIsFabHidden] = useState(false);
+
+    const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+        const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+        const isBottom = Math.abs(scrollHeight - scrollTop - clientHeight) < 50;
+        setIsFabHidden(isBottom);
+    };
+
+    const scrollToTop = () => {
+        timelineRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+    };
 
     // Scroll to selected date when it changes (centering it)
     useEffect(() => {
@@ -50,12 +66,6 @@ export const ScheduleMobileView: React.FC<ScheduleMobileViewProps> = ({
                 const gap = 12; // gap-3 = 12px
                 const itemWidth = buttonWidth + gap;
                 const containerWidth = container.clientWidth;
-
-                // Center logic:
-                // Position of item center = (index * itemWidth) + (itemWidth / 2)
-                // Viewport center = containerWidth / 2
-                // Scroll needed = Item Center - Viewport Center
-
                 const scrollPosition = (index * itemWidth) - (containerWidth / 2) + (itemWidth / 2);
 
                 container.scrollTo({
@@ -66,17 +76,12 @@ export const ScheduleMobileView: React.FC<ScheduleMobileViewProps> = ({
         }
     }, [selectedDate, allDates]);
 
-    // Initial scroll is handled by the above effect since selectedDate is set on mount
-
-
-    // Scroll to previous/next week
     const scrollToWeek = (direction: 'prev' | 'next') => {
         if (scrollContainerRef.current) {
             const container = scrollContainerRef.current;
-            const buttonWidth = 48; // min-w-[48px]
-            const gap = 12; // gap-3 = 0.75rem = 12px
-            const weekWidth = 7 * (buttonWidth + gap); // 7 days per week
-
+            const buttonWidth = 48;
+            const gap = 12;
+            const weekWidth = 7 * (buttonWidth + gap);
             const scrollAmount = direction === 'prev' ? -weekWidth : weekWidth;
 
             container.scrollBy({
@@ -86,14 +91,11 @@ export const ScheduleMobileView: React.FC<ScheduleMobileViewProps> = ({
         }
     };
 
-    // Filter events for selected date
     const dayEvents = events.filter(e => dayjs(e.date).isSame(selectedDate, 'day'));
-
-
 
     return (
         <div className="flex-1 flex flex-col overflow-hidden min-h-0">
-            {/* Header: Day Name with Swipe Indicator - Fixed Width */}
+            {/* Header: Day Name with Swipe Indicator */}
             <div className="shrink-0 w-full px-4 py-3 bg-neutral dark:bg-primary">
                 <p className="text-sm text-text-neutral/60 dark:text-text-secondary">
                     {selectedDate.format('dddd')}
@@ -131,7 +133,7 @@ export const ScheduleMobileView: React.FC<ScheduleMobileViewProps> = ({
                 </div>
             </div>
 
-            {/* Week Dates Selector - Horizontal Scroll (No Month Labels) - Fixed Width */}
+            {/* Week Dates Selector */}
             <div className="shrink-0 w-full border-b border-secondary/20 overflow-hidden">
                 <div ref={scrollContainerRef} className="flex gap-3 overflow-x-auto snap-x snap-mandatory scroll-smooth px-8 py-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
                     {allDates.map((date) => {
@@ -166,8 +168,12 @@ export const ScheduleMobileView: React.FC<ScheduleMobileViewProps> = ({
                 </div>
             </div>
 
-            {/* Timeline View - Event List with Top/Bottom Time Labels */}
-            <div className="flex-1 overflow-y-auto bg-neutral px-4 pt-6 pb-[100px] flex flex-col min-h-0">
+            {/* Timeline View - Event List */}
+            <div
+                ref={timelineRef}
+                className="flex-1 overflow-y-auto bg-neutral px-4 pt-6 pb-[100px] flex flex-col min-h-0"
+                onScroll={handleScroll}
+            >
                 {dayEvents.length === 0 ? (
                     <div className="flex-1 flex flex-col items-center justify-center text-center pb-20">
                         <div className="text-6xl mb-4">
@@ -215,6 +221,13 @@ export const ScheduleMobileView: React.FC<ScheduleMobileViewProps> = ({
                 )}
             </div>
 
-        </div >
+            {/* Floating Action Button */}
+            <FAB onClick={() => onDateClick(selectedDate)} title="Add new event" hide={isFabHidden}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 5V19M5 12H19" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+            </FAB>
+            <MiniFAB onClick={scrollToTop} show={isFabHidden} />
+        </div>
     );
 };

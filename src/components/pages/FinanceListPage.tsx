@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useFinanceStore } from '../../state/finance.store';
 import { Card } from '../ui/Card';
 import { Modal } from '../ui/Modal';
@@ -10,6 +10,7 @@ import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import type { FinanceAccount } from '../../types/finance';
 import { FAB } from '../ui/FAB';
+import { MiniFAB } from '../ui/MiniFAB';
 
 dayjs.extend(relativeTime);
 
@@ -37,6 +38,8 @@ export const FinanceListPage: React.FC = () => {
 
     // Create State
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [createModalMode, setCreateModalMode] = useState<'create' | 'edit'>('create');
+    const [isFabHidden, setIsFabHidden] = useState(false);
     const [newAccountTitle, setNewAccountTitle] = useState('');
     const [newAccountDesc, setNewAccountDesc] = useState('');
 
@@ -46,6 +49,8 @@ export const FinanceListPage: React.FC = () => {
     const [editDesc, setEditDesc] = useState('');
     const [accountToDelete, setAccountToDelete] = useState<FinanceAccount | null>(null);
     const [contextMenu, setContextMenu] = useState<{ x: number; y: number; accountId: string } | null>(null);
+    const [selectedAccount, setSelectedAccount] = useState<FinanceAccount | null>(null);
+
 
     useEffect(() => {
         loadAccounts();
@@ -72,6 +77,24 @@ export const FinanceListPage: React.FC = () => {
         } catch (error) {
             console.error('Failed to create account:', error);
         }
+    };
+
+    const handleEditAccount = (account: FinanceAccount) => {
+        setSelectedAccount(account);
+        setCreateModalMode('edit');
+        setIsCreateModalOpen(true);
+    };
+
+    const listRef = useRef<HTMLDivElement>(null);
+
+    const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+        const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+        const isBottom = Math.abs(scrollHeight - scrollTop - clientHeight) < 50;
+        setIsFabHidden(isBottom);
+    };
+
+    const scrollToTop = () => {
+        listRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     const handleEditStart = (account: FinanceAccount) => {
@@ -136,7 +159,11 @@ export const FinanceListPage: React.FC = () => {
                 </div>
 
                 {/* Accounts Grid */}
-                <div className="flex-1 overflow-y-auto min-h-0 pb-[100px]">
+                <div
+                    ref={listRef}
+                    className="flex-1 overflow-y-auto min-h-0 pb-[100px]"
+                    onScroll={handleScroll}
+                >
                     {accounts.length === 0 && !isLoading ? (
                         <div className="h-full max-w-7xl mx-auto w-full flex flex-col items-center justify-center text-center px-4">
                             <div className="text-6xl mb-4">
@@ -361,7 +388,8 @@ export const FinanceListPage: React.FC = () => {
             )}
 
             {/* Floating Action Button - Mobile Only */}
-            <FAB onClick={() => setIsCreateModalOpen(true)} title="New Tracker" />
+            <FAB onClick={() => setIsCreateModalOpen(true)} title="New Tracker" hide={isFabHidden} />
+            <MiniFAB onClick={scrollToTop} show={isFabHidden} />
         </div>
     );
 };
