@@ -80,7 +80,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onPageSelect, onSettingsClick,
             >
                 {/* Header with Toggle */}
                 <div className={`
-                border-b border-secondary/50 dark:border-neutral flex items-center transition-all
+                shrink-0 border-b border-secondary/50 dark:border-neutral flex items-center transition-all
                 ${isCollapsed ? 'justify-center py-4 px-3' : 'justify-between px-4 py-4'}
             `}>
                     {!isCollapsed && (
@@ -283,7 +283,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onPageSelect, onSettingsClick,
                     )}
                 </div>
 
-                <div className={`border-t border-secondary/50 dark:border-neutral flex items-center bg-primary dark:bg-secondary/10 transition-all ${isCollapsed ? 'justify-center py-3 px-3' : 'justify-between px-4 py-3'}`}>
+                <div className={`shrink-0 border-t border-secondary/50 dark:border-neutral flex items-center bg-primary dark:bg-secondary/10 transition-all ${isCollapsed ? 'justify-center py-3 px-3' : 'justify-between px-4 py-3'}`}>
                     {!isCollapsed && (
                         <div className="text-xs text-text-primary dark:text-text-accent font-medium opacity-80">
                             {pages.length} {pages.length === 1 ? 'page' : 'pages'}
