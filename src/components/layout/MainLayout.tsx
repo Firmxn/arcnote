@@ -19,7 +19,12 @@ export const MainLayout: React.FC = () => {
     };
 
     return (
-        <div className="flex h-screen overflow-hidden bg-white dark:bg-gray-950">
+        <div className="flex h-dvh w-screen overflow-hidden bg-white dark:bg-gray-950" style={{
+            paddingTop: 'env(safe-area-inset-top)',
+            paddingBottom: 'env(safe-area-inset-bottom)',
+            paddingLeft: 'env(safe-area-inset-left)',
+            paddingRight: 'env(safe-area-inset-right)',
+        }}>
             <Sidebar
                 currentView={getCurrentView()}
                 onHomeClick={() => navigate('/')}
@@ -30,7 +35,7 @@ export const MainLayout: React.FC = () => {
                 onPageSelect={(id) => navigate(`/page/${id}`)}
             />
             {/* Main Content Area - margin-left untuk sidebar collapsed di mobile */}
-            <div className="flex-1 ml-16 md:ml-0 max-w-full overflow-hidden">
+            <div className="flex-1 ml-16 md:ml-0 h-full overflow-y-auto">
                 <Outlet />
             </div>
         </div>

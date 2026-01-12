@@ -205,7 +205,7 @@ export const HomePage: React.FC<HomePageProps> = ({
     };
 
     return (
-        <div className="h-screen w-full overflow-y-auto bg-neutral dark:bg-primary flex flex-col">
+        <div className="h-full w-full bg-neutral dark:bg-primary flex flex-col overflow-y-auto">
             <div className="max-w-7xl w-full mx-auto px-4 md:px-8 py-6 md:py-12 flex-1 flex flex-col">
                 {/* Header */}
                 <div className="mb-6 md:mb-8 shrink-0">

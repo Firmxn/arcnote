@@ -57,8 +57,8 @@ export const SidebarItem: React.FC<SidebarItemProps> = ({
                 className={`
                     group flex items-center py-1.5 pr-2 mx-3 rounded-md cursor-pointer transition-colors relative
                     ${isActive
-                        ? 'bg-white/10 dark:bg-primary text-text-primary dark:text-text-secondary shadow-md font-medium'
-                        : 'text-text-primary dark:text-text-secondary hover:bg-white/5 dark:hover:bg-primary/50 opacity-90 hover:opacity-100'}
+                        ? 'bg-white/10 dark:bg-primary text-text-primary dark:text-text-accent shadow-md font-medium'
+                        : 'text-text-primary dark:text-text-accent hover:bg-white/5 dark:hover:bg-primary/50 opacity-90 hover:opacity-100'}
                 `}
                 style={{ paddingLeft }}
                 onClick={() => onSelect(page)}

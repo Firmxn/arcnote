@@ -49,7 +49,7 @@ export const FinancePage: React.FC = () => {
     };
 
     return (
-        <div className="h-screen w-full overflow-y-auto bg-neutral dark:bg-primary">
+        <div className="h-full w-full overflow-y-auto bg-neutral dark:bg-primary">
             <div className="max-w-7xl mx-auto px-4 md:px-8 py-6 md:py-12">
                 {/* Header with Back Button */}
                 <div className="flex items-center gap-3 md:gap-4 mb-6 md:mb-8">

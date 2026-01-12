@@ -136,8 +136,8 @@ export const PagesListPage: React.FC<PagesListPageProps> = ({ onPageSelect }) =>
     };
 
     return (
-        <div className="h-screen w-full overflow-y-auto bg-neutral dark:bg-primary flex flex-col">
-            <div className="max-w-7xl w-full mx-auto px-4 md:px-8 py-6 md:py-12 flex-1 flex flex-col">
+        <div className="h-full w-full bg-neutral dark:bg-primary flex flex-col">
+            <div className="max-w-7xl w-full mx-auto px-4 md:px-8 py-6 md:py-12 flex-1 flex flex-col min-h-0">
                 {/* Header */}
                 <div className="mb-6 md:mb-8 shrink-0">
                     <h1 className="text-2xl md:text-3xl font-bold text-text-neutral dark:text-text-primary mb-2">
@@ -149,26 +149,28 @@ export const PagesListPage: React.FC<PagesListPageProps> = ({ onPageSelect }) =>
                 </div>
 
                 {/* Pages List */}
-                {rootPages.length === 0 ? (
-                    <div className="flex-1 flex flex-col items-center justify-center text-center pb-20">
-                        <div className="text-6xl mb-4">📝</div>
-                        <h3 className="text-xl font-semibold text-text-neutral dark:text-text-primary mb-2">
-                            No pages yet
-                        </h3>
-                        <p className="text-text-neutral/60 dark:text-text-secondary">
-                            Create your first page to get started
-                        </p>
-                    </div>
-                ) : (
-                    <>
-                        <h2 className="text-sm font-bold text-text-neutral dark:text-text-secondary uppercase tracking-wider mb-4 opacity-80">
-                            Your Pages
-                        </h2>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                            {rootPages.map(page => renderPageCard(page))}
+                <div className="flex-1 overflow-y-auto min-h-0">
+                    {rootPages.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center text-center py-20">
+                            <div className="text-6xl mb-4">📝</div>
+                            <h3 className="text-xl font-semibold text-text-neutral dark:text-text-primary mb-2">
+                                No pages yet
+                            </h3>
+                            <p className="text-text-neutral/60 dark:text-text-secondary">
+                                Create your first page to get started
+                            </p>
                         </div>
-                    </>
-                )}
+                    ) : (
+                        <>
+                            <h2 className="text-sm font-bold text-text-neutral dark:text-text-secondary uppercase tracking-wider mb-4 opacity-80">
+                                Your Pages
+                            </h2>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-6">
+                                {rootPages.map(page => renderPageCard(page))}
+                            </div>
+                        </>
+                    )}
+                </div>
             </div>
 
             <ConfirmDialog

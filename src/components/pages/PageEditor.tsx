@@ -88,7 +88,7 @@ export const PageEditor: React.FC<PageEditorProps> = ({ page }) => {
     };
 
     return (
-        <div className="flex-1 h-screen overflow-y-auto bg-neutral transition-colors duration-200">
+        <div className="flex-1 h-full overflow-y-auto bg-neutral transition-colors duration-200">
             {/* Custom Confirm Dialog */}
             <ConfirmDialog
                 isOpen={isDeleteDialogOpen}
@@ -115,7 +115,7 @@ export const PageEditor: React.FC<PageEditorProps> = ({ page }) => {
                         <ActionGroup>
                             <ActionButton
                                 icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>}
-                                variant="primary" 
+                                variant="primary"
                                 onClick={() => { }} // Future Archive feature
                                 title="Archive"
                             />

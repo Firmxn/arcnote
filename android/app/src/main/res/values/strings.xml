@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">ArcNote</string>
+    <string name="title_activity_main">ArcNote</string>
+    <string name="package_name">com.arcnote.app</string>
+    <string name="custom_url_scheme">com.arcnote.app</string>
+</resources>
