@@ -1,12 +1,15 @@
 import React from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
+import { BottomNav } from './BottomNav';
+import { usePagesStore } from '../../state/pages.store';
 
 export const MainLayout: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
+    const { createPage, setCurrentPage } = usePagesStore();
 
-    // Mapping URL path to ViewState for Sidebar highlighting
+    // Mapping URL path to ViewState for navigation highlighting
     const getCurrentView = () => {
         const path = location.pathname;
         if (path === '/') return 'home';
@@ -18,6 +21,16 @@ export const MainLayout: React.FC = () => {
         return 'home';
     };
 
+    const handleCreatePage = async () => {
+        try {
+            const page = await createPage('Untitled');
+            setCurrentPage(page);
+            navigate(`/page/${page.id}`);
+        } catch (error) {
+            console.error('Failed to create page:', error);
+        }
+    };
+
     return (
         <div className="flex h-dvh w-screen overflow-hidden bg-white dark:bg-gray-950" style={{
             paddingTop: 'env(safe-area-inset-top)',
@@ -25,19 +38,34 @@ export const MainLayout: React.FC = () => {
             paddingLeft: 'env(safe-area-inset-left)',
             paddingRight: 'env(safe-area-inset-right)',
         }}>
-            <Sidebar
+            {/* Desktop Sidebar */}
+            <div className="hidden md:block">
+                <Sidebar
+                    currentView={getCurrentView()}
+                    onHomeClick={() => navigate('/')}
+                    onPagesClick={() => navigate('/pages')}
+                    onSettingsClick={() => navigate('/settings')}
+                    onScheduleClick={() => navigate('/schedule')}
+                    onFinanceClick={() => navigate('/finance')}
+                    onPageSelect={(id) => navigate(`/page/${id}`)}
+                />
+            </div>
+
+            {/* Main Content Area */}
+            <div className="flex-1 h-full overflow-y-auto">
+                <Outlet />
+            </div>
+
+            {/* Mobile Bottom Navigation */}
+            <BottomNav
                 currentView={getCurrentView()}
                 onHomeClick={() => navigate('/')}
                 onPagesClick={() => navigate('/pages')}
-                onSettingsClick={() => navigate('/settings')}
+                onCreatePageClick={handleCreatePage}
                 onScheduleClick={() => navigate('/schedule')}
                 onFinanceClick={() => navigate('/finance')}
-                onPageSelect={(id) => navigate(`/page/${id}`)}
+                onSettingsClick={() => navigate('/settings')}
             />
-            {/* Main Content Area - margin-left untuk sidebar collapsed di mobile */}
-            <div className="flex-1 ml-16 md:ml-0 h-full overflow-y-auto">
-                <Outlet />
-            </div>
         </div>
     );
 };
