@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../../data/supabase';
+import { Capacitor } from '@capacitor/core';
+import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 
 export const LoginPage = () => {
     const [email, setEmail] = useState('');
@@ -45,18 +47,37 @@ export const LoginPage = () => {
         }
     };
 
+
+
     const handleGoogleLogin = async () => {
         setLoading(true);
         setError(null);
         try {
-            const { error } = await supabase.auth.signInWithOAuth({
-                provider: 'google',
-                options: {
-                    redirectTo: window.location.origin,
-                }
-            });
-            if (error) throw error;
+            if (Capacitor.isNativePlatform()) {
+                // Initial check (optional, but good for safety)
+                await GoogleAuth.initialize();
+
+                const googleUser = await GoogleAuth.signIn();
+
+                // Login ke Supabase pakai token dari Google
+                const { error } = await supabase.auth.signInWithIdToken({
+                    provider: 'google',
+                    token: googleUser.authentication.idToken,
+                });
+
+                if (error) throw error;
+            } else {
+                // Web Flow
+                const { error } = await supabase.auth.signInWithOAuth({
+                    provider: 'google',
+                    options: {
+                        redirectTo: window.location.origin,
+                    }
+                });
+                if (error) throw error;
+            }
         } catch (err: any) {
+            console.error(err);
             setError(err.message || 'An error occurred during Google login');
         } finally {
             setLoading(false);
