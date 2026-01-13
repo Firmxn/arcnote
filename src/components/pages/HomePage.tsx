@@ -2,14 +2,20 @@ import React, { useEffect, useState, useRef } from 'react';
 import { usePagesStore } from '../../state/pages.store';
 import { useSchedulesStore } from '../../state/schedules.store';
 import { useFinanceStore } from '../../state/finance.store';
-import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
-import { ActionGroup, ActionButton } from '../ui/ActionGroup';
+import { QuickActions } from '../ui/QuickActions';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
 import type { Page } from '../../types/page';
 import type { ScheduleEvent } from '../../types/schedule';
 import type { FinanceAccount } from '../../types/finance';
 import dayjs from 'dayjs';
+import { SearchBar } from '../ui/SearchBar';
+import type { SearchResult } from '../ui/SearchBar';
+import { ActionSheet, type ActionSheetItem } from '../ui/ActionSheet';
+import { RecentItemCard } from '../ui/RecentItemCard';
+import { Modal } from '../ui/Modal';
+import { Input } from '../ui/Input';
+import { SectionHeader } from '../ui/SectionHeader';
 
 interface RecentItem {
     id: string;
@@ -25,6 +31,7 @@ interface HomePageProps {
     onScheduleClick?: () => void;  // Navigate to schedule page
     onEventSelect?: (eventId: string) => void;  // Open specific event
     onFinanceClick?: (accountId: string) => void; // Open specific finance account
+    onFinanceListClick?: () => void; // Navigate to finance list
     onNewPageClick?: () => void; // Create new page
 }
 
@@ -39,17 +46,25 @@ export const HomePage: React.FC<HomePageProps> = ({
     onScheduleClick,
     onEventSelect,
     onFinanceClick,
+    onFinanceListClick,
     onNewPageClick
 }) => {
     const { pages, deletePage } = usePagesStore();
     const { events, markEventAsVisited, deleteEvent } = useSchedulesStore();
-    const { accounts, loadAccounts, balances, loadBalances, markAccountAsVisited, deleteAccount } = useFinanceStore();
+    const { accounts, loadAccounts, balances, loadBalances, markAccountAsVisited, deleteAccount, updateAccount } = useFinanceStore();
 
     const [recentItems, setRecentItems] = useState<RecentItem[]>([]);
     const [itemToDelete, setItemToDelete] = useState<RecentItem | null>(null);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const [canScrollLeft, setCanScrollLeft] = useState(false);
     const [canScrollRight, setCanScrollRight] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [actionSheetItem, setActionSheetItem] = useState<RecentItem | null>(null);
+
+    // Edit State
+    const [itemToEdit, setItemToEdit] = useState<RecentItem | null>(null);
+    const [editName, setEditName] = useState('');
+    const [editDescription, setEditDescription] = useState('');
 
     // Check Scroll Logic
     const checkScroll = () => {
@@ -204,40 +219,254 @@ export const HomePage: React.FC<HomePageProps> = ({
         }).format(amount);
     };
 
+    // Filter recent items based on search query
+    const filteredRecentItems = searchQuery.trim()
+        ? recentItems.filter(item =>
+            item.title.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+        : recentItems;
+
+    // Convert ALL data to SearchResult format (not just recent items)
+    const searchResults: SearchResult[] = [];
+
+    // Add all pages
+    if (searchQuery.trim()) {
+        pages
+            .filter(page => page.title.toLowerCase().includes(searchQuery.toLowerCase()))
+            .forEach(page => {
+                searchResults.push({
+                    id: page.id,
+                    title: page.title,
+                    description: page.description || 'No description',
+                    category: 'Pages',
+                    icon: (
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                    ),
+                    metadata: dayjs(page.updatedAt).fromNow()
+                });
+            });
+
+        // Add all schedules
+        events
+            .filter(event => event.title.toLowerCase().includes(searchQuery.toLowerCase()))
+            .forEach(event => {
+                searchResults.push({
+                    id: event.id,
+                    title: event.title,
+                    description: event.description || event.type || 'No description',
+                    category: 'Schedules',
+                    icon: (
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                    ),
+                    metadata: dayjs(event.date).format('MMM D, YYYY')
+                });
+            });
+
+        // Add all finance accounts
+        accounts
+            .filter(account => account.title.toLowerCase().includes(searchQuery.toLowerCase()))
+            .forEach(account => {
+                const amount = balances[account.id] || 0;
+                searchResults.push({
+                    id: account.id,
+                    title: account.title,
+                    description: account.description || 'Finance Tracker',
+                    category: 'Finance',
+                    icon: <WalletIcon className="w-5 h-5" />,
+                    metadata: new Intl.NumberFormat('id-ID', {
+                        style: 'currency',
+                        currency: account.currency || 'IDR',
+                        minimumFractionDigits: 0
+                    }).format(amount)
+                });
+            });
+    }
+
+    const handleSelectResult = (result: SearchResult) => {
+        // Find the item in the appropriate store
+        const page = pages.find(p => p.id === result.id);
+        if (page && onPageSelect) {
+            onPageSelect(page.id);
+            return;
+        }
+
+        const event = events.find(e => e.id === result.id);
+        if (event && onEventSelect) {
+            onEventSelect(event.id);
+            return;
+        }
+
+        const account = accounts.find(a => a.id === result.id);
+        if (account && onFinanceClick) {
+            onFinanceClick(account.id);
+            return;
+        }
+    };
+
+    // Get action sheet items for an item
+    const getActionSheetItems = (item: RecentItem): ActionSheetItem[] => {
+        const items: ActionSheetItem[] = [];
+
+        // View Option
+        items.push({
+            id: 'view',
+            label: 'View',
+            icon: (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+            ),
+            variant: 'default',
+            onClick: () => {
+                // UI only
+                console.log('View clicked', item);
+            }
+        });
+
+        // Edit Option
+        items.push({
+            id: 'edit',
+            label: 'Edit',
+            icon: (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+            ),
+            variant: 'default',
+            onClick: () => {
+                // UI only
+                console.log('Edit clicked', item);
+            }
+        });
+
+        // Edit options for Finance
+        if (item.type === 'finance') {
+            items.push({
+                id: 'edit_info',
+                label: 'Edit Info (Finance)',
+                icon: (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                ),
+                variant: 'default',
+                onClick: () => {
+                    setItemToEdit(item);
+                    setEditName(item.title);
+                    setEditDescription((item.data as FinanceAccount).description || '');
+                }
+            });
+        }
+
+        items.push({
+            id: 'archive',
+            label: 'Archive',
+            icon: (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                </svg>
+            ),
+            variant: 'default', // Changed from primary to default to match style
+            onClick: () => {
+                // Archive feature - coming soon
+            }
+        });
+
+        items.push({
+            id: 'delete',
+            label: 'Delete',
+            icon: (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+            ),
+            variant: 'danger',
+            onClick: () => setItemToDelete(item)
+        });
+
+        return items;
+    };
+
+    // Handle long press (mobile)
+    const handleLongPress = (item: RecentItem) => {
+        setActionSheetItem(item);
+    };
+
+    // Handle context menu (desktop right click)
+    const handleContextMenu = (item: RecentItem, e: React.MouseEvent) => {
+        e.preventDefault();
+        setActionSheetItem(item);
+    };
+
+    // Save Edit
+    const handleSaveEdit = async () => {
+        if (!itemToEdit) return;
+
+        if (itemToEdit.type === 'finance') {
+            await updateAccount(itemToEdit.id, {
+                title: editName,
+                description: editDescription
+            });
+            // Reload accounts to refresh UI
+            await loadAccounts();
+        }
+
+        setItemToEdit(null);
+    };
+
     return (
         <div className="h-full w-full bg-neutral dark:bg-primary flex flex-col overflow-y-auto">
-            <div className="max-w-7xl w-full mx-auto px-4 md:px-8 py-6 md:py-12 flex-1 flex flex-col">
+            <div className="max-w-7xl w-full mx-auto px-4 md:px-8 py-6 md:py-12 pb-[100px] flex-1 flex flex-col">
                 {/* Header */}
-                <div className="mb-6 md:mb-8 shrink-0">
-                    <h1 className="text-2xl md:text-3xl font-bold text-text-neutral dark:text-text-primary mb-2">
-                        Welcome back! 👋
-                    </h1>
-                    <p className="text-sm md:text-base text-text-neutral/60 dark:text-text-secondary">
-                        Here's what you've been working on recently
-                    </p>
+                <div className="mb-6 md:mb-8 shrink-0 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div className="flex-1">
+                        <h1 className="text-2xl md:text-3xl font-bold text-text-neutral dark:text-text-primary mb-2">
+                            Welcome back! 👋
+                        </h1>
+                        <p className="text-sm md:text-base text-text-neutral/60 dark:text-text-secondary">
+                            Here's what you've been working on recently
+                        </p>
+                    </div>
+
+                    {/* Search Bar */}
+                    <SearchBar
+                        onSearch={setSearchQuery}
+                        onSelectResult={handleSelectResult}
+                        results={searchResults}
+                        placeholder="Search pages, schedules, finance..."
+                        className="shrink-0"
+                    />
                 </div>
 
                 {/* Recent Items Grid */}
-                {recentItems.length === 0 ? (
+                {filteredRecentItems.length === 0 ? (
                     <div className="flex-1 flex flex-col items-center justify-center text-center pb-20">
                         <div className="text-6xl mb-4">📝</div>
                         <h3 className="text-xl font-semibold text-text-neutral dark:text-text-primary mb-2">
                             Nothing here yet
                         </h3>
                         <p className="text-text-neutral/60 dark:text-text-secondary">
-                            Create a page or schedule an event to get started
+                            {searchQuery.trim()
+                                ? `No results found for "${searchQuery}"`
+                                : 'Create a page or schedule an event to get started'
+                            }
                         </p>
                     </div>
                 ) : (
                     <>
-                        <div className="flex items-center gap-2 mb-3 px-1">
-                            <svg className="w-4 h-4 text-text-neutral/60 dark:text-text-secondary/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            <h2 className="text-sm font-semibold text-text-neutral/80 dark:text-text-secondary">
-                                Recently visited
-                            </h2>
-                        </div>
+                        <SectionHeader
+                            title="Recently visited"
+                            icon={
+                                <svg className="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            }
+                        />
                         <div className="relative group -mx-2 md:-mx-4 px-0.5">
                             {/* Navigation Buttons - Hidden on mobile */}
                             {canScrollLeft && (
@@ -280,55 +509,41 @@ export const HomePage: React.FC<HomePageProps> = ({
                                     WebkitMaskImage: `linear-gradient(to right, ${canScrollLeft ? 'transparent, black 48px' : 'black 0%'}, ${canScrollRight ? 'black calc(100% - 48px), transparent' : 'black 100%'})`
                                 }}
                             >
-                                {recentItems.map((item) => (
-                                    <div key={`${item.type}-${item.id}`} className="min-w-[240px] w-[240px] md:min-w-[260px] md:w-[260px] snap-start first:ml-2 md:first:ml-4 last:mr-2 md:last:mr-4 relative group">
-                                        <Card
-                                            icon={item.icon}
-                                            title={item.title}
-                                            // Description logic based on type
-                                            description={
-                                                item.type === 'page'
-                                                    ? (item.data as Page).description || 'Page Document'
-                                                    : item.type === 'finance'
-                                                        ? (item.data as FinanceAccount).description || 'Finance Tracker'
-                                                        : (item.data as ScheduleEvent).type || 'Calendar Event'
-                                            }
-                                            // Extra content for Finance (Balance)
-                                            extra={
-                                                item.type === 'finance' ? (
-                                                    <div className="font-bold text-primary dark:text-accent font-mono">
-                                                        {formatBalance(item.data as FinanceAccount)}
-                                                    </div>
-                                                ) : undefined
-                                            }
-                                            type={item.type === 'finance' ? 'page' : item.type} // Finance gets 'page' styling mostly
-                                            onClick={() => handleItemClick(item)}
-                                            updatedAt={getRelativeTime(item.date)}
-                                            createdAt={getRelativeTime((item.data as any).createdAt)}
-                                        />
-
-                                        {/* Action Overlay */}
-                                        <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                                            <ActionGroup>
-                                                <ActionButton
-                                                    icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>}
-                                                    onClick={(e) => { e.stopPropagation(); /* Archive Feature */ }}
-                                                    title="Archive"
-                                                />
-                                                <ActionButton
-                                                    icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>}
-                                                    variant="danger"
-                                                    onClick={(e) => { e.stopPropagation(); setItemToDelete(item); }}
-                                                    title="Delete"
-                                                />
-                                            </ActionGroup>
-                                        </div>
-                                    </div>
+                                {filteredRecentItems.map((item) => (
+                                    <RecentItemCard
+                                        key={`${item.type}-${item.id}`}
+                                        item={item}
+                                        onItemClick={() => handleItemClick(item)}
+                                        onLongPress={() => handleLongPress(item)}
+                                        onContextMenu={(e) => handleContextMenu(item, e)}
+                                        onArchive={() => { /* Archive Feature */ }}
+                                        onDelete={() => setItemToDelete(item)}
+                                        formatBalance={formatBalance}
+                                        getRelativeTime={getRelativeTime}
+                                    />
                                 ))}
                             </div>
                         </div>
                     </>
                 )}
+
+                {/* Quick Actions */}
+                <div className="mb-8">
+                    <SectionHeader
+                        title="Quick Actions"
+                        icon={
+                            <svg className="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                        }
+                    />
+                    <QuickActions
+                        onAddFinance={onFinanceListClick}
+                        onAddPage={onNewPageClick}
+                        onAddSchedule={onScheduleClick}
+                        onViewArchive={() => { /* Archive feature - coming soon */ }}
+                    />
+                </div>
 
                 <ConfirmDialog
                     isOpen={!!itemToDelete}
@@ -340,40 +555,59 @@ export const HomePage: React.FC<HomePageProps> = ({
                     onCancel={() => setItemToDelete(null)}
                 />
 
-                {/* Quick Actions */}
-                {recentItems.length > 0 && (
-                    <div className="mt-8 md:mt-12 pt-6 md:pt-8">
-                        <h2 className="text-xs md:text-sm font-bold text-text-neutral dark:text-text-secondary uppercase tracking-wider mb-3 md:mb-4 opacity-80">
-                            Quick Actions
-                        </h2>
-                        <div className="flex flex-col sm:flex-row gap-3">
+                {/* Action Sheet for mobile long press and desktop right click */}
+                <ActionSheet
+                    isOpen={!!actionSheetItem}
+                    onClose={() => setActionSheetItem(null)}
+                    title={actionSheetItem?.title}
+                    items={actionSheetItem ? getActionSheetItems(actionSheetItem) : []}
+                />
+
+                {/* Edit Modal */}
+                <Modal
+                    isOpen={!!itemToEdit}
+                    onClose={() => setItemToEdit(null)}
+                    title={`Edit ${itemToEdit?.type === 'finance' ? 'Wallet' : 'Item'}`}
+                >
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-text-neutral dark:text-text-primary mb-1">
+                                Name
+                            </label>
+                            <Input
+                                value={editName}
+                                onChange={(e) => setEditName(e.target.value)}
+                                placeholder="Enter name..."
+                                autoFocus
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-text-neutral dark:text-text-primary mb-1">
+                                Description
+                            </label>
+                            <Input
+                                value={editDescription}
+                                onChange={(e) => setEditDescription(e.target.value)}
+                                placeholder="Enter description (optional)..."
+                            />
+                        </div>
+                        <div className="flex justify-end pt-4 gap-3">
                             <Button
-                                onClick={onScheduleClick}
-                                variant="accent"
-                                className="w-full sm:w-auto"
-                                leftIcon={
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                                    </svg>
-                                }
+                                variant="ghost"
+                                onClick={() => setItemToEdit(null)}
                             >
-                                New Event
+                                Cancel
                             </Button>
                             <Button
-                                onClick={onNewPageClick}
-                                variant="outline"
-                                className="w-full sm:w-auto"
-                                leftIcon={
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                    </svg>
-                                }
+                                variant="primary"
+                                onClick={handleSaveEdit}
+                                disabled={!editName.trim()}
                             >
-                                New Page
+                                Save Changes
                             </Button>
                         </div>
                     </div>
-                )}
+                </Modal>
             </div>
         </div>
     );

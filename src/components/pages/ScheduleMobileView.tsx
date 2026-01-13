@@ -4,6 +4,7 @@ import { MiniFAB } from '../ui/MiniFAB';
 import dayjs from 'dayjs';
 import type { ScheduleEvent } from '../../types/schedule';
 import { EventCard } from '../ui/EventCard';
+import { SwipeableItem } from '../ui/SwipeableItem';
 
 interface ScheduleMobileViewProps {
     selectedDate: dayjs.Dayjs;
@@ -12,6 +13,8 @@ interface ScheduleMobileViewProps {
     onDateSelect: (date: dayjs.Dayjs) => void;
     onEventClick: (eventId: string) => void;
     onDateClick: (date: dayjs.Dayjs) => void;
+    onEditEvent?: (event: ScheduleEvent) => void;
+    onDeleteEvent?: (event: ScheduleEvent) => void;
 }
 
 export const ScheduleMobileView: React.FC<ScheduleMobileViewProps> = ({
@@ -19,7 +22,9 @@ export const ScheduleMobileView: React.FC<ScheduleMobileViewProps> = ({
     events,
     onDateSelect,
     onEventClick,
-    onDateClick
+    onDateClick,
+    onEditEvent,
+    onDeleteEvent
 }) => {
     // Generate multiple weeks for horizontal scroll
     const allDates = useMemo(() => {
@@ -193,27 +198,34 @@ export const ScheduleMobileView: React.FC<ScheduleMobileViewProps> = ({
                             const end = event.endDate ? dayjs(event.endDate) : start.add(1, 'hour');
 
                             return (
-                                <div key={event.id} className="flex gap-4 border-b border-text-neutral/10 dark:border-white/5 pb-6 last:border-0 last:pb-0">
-                                    {/* Left Side: Start & End Time */}
-                                    <div className="w-16 shrink-0 flex flex-col justify-between py-1 text-right">
-                                        <span className="text-xs font-medium text-text-neutral/60 dark:text-text-secondary/70 leading-tight">
-                                            {start.format('h:mm A')}
-                                        </span>
-                                        <span className="text-xs font-medium text-text-neutral/60 dark:text-text-secondary/70 leading-tight">
-                                            {end.format('h:mm A')}
-                                        </span>
-                                    </div>
+                                <div key={event.id} className="border-b border-text-neutral/10 dark:border-white/5 pb-6 last:border-0 last:pb-0">
+                                    <SwipeableItem
+                                        onEdit={() => onEditEvent?.(event)}
+                                        onDelete={() => onDeleteEvent?.(event)}
+                                    >
+                                        <div className="flex gap-4">
+                                            {/* Left Side: Start & End Time */}
+                                            <div className="w-16 shrink-0 flex flex-col justify-between py-1 text-right">
+                                                <span className="text-xs font-medium text-text-neutral/60 dark:text-text-secondary/70 leading-tight">
+                                                    {start.format('h:mm A')}
+                                                </span>
+                                                <span className="text-xs font-medium text-text-neutral/60 dark:text-text-secondary/70 leading-tight">
+                                                    {end.format('h:mm A')}
+                                                </span>
+                                            </div>
 
-                                    {/* Right Side: Event Card */}
-                                    <div className="flex-1 relative">
-                                        <EventCard
-                                            type={(event.type === 'Meeting' || event.type === 'Task' || event.type === 'Personal') ? event.type : 'Deadlines'}
-                                            time={event.date}
-                                            title={event.title}
-                                            onClick={() => onEventClick(event.id)}
-                                            className="min-h-[80px]"
-                                        />
-                                    </div>
+                                            {/* Right Side: Event Card */}
+                                            <div className="flex-1 relative">
+                                                <EventCard
+                                                    type={(event.type === 'Meeting' || event.type === 'Task' || event.type === 'Personal') ? event.type : 'Deadlines'}
+                                                    time={event.date}
+                                                    title={event.title}
+                                                    onClick={() => onEventClick(event.id)}
+                                                    className="min-h-[80px]"
+                                                />
+                                            </div>
+                                        </div>
+                                    </SwipeableItem>
                                 </div>
                             );
                         })}

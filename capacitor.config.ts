@@ -5,8 +5,8 @@ const config: CapacitorConfig = {
   appName: 'ArcNote',
   webDir: 'dist',
   server: {
-    // Untuk development: point ke dev server di PC (via hotspot)
-    url: 'http://192.168.137.1:5173',
+    // Untuk development: point ke dev server di PC (via LAN/Ethernet)
+    url: 'http://10.1.78.50:5173',
     cleartext: true
   }
 };

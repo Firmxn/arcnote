@@ -15,7 +15,7 @@ interface SchedulePageProps {
 }
 
 export const SchedulePage: React.FC<SchedulePageProps> = ({ initialEventId }) => {
-    const { events, loadEvents, createEvent, markEventAsVisited, syncToCloud, syncToLocal } = useSchedulesStore();
+    const { events, loadEvents, createEvent, deleteEvent, markEventAsVisited, syncToCloud, syncToLocal } = useSchedulesStore();
     const isBackendMode = localStorage.getItem('arcnote_storage_preference') === 'backend';
     const [currentDate, setCurrentDate] = useState(dayjs());
     const [selectedDate, setSelectedDate] = useState(dayjs()); // Untuk mobile day view
@@ -27,6 +27,7 @@ export const SchedulePage: React.FC<SchedulePageProps> = ({ initialEventId }) =>
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
     const [pendingDate, setPendingDate] = useState<dayjs.Dayjs | null>(null);
+    const [eventToDelete, setEventToDelete] = useState<string | null>(null);
     const [contextMenu, setContextMenu] = useState<{ x: number; y: number; eventId: string } | null>(null);
 
     // Detect mobile screen size
@@ -140,6 +141,23 @@ export const SchedulePage: React.FC<SchedulePageProps> = ({ initialEventId }) =>
 
     const activeEvent = events.find(e => e.id === selectedEventId);
 
+    const handleEditFromList = (event: ScheduleEvent) => {
+        markEventAsVisited(event.id);
+        setSelectedEventId(event.id);
+        setDraftEvent(null);
+    };
+
+    const handleDeleteFromList = (event: ScheduleEvent) => {
+        setEventToDelete(event.id);
+    };
+
+    const executeDelete = async () => {
+        if (eventToDelete) {
+            await deleteEvent(eventToDelete);
+            setEventToDelete(null);
+        }
+    };
+
     // Determine what to show in panel: existing event OR draft event
     const panelEvent = activeEvent || (draftEvent as ScheduleEvent);
     const isDraft = !!draftEvent;
@@ -160,6 +178,8 @@ export const SchedulePage: React.FC<SchedulePageProps> = ({ initialEventId }) =>
                             setDraftEvent(null);
                         }}
                         onDateClick={handleDateClick}
+                        onEditEvent={handleEditFromList}
+                        onDeleteEvent={handleDeleteFromList}
                     />
                 </>
             ) : (
@@ -298,6 +318,17 @@ export const SchedulePage: React.FC<SchedulePageProps> = ({ initialEventId }) =>
                 message={confirmMessage}
                 onConfirm={handleConfirm}
                 onCancel={handleCancelConfirm}
+            />
+
+            <ConfirmDialog
+                isOpen={!!eventToDelete}
+                title="Delete Event"
+                message="Are you sure you want to delete this event? This action cannot be undone."
+                confirmText="Delete"
+                cancelText="Cancel"
+                type="danger"
+                onConfirm={executeDelete}
+                onCancel={() => setEventToDelete(null)}
             />
             {/* Context Menu */}
             {contextMenu && (

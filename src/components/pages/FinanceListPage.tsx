@@ -11,6 +11,10 @@ import relativeTime from 'dayjs/plugin/relativeTime';
 import type { FinanceAccount } from '../../types/finance';
 import { FAB } from '../ui/FAB';
 import { MiniFAB } from '../ui/MiniFAB';
+import { SearchBar } from '../ui/SearchBar';
+import type { SearchResult } from '../ui/SearchBar';
+import { ActionGroup, ActionButton } from '../ui/ActionGroup';
+import { SectionHeader } from '../ui/SectionHeader';
 
 dayjs.extend(relativeTime);
 
@@ -40,6 +44,7 @@ export const FinanceListPage: React.FC = () => {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [createModalMode, setCreateModalMode] = useState<'create' | 'edit'>('create');
     const [isFabHidden, setIsFabHidden] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
     const [newAccountTitle, setNewAccountTitle] = useState('');
     const [newAccountDesc, setNewAccountDesc] = useState('');
 
@@ -132,12 +137,41 @@ export const FinanceListPage: React.FC = () => {
         }
     };
 
+    // Filter accounts berdasarkan search query
+    const filteredAccounts = searchQuery.trim()
+        ? accounts.filter(account =>
+            account.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (account.description?.toLowerCase().includes(searchQuery.toLowerCase()))
+        )
+        : accounts;
+
+    // Convert filtered accounts to SearchResult format
+    const searchResults: SearchResult[] = filteredAccounts.map(account => ({
+        id: account.id,
+        title: account.title,
+        description: account.description,
+        category: 'Finance Trackers',
+        icon: (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+            </svg>
+        ),
+        metadata: dayjs(account.createdAt).fromNow()
+    }));
+
+    const handleSelectResult = (result: SearchResult) => {
+        const account = accounts.find(acc => acc.id === result.id);
+        if (account) {
+            navigate(`/finance/${account.id}`);
+        }
+    };
+
     return (
         <div className="h-full w-full bg-neutral dark:bg-primary flex flex-col min-h-0">
             <div className="flex-1 flex flex-col min-h-0">
                 {/* Header */}
                 <div className="max-w-7xl w-full mx-auto px-4 md:px-8 pt-6 md:pt-12 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 md:mb-8 shrink-0">
-                    <div>
+                    <div className="flex-1">
                         <h1 className="text-2xl md:text-3xl font-bold text-text-neutral dark:text-text-primary mb-2">
                             Finance Trackers
                         </h1>
@@ -145,6 +179,15 @@ export const FinanceListPage: React.FC = () => {
                             Manage your wallets, accounts, and budgets
                         </p>
                     </div>
+
+                    {/* Search Bar */}
+                    <SearchBar
+                        onSearch={setSearchQuery}
+                        onSelectResult={handleSelectResult}
+                        results={searchResults}
+                        placeholder="Search trackers..."
+                        className="shrink-0"
+                    />
 
                     {/* Desktop Button - Hidden on Mobile */}
                     <button
@@ -164,74 +207,82 @@ export const FinanceListPage: React.FC = () => {
                     className="flex-1 overflow-y-auto min-h-0 pb-[100px]"
                     onScroll={handleScroll}
                 >
-                    {accounts.length === 0 && !isLoading ? (
+                    {filteredAccounts.length === 0 && !isLoading ? (
                         <div className="h-full max-w-7xl mx-auto w-full flex flex-col items-center justify-center text-center px-4">
                             <div className="text-6xl mb-4">
-                                💰
+                                {searchQuery.trim() ? '🔍' : '💰'}
                             </div>
                             <h3 className="text-xl font-semibold text-text-neutral dark:text-text-primary mb-2">
-                                No trackers yet
+                                {searchQuery.trim() ? 'No trackers found' : 'No trackers yet'}
                             </h3>
-                            <p className="text-text-neutral/60 dark:text-text-secondary cursor-pointer" onClick={() => setIsCreateModalOpen(true)}>
-                                Create your first finance tracker to get started
+                            <p className="text-text-neutral/60 dark:text-text-secondary cursor-pointer" onClick={() => searchQuery.trim() ? setSearchQuery('') : setIsCreateModalOpen(true)}>
+                                {searchQuery.trim()
+                                    ? `No results for "${searchQuery}". Clear search to see all trackers.`
+                                    : 'Create your first finance tracker to get started'
+                                }
                             </p>
                         </div>
                     ) : (
-                        <div className="max-w-7xl mx-auto w-full px-4 md:px-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                            {accounts.map(account => {
-                                const balance = balances[account.id] || 0;
-                                const formattedBalance = new Intl.NumberFormat('id-ID', {
-                                    style: 'currency',
-                                    currency: account.currency || 'IDR',
-                                    minimumFractionDigits: 0
-                                }).format(balance);
+                        <div className="max-w-7xl mx-auto w-full px-4 md:px-8">
+                            <SectionHeader
+                                title="Your Trackers"
+                                icon={
+                                    <svg className="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                                    </svg>
+                                }
+                            />
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                {filteredAccounts.map(account => {
+                                    const balance = balances[account.id] || 0;
+                                    const formattedBalance = new Intl.NumberFormat('id-ID', {
+                                        style: 'currency',
+                                        currency: account.currency || 'IDR',
+                                        minimumFractionDigits: 0
+                                    }).format(balance);
 
-                                return (
-                                    <div key={account.id} className="relative group">
-                                        <div onClick={() => navigate(`/finance/${account.id}`)}>
-                                            <Card
-                                                icon={<WalletIcon />}
-                                                title={account.title}
-                                                description={account.description || `${account.currency} Account`}
-                                                extra={
-                                                    <div className="text-xl font-bold text-primary dark:text-accent font-mono tracking-tight">
-                                                        {formattedBalance}
-                                                    </div>
-                                                }
-                                                updatedAt={dayjs(account.updatedAt).fromNow()}
-                                                createdAt={dayjs(account.createdAt).format('MMM D, YYYY')}
-                                                onContextMenu={(e) => {
-                                                    e.preventDefault();
-                                                    setContextMenu({ x: e.pageX, y: e.pageY, accountId: account.id });
-                                                }}
-                                            />
-                                        </div>
+                                    return (
+                                        <div key={account.id} className="relative group">
+                                            <div onClick={() => navigate(`/finance/${account.id}`)}>
+                                                <Card
+                                                    icon={<WalletIcon />}
+                                                    title={account.title}
+                                                    description={account.description || `${account.currency} Account`}
+                                                    extra={
+                                                        <div className="text-xl font-bold text-primary dark:text-accent font-mono tracking-tight">
+                                                            {formattedBalance}
+                                                        </div>
+                                                    }
+                                                    updatedAt={dayjs(account.updatedAt).fromNow()}
+                                                    createdAt={dayjs(account.createdAt).format('MMM D, YYYY')}
+                                                    onContextMenu={(e) => {
+                                                        e.preventDefault();
+                                                        setContextMenu({ x: e.pageX, y: e.pageY, accountId: account.id });
+                                                    }}
+                                                />
+                                            </div>
 
-                                        {/* Action Buttons Overlay */}
-                                        <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity flex bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-100 dark:border-gray-700 z-10">
-                                            <button
-                                                onClick={(e) => { e.stopPropagation(); handleEditStart(account); }}
-                                                className="p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-l-lg text-blue-500 transition-colors"
-                                                title="Edit Info"
-                                            >
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                                </svg>
-                                            </button>
-                                            <div className="w-px bg-gray-200 dark:bg-gray-700"></div>
-                                            <button
-                                                onClick={(e) => { e.stopPropagation(); handleDelete(account); }}
-                                                className="p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-r-lg text-red-500 transition-colors"
-                                                title="Delete"
-                                            >
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                </svg>
-                                            </button>
+                                            {/* Action Buttons Overlay */}
+                                            <div className="absolute top-3 right-3 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity z-10">
+                                                <ActionGroup>
+                                                    <ActionButton
+                                                        icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>}
+                                                        variant="primary"
+                                                        onClick={(e) => { e.stopPropagation(); handleEditStart(account); }}
+                                                        title="Edit Info"
+                                                    />
+                                                    <ActionButton
+                                                        icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>}
+                                                        variant="danger"
+                                                        onClick={(e) => { e.stopPropagation(); handleDelete(account); }}
+                                                        title="Delete"
+                                                    />
+                                                </ActionGroup>
+                                            </div>
                                         </div>
-                                    </div>
-                                );
-                            })}
+                                    );
+                                })}
+                            </div>
                         </div>
                     )}
                 </div>

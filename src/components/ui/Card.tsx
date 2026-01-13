@@ -30,17 +30,11 @@ export const Card: React.FC<CardProps> = ({
         <button
             onClick={onClick}
             onContextMenu={onContextMenu}
-            className="group relative bg-white dark:bg-secondary rounded-2xl p-6 text-left transition-all hover:shadow-lg hover:-translate-y-1 shadow-sm w-full"
+            className="group relative bg-white dark:bg-secondary rounded-2xl p-6 text-left transition-all hover:shadow-lg hover:-translate-y-1 shadow-sm w-full border border-secondary/10 dark:border-white/5"
         >
             {/* Icon in rounded square */}
             <div className="mb-4">
-                <div className={`
-                    w-12 h-12 rounded-xl flex items-center justify-center text-text-neutral dark:text-text-primary
-                    ${type === 'page'
-                        ? 'bg-primary/10 dark:bg-primary/20'
-                        : 'bg-accent/10 dark:bg-accent/20'
-                    }
-                `}>
+                <div className="w-10 h-10 rounded-lg bg-accent/10 dark:bg-accent/20 flex items-center justify-center text-accent">
                     {icon}
                 </div>
             </div>
