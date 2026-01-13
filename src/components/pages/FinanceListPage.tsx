@@ -42,7 +42,6 @@ export const FinanceListPage: React.FC = () => {
 
     // Create State
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-    const [createModalMode, setCreateModalMode] = useState<'create' | 'edit'>('create');
     const [isFabHidden, setIsFabHidden] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [newAccountTitle, setNewAccountTitle] = useState('');
@@ -54,8 +53,6 @@ export const FinanceListPage: React.FC = () => {
     const [editDesc, setEditDesc] = useState('');
     const [accountToDelete, setAccountToDelete] = useState<FinanceAccount | null>(null);
     const [contextMenu, setContextMenu] = useState<{ x: number; y: number; accountId: string } | null>(null);
-    const [selectedAccount, setSelectedAccount] = useState<FinanceAccount | null>(null);
-
 
     useEffect(() => {
         loadAccounts();
@@ -82,12 +79,6 @@ export const FinanceListPage: React.FC = () => {
         } catch (error) {
             console.error('Failed to create account:', error);
         }
-    };
-
-    const handleEditAccount = (account: FinanceAccount) => {
-        setSelectedAccount(account);
-        setCreateModalMode('edit');
-        setIsCreateModalOpen(true);
     };
 
     const listRef = useRef<HTMLDivElement>(null);
