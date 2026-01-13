@@ -73,25 +73,25 @@ export const Sidebar: React.FC<SidebarProps> = ({ onPageSelect, onSettingsClick,
 
             <aside
                 className={`
-                    h-screen bg-primary dark:bg-secondary border-r border-primary dark:border-secondary flex flex-col transition-all duration-300 overflow-hidden
+                    h-[100dvh] bg-primary dark:bg-secondary border-r border-primary dark:border-secondary flex flex-col transition-all duration-300 overflow-hidden
                     ${isCollapsed ? 'w-16' : 'w-48 md:w-56'}
                     md:relative fixed z-50
                 `}
             >
                 {/* Header with Toggle */}
                 <div className={`
-                border-b border-secondary/50 dark:border-neutral flex items-center transition-all
+                shrink-0 border-b border-secondary/50 dark:border-neutral flex items-center transition-all
                 ${isCollapsed ? 'justify-center py-4 px-3' : 'justify-between px-4 py-4'}
             `}>
                     {!isCollapsed && (
-                        <h2 className="text-sm font-bold text-text-primary dark:text-text-secondary tracking-tight">
+                        <h2 className="text-sm font-bold text-text-primary dark:text-text-accent tracking-tight">
                             ArcNote
                         </h2>
                     )}
                     <button
                         onClick={() => setIsCollapsed(!isCollapsed)}
                         className={`
-                        rounded hover:bg-white/10 dark:hover:bg-primary/20 text-text-primary dark:text-text-secondary transition-colors
+                        rounded hover:bg-white/10 dark:hover:bg-primary/20 text-text-primary dark:text-text-accent transition-colors
                         ${isCollapsed ? 'w-10 h-10 flex items-center justify-center' : 'p-1'}
                     `}
                         title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
@@ -121,8 +121,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ onPageSelect, onSettingsClick,
                                     : 'w-full px-3 py-1.5 text-left text-sm rounded'
                                 }
                             ${currentView === 'home'
-                                    ? 'bg-white/10 dark:bg-primary text-text-primary dark:text-text-secondary shadow-md'
-                                    : 'text-text-primary dark:text-text-secondary hover:bg-white/5 dark:hover:bg-primary/50 opacity-90 hover:opacity-100'
+                                    ? 'bg-white/10 dark:bg-primary text-text-primary dark:text-text-accent shadow-md'
+                                    : 'text-text-primary dark:text-text-accent hover:bg-white/5 dark:hover:bg-primary/50 opacity-90 hover:opacity-100'
                                 }
                         `}
                             title={isCollapsed ? 'Home' : ''}
@@ -143,8 +143,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ onPageSelect, onSettingsClick,
                                     : 'w-full px-3 py-1.5 text-left text-sm rounded'
                                 }
                             ${currentView === 'schedule'
-                                    ? 'bg-white/10 dark:bg-primary text-text-primary dark:text-text-secondary shadow-md'
-                                    : 'text-text-primary dark:text-text-secondary hover:bg-white/5 dark:hover:bg-primary/50 opacity-90 hover:opacity-100'
+                                    ? 'bg-white/10 dark:bg-primary text-text-primary dark:text-text-accent shadow-md'
+                                    : 'text-text-primary dark:text-text-accent hover:bg-white/5 dark:hover:bg-primary/50 opacity-90 hover:opacity-100'
                                 }
                         `}
                             title={isCollapsed ? 'Schedule' : ''}
@@ -165,8 +165,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ onPageSelect, onSettingsClick,
                                     : 'w-full px-3 py-1.5 text-left text-sm rounded'
                                 }
                             ${currentView === 'finance'
-                                    ? 'bg-white/10 dark:bg-primary text-text-primary dark:text-text-secondary shadow-md'
-                                    : 'text-text-primary dark:text-text-secondary hover:bg-white/5 dark:hover:bg-primary/50 opacity-90 hover:opacity-100'
+                                    ? 'bg-white/10 dark:bg-primary text-text-primary dark:text-text-accent shadow-md'
+                                    : 'text-text-primary dark:text-text-accent hover:bg-white/5 dark:hover:bg-primary/50 opacity-90 hover:opacity-100'
                                 }
                         `}
                             title={isCollapsed ? 'Finance' : ''}
@@ -184,14 +184,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ onPageSelect, onSettingsClick,
                             <div className="px-4 flex items-center justify-between mb-2">
                                 <button
                                     onClick={onPagesClick}
-                                    className="text-xs font-bold text-text-primary dark:text-text-secondary uppercase tracking-wider opacity-80 hover:opacity-100 transition-opacity cursor-pointer"
+                                    className="text-xs font-bold text-text-primary dark:text-text-accent uppercase tracking-wider opacity-80 hover:opacity-100 transition-opacity cursor-pointer"
                                     title="View all pages"
                                 >
                                     Pages
                                 </button>
                                 <button
                                     onClick={handleCreatePage}
-                                    className="text-text-primary dark:text-text-secondary hover:text-white dark:hover:text-white transition-opacity opacity-80 hover:opacity-100"
+                                    className="text-text-primary dark:text-text-accent hover:text-white dark:hover:text-white transition-opacity opacity-80 hover:opacity-100"
                                     title="New page"
                                 >
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -202,7 +202,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onPageSelect, onSettingsClick,
 
                             {/* Pages List */}
                             {pages.length === 0 && (
-                                <div className="px-4 py-6 text-xs text-text-primary dark:text-text-secondary text-center opacity-60">
+                                <div className="px-4 py-6 text-xs text-text-primary dark:text-text-accent text-center opacity-60">
                                     No pages
                                 </div>
                             )}
@@ -226,7 +226,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onPageSelect, onSettingsClick,
                                     <div className="select-none mb-0.5">
                                         <div
                                             onClick={() => setIsSearchModalOpen(true)}
-                                            className="group flex items-center py-1.5 pr-2 mx-3 rounded-md cursor-pointer transition-colors text-text-primary dark:text-text-secondary hover:bg-white/5 dark:hover:bg-primary/50 opacity-90 hover:opacity-100 font-medium"
+                                            className="group flex items-center py-1.5 pr-2 mx-3 rounded-md cursor-pointer transition-colors text-text-primary dark:text-text-accent hover:bg-white/5 dark:hover:bg-primary/50 opacity-90 hover:opacity-100 font-medium"
                                             style={{ paddingLeft: '8px' }}
                                             role="button"
                                             title="Search pages"
@@ -258,8 +258,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ onPageSelect, onSettingsClick,
                                 className={`
                                 w-10 h-10 rounded flex items-center justify-center transition-all
                                 ${currentView === 'pages'
-                                        ? 'bg-white/10 dark:bg-primary text-text-primary dark:text-text-secondary shadow-md'
-                                        : 'text-text-primary dark:text-text-secondary hover:bg-white/5 dark:hover:bg-primary/50 opacity-80 hover:opacity-100'
+                                        ? 'bg-white/10 dark:bg-primary text-text-primary dark:text-text-accent shadow-md'
+                                        : 'text-text-primary dark:text-text-accent hover:bg-white/5 dark:hover:bg-primary/50 opacity-80 hover:opacity-100'
                                     }
                             `}
                                 title="All Pages"
@@ -272,7 +272,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onPageSelect, onSettingsClick,
                             {/* New Page Button */}
                             <button
                                 onClick={handleCreatePage}
-                                className="w-10 h-10 rounded flex items-center justify-center transition-all text-text-primary dark:text-text-secondary hover:bg-white/5 dark:hover:bg-primary/50 opacity-80 hover:opacity-100"
+                                className="w-10 h-10 rounded flex items-center justify-center transition-all text-text-primary dark:text-text-accent hover:bg-white/5 dark:hover:bg-primary/50 opacity-80 hover:opacity-100"
                                 title="New page"
                             >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -283,9 +283,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ onPageSelect, onSettingsClick,
                     )}
                 </div>
 
-                <div className={`border-t border-secondary/50 dark:border-neutral flex items-center bg-primary dark:bg-secondary/10 transition-all ${isCollapsed ? 'justify-center py-3 px-3' : 'justify-between px-4 py-3'}`}>
+                <div className={`shrink-0 border-t border-secondary/50 dark:border-neutral flex items-center bg-primary dark:bg-secondary/10 transition-all ${isCollapsed ? 'justify-center py-3 px-3' : 'justify-between px-4 py-3'}`}>
                     {!isCollapsed && (
-                        <div className="text-xs text-text-primary dark:text-text-secondary font-medium opacity-80">
+                        <div className="text-xs text-text-primary dark:text-text-accent font-medium opacity-80">
                             {pages.length} {pages.length === 1 ? 'page' : 'pages'}
                         </div>
                     )}
@@ -300,7 +300,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onPageSelect, onSettingsClick,
                                     }
                                 }}
                                 className={`
-                                rounded-md transition-all flex items-center justify-center text-neutral 
+                                rounded-md transition-all flex items-center justify-center text-text-primary dark:text-text-accent 
                                 ${isCollapsed ? 'w-10 h-10' : 'p-1.5'}
                                 hover:bg-white/5 dark:hover:bg-primary/50 opacity-80 hover:opacity-100
                             `}
@@ -318,8 +318,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ onPageSelect, onSettingsClick,
                             rounded-md transition-all flex items-center justify-center
                             ${isCollapsed ? 'w-10 h-10' : 'p-1.5'}
                             ${currentView === 'settings'
-                                    ? 'bg-white/10 dark:bg-primary text-text-primary dark:text-text-secondary shadow-md'
-                                    : 'text-text-primary dark:text-text-secondary hover:bg-white/5 dark:hover:bg-primary/50 opacity-80 hover:opacity-100'
+                                    ? 'bg-white/10 dark:bg-primary text-text-primary dark:text-text-accent shadow-md'
+                                    : 'text-text-primary dark:text-text-accent hover:bg-white/5 dark:hover:bg-primary/50 opacity-80 hover:opacity-100'
                                 }
                         `}
                             title="Settings"
@@ -335,7 +335,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onPageSelect, onSettingsClick,
                             className={`
                             rounded-md transition-all flex items-center justify-center
                             ${isCollapsed ? 'w-10 h-10' : 'p-1.5'}
-                            text-text-primary dark:text-text-secondary hover:bg-white/5 dark:hover:bg-primary/50 opacity-80 hover:opacity-100
+                            text-text-primary dark:text-text-accent hover:bg-white/5 dark:hover:bg-primary/50 opacity-80 hover:opacity-100
                         `}
                             title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
                         >

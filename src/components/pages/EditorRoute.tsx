@@ -1,10 +1,11 @@
 import { useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { usePagesStore } from '../../state/pages.store';
 import { PageEditor } from './PageEditor';
 
 export const EditorRoute = () => {
     const { pageId } = useParams();
+    const navigate = useNavigate();
     const { pages, setCurrentPage } = usePagesStore();
 
     useEffect(() => {
@@ -12,9 +13,12 @@ export const EditorRoute = () => {
             const page = pages.find(p => p.id === pageId);
             if (page) {
                 setCurrentPage(page);
+            } else {
+                // Page not found, redirect to pages list
+                navigate('/pages', { replace: true });
             }
         }
-    }, [pageId, pages, setCurrentPage]);
+    }, [pageId, pages, setCurrentPage, navigate]);
 
     // Show nothing while pages are loading
     if (pages.length === 0) {
@@ -24,14 +28,9 @@ export const EditorRoute = () => {
     // Find the requested page
     const targetPage = pages.find(p => p.id === pageId);
 
-    // If page not found
+    // If page not found, redirect (handled in useEffect)
     if (!targetPage) {
-        return (
-            <div className="flex-1 h-full flex flex-col items-center justify-center bg-white dark:bg-gray-950 text-text-neutral dark:text-text-secondary">
-                <div className="text-lg font-medium mb-2">Page not found</div>
-                <div className="text-sm opacity-70">The page you are looking for does not exist or has been deleted.</div>
-            </div>
-        );
+        return null; // Will redirect via useEffect
     }
 
     // Render Editor

@@ -77,6 +77,7 @@ body {
   min-height: 100vh;
   background-color: var(--color-bg-primary);
   color: var(--color-text-primary);
+  /* Support for Safe Area Insets moved to MainLayout */
   overflow: hidden;
 }
 
@@ -90,15 +91,15 @@ body {
   --color-bg-neutral: #020617;
   /* Deepest Navy */
 
-  /* Semantic colors - Dark mode (softer to match dark theme) */
-  --color-bg-warning: #fbbf24;
-  /* Amber 400 - softer orange for dark bg */
-  --color-bg-info: #0ea5e9;
-  /* Sky 500 - matches accent tone */
-  --color-bg-danger: #f87171;
-  /* Red 400 - softer red for dark bg */
-  --color-bg-success: #34d399;
-  /* Emerald 400 - softer green for dark bg */
+  /* Semantic colors - Light mode (vibrant to match bright primary) */
+  --color-bg-warning: #FF8800;
+  /* Orange - same as accent for consistency */
+  --color-bg-info: #0066FF;
+  /* Blue - same as primary */
+  --color-bg-danger: #FF3333;
+  /* Bright Red */
+  --color-bg-success: #00CC66;
+  /* Bright Green */
 
   --color-text-primary: #f8fafc;
   /* Slate 50 */

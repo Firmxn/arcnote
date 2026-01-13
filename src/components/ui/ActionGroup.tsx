@@ -9,7 +9,7 @@ interface ActionGroupProps {
 export const ActionGroup: React.FC<ActionGroupProps> = ({ children, className }) => {
     return (
         <div className={clsx(
-            "flex bg-white dark:bg-secondary rounded-lg shadow-md border border-secondary/20 divide-x divide-secondary/20 overflow-hidden",
+            "flex bg-white dark:bg-primary rounded-lg shadow-md border border-secondary/20  dark:border-secondary divide-x divide-secondary/20 dark:divide-secondary overflow-hidden",
             className
         )}>
             {children}

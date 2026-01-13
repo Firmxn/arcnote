@@ -1,7 +1,10 @@
-import React, { useMemo, useEffect, useRef } from 'react';
+import React, { useMemo, useEffect, useRef, useState } from 'react';
+import { FAB } from '../ui/FAB';
+import { MiniFAB } from '../ui/MiniFAB';
 import dayjs from 'dayjs';
 import type { ScheduleEvent } from '../../types/schedule';
 import { EventCard } from '../ui/EventCard';
+import { SwipeableItem } from '../ui/SwipeableItem';
 
 interface ScheduleMobileViewProps {
     selectedDate: dayjs.Dayjs;
@@ -10,6 +13,8 @@ interface ScheduleMobileViewProps {
     onDateSelect: (date: dayjs.Dayjs) => void;
     onEventClick: (eventId: string) => void;
     onDateClick: (date: dayjs.Dayjs) => void;
+    onEditEvent?: (event: ScheduleEvent) => void;
+    onDeleteEvent?: (event: ScheduleEvent) => void;
 }
 
 export const ScheduleMobileView: React.FC<ScheduleMobileViewProps> = ({
@@ -17,14 +22,16 @@ export const ScheduleMobileView: React.FC<ScheduleMobileViewProps> = ({
     events,
     onDateSelect,
     onEventClick,
-    onDateClick
+    onDateClick,
+    onEditEvent,
+    onDeleteEvent
 }) => {
-    // Generate multiple weeks for horizontal scroll - use today as base to keep it stable
+    // Generate multiple weeks for horizontal scroll
     const allDates = useMemo(() => {
         const today = dayjs();
         const baseWeekStart = today.startOf('week').add(1, 'day'); // Start from Monday
-        const weeksToShow = 26; // Total weeks to display (~6 months: 3 months before + 3 months after)
-        const centerWeekIndex = 13; // Current week is in the middle (13 weeks before, current week, 13 weeks after)
+        const weeksToShow = 26;
+        const centerWeekIndex = 13;
 
         const dates: dayjs.Dayjs[] = [];
         for (let weekOffset = -centerWeekIndex; weekOffset < weeksToShow - centerWeekIndex; weekOffset++) {
@@ -34,26 +41,37 @@ export const ScheduleMobileView: React.FC<ScheduleMobileViewProps> = ({
             }
         }
         return dates;
-    }, []); // Empty dependency array - only calculate once on mount
+    }, []);
 
     // Ref for scroll container
     const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const timelineRef = useRef<HTMLDivElement>(null);
 
-    // Auto-scroll to today on mount
+    // FAB Visibility State
+    const [isFabHidden, setIsFabHidden] = useState(false);
+
+    const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+        const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+        const isBottom = Math.abs(scrollHeight - scrollTop - clientHeight) < 50;
+        setIsFabHidden(isBottom);
+    };
+
+    const scrollToTop = () => {
+        timelineRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    // Scroll to selected date when it changes (centering it)
     useEffect(() => {
         if (scrollContainerRef.current) {
-            const today = dayjs();
-            const todayIndex = allDates.findIndex(date => date.isSame(today, 'day'));
+            const index = allDates.findIndex(date => date.isSame(selectedDate, 'day'));
 
-            if (todayIndex !== -1) {
-                // Calculate scroll position to show today at the left (first visible date)
+            if (index !== -1) {
                 const container = scrollContainerRef.current;
                 const buttonWidth = 48; // min-w-[48px]
-                const gap = 12; // gap-3 = 0.75rem = 12px
-
-                // Position to scroll: (index * (width + gap))
-                // This will place today as the first visible date on the left
-                const scrollPosition = todayIndex * (buttonWidth + gap);
+                const gap = 12; // gap-3 = 12px
+                const itemWidth = buttonWidth + gap;
+                const containerWidth = container.clientWidth;
+                const scrollPosition = (index * itemWidth) - (containerWidth / 2) + (itemWidth / 2);
 
                 container.scrollTo({
                     left: scrollPosition,
@@ -61,51 +79,14 @@ export const ScheduleMobileView: React.FC<ScheduleMobileViewProps> = ({
                 });
             }
         }
-    }, []); // Run once on mount
+    }, [selectedDate, allDates]);
 
-    // Auto-update selected date based on scroll position
-    useEffect(() => {
-        const container = scrollContainerRef.current;
-        if (!container) return;
-
-        const handleScroll = () => {
-            const scrollLeft = container.scrollLeft;
-            const buttonWidth = 48;
-            const gap = 12;
-            const itemWidth = buttonWidth + gap;
-
-            // Calculate which date index is at the leftmost visible position
-            const visibleIndex = Math.round(scrollLeft / itemWidth);
-
-            // Update selected date if it's different
-            const newDate = allDates[visibleIndex];
-            if (newDate && !newDate.isSame(selectedDate, 'day')) {
-                onDateSelect(newDate);
-            }
-        };
-
-        // Debounce scroll handler to avoid too many updates
-        let scrollTimeout: NodeJS.Timeout;
-        const debouncedHandleScroll = () => {
-            clearTimeout(scrollTimeout);
-            scrollTimeout = setTimeout(handleScroll, 150);
-        };
-
-        container.addEventListener('scroll', debouncedHandleScroll);
-        return () => {
-            container.removeEventListener('scroll', debouncedHandleScroll);
-            clearTimeout(scrollTimeout);
-        };
-    }, [allDates, selectedDate, onDateSelect]);
-
-    // Scroll to previous/next week
     const scrollToWeek = (direction: 'prev' | 'next') => {
         if (scrollContainerRef.current) {
             const container = scrollContainerRef.current;
-            const buttonWidth = 48; // min-w-[48px]
-            const gap = 12; // gap-3 = 0.75rem = 12px
-            const weekWidth = 7 * (buttonWidth + gap); // 7 days per week
-
+            const buttonWidth = 48;
+            const gap = 12;
+            const weekWidth = 7 * (buttonWidth + gap);
             const scrollAmount = direction === 'prev' ? -weekWidth : weekWidth;
 
             container.scrollBy({
@@ -115,14 +96,11 @@ export const ScheduleMobileView: React.FC<ScheduleMobileViewProps> = ({
         }
     };
 
-    // Filter events for selected date
     const dayEvents = events.filter(e => dayjs(e.date).isSame(selectedDate, 'day'));
 
-
-
     return (
-        <div className="flex-1 flex flex-col overflow-hidden">
-            {/* Header: Day Name with Swipe Indicator - Fixed Width */}
+        <div className="flex-1 flex flex-col overflow-hidden min-h-0">
+            {/* Header: Day Name with Swipe Indicator */}
             <div className="shrink-0 w-full px-4 py-3 bg-neutral dark:bg-primary">
                 <p className="text-sm text-text-neutral/60 dark:text-text-secondary">
                     {selectedDate.format('dddd')}
@@ -160,9 +138,9 @@ export const ScheduleMobileView: React.FC<ScheduleMobileViewProps> = ({
                 </div>
             </div>
 
-            {/* Week Dates Selector - Horizontal Scroll (No Month Labels) - Fixed Width */}
+            {/* Week Dates Selector */}
             <div className="shrink-0 w-full border-b border-secondary/20 overflow-hidden">
-                <div ref={scrollContainerRef} className="flex gap-3 overflow-x-auto snap-x snap-mandatory scroll-smooth px-4 py-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
+                <div ref={scrollContainerRef} className="flex gap-3 overflow-x-auto snap-x snap-mandatory scroll-smooth px-8 py-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
                     {allDates.map((date) => {
                         const isSelected = date.isSame(selectedDate, 'day');
                         const isToday = date.isSame(dayjs(), 'day');
@@ -195,8 +173,12 @@ export const ScheduleMobileView: React.FC<ScheduleMobileViewProps> = ({
                 </div>
             </div>
 
-            {/* Timeline View - Event List with Top/Bottom Time Labels */}
-            <div className="flex-1 overflow-y-auto bg-neutral px-4 py-6 flex flex-col">
+            {/* Timeline View - Event List */}
+            <div
+                ref={timelineRef}
+                className="flex-1 overflow-y-auto bg-neutral px-4 pt-6 pb-[100px] flex flex-col min-h-0"
+                onScroll={handleScroll}
+            >
                 {dayEvents.length === 0 ? (
                     <div className="flex-1 flex flex-col items-center justify-center text-center pb-20">
                         <div className="text-6xl mb-4">
@@ -216,27 +198,34 @@ export const ScheduleMobileView: React.FC<ScheduleMobileViewProps> = ({
                             const end = event.endDate ? dayjs(event.endDate) : start.add(1, 'hour');
 
                             return (
-                                <div key={event.id} className="flex gap-4 border-b border-text-neutral/10 dark:border-white/5 pb-6 last:border-0 last:pb-0">
-                                    {/* Left Side: Start & End Time */}
-                                    <div className="w-16 shrink-0 flex flex-col justify-between py-1 text-right">
-                                        <span className="text-xs font-medium text-text-neutral/60 dark:text-text-secondary/70 leading-tight">
-                                            {start.format('h:mm A')}
-                                        </span>
-                                        <span className="text-xs font-medium text-text-neutral/60 dark:text-text-secondary/70 leading-tight">
-                                            {end.format('h:mm A')}
-                                        </span>
-                                    </div>
+                                <div key={event.id} className="border-b border-text-neutral/10 dark:border-white/5 pb-6 last:border-0 last:pb-0">
+                                    <SwipeableItem
+                                        onEdit={() => onEditEvent?.(event)}
+                                        onDelete={() => onDeleteEvent?.(event)}
+                                    >
+                                        <div className="flex gap-4">
+                                            {/* Left Side: Start & End Time */}
+                                            <div className="w-16 shrink-0 flex flex-col justify-between py-1 text-right">
+                                                <span className="text-xs font-medium text-text-neutral/60 dark:text-text-secondary/70 leading-tight">
+                                                    {start.format('h:mm A')}
+                                                </span>
+                                                <span className="text-xs font-medium text-text-neutral/60 dark:text-text-secondary/70 leading-tight">
+                                                    {end.format('h:mm A')}
+                                                </span>
+                                            </div>
 
-                                    {/* Right Side: Event Card */}
-                                    <div className="flex-1 relative">
-                                        <EventCard
-                                            type={(event.type === 'Meeting' || event.type === 'Task' || event.type === 'Personal') ? event.type : 'Deadlines'}
-                                            time={event.date}
-                                            title={event.title}
-                                            onClick={() => onEventClick(event.id)}
-                                            className="min-h-[80px]"
-                                        />
-                                    </div>
+                                            {/* Right Side: Event Card */}
+                                            <div className="flex-1 relative">
+                                                <EventCard
+                                                    type={(event.type === 'Meeting' || event.type === 'Task' || event.type === 'Personal') ? event.type : 'Deadlines'}
+                                                    time={event.date}
+                                                    title={event.title}
+                                                    onClick={() => onEventClick(event.id)}
+                                                    className="min-h-[80px]"
+                                                />
+                                            </div>
+                                        </div>
+                                    </SwipeableItem>
                                 </div>
                             );
                         })}
@@ -244,15 +233,13 @@ export const ScheduleMobileView: React.FC<ScheduleMobileViewProps> = ({
                 )}
             </div>
 
-            {/* FAB - Add Event */}
-            <button
-                onClick={() => onDateClick(selectedDate)}
-                className="fixed bottom-6 right-6 w-14 h-14 bg-accent hover:bg-accent-hover text-white rounded-full shadow-lg flex items-center justify-center transition-all active:scale-95 md:hidden"
-            >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            {/* Floating Action Button */}
+            <FAB onClick={() => onDateClick(selectedDate)} title="Add new event" hide={isFabHidden}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 5V19M5 12H19" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
-            </button>
-        </div >
+            </FAB>
+            <MiniFAB onClick={scrollToTop} show={isFabHidden} />
+        </div>
     );
 };

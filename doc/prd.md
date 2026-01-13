@@ -20,9 +20,9 @@ Vision:
 
 Fokus MVP ArcNote:
 
-### ✔ Web App (React + Tiptap)
-
-### ✔ Android melalui PWA (installable, offline)
+### ✔ Android (APK + PWA)
+- Installable PWA via browser.
+- Native Android APK via Capacitor.
 
 ### ✔ Block-based editor
 
@@ -43,7 +43,7 @@ Sinkronisasi data antar perangkat.
 
 Goal MVP:
 
-> User dapat membuat page, menambah block, mengedit block, dan menyimpan semuanya secara offline secara persisten.
+> User dapat membuat page, menambah block, mengedit block, dan menyimpan semuanya secara offline secara persisten, serta mengaksesnya via Android App.
 
 ---
 
@@ -53,10 +53,10 @@ Goal MVP:
 - Cloud sync via Supabase
 - Google Auth login
 - Backup/restore (Local/Cloud)
+- Native Android App (Capacitor)
 
 ## Phase 3:
 
-- APK Android via Capacitor
 - Local export/import file `.json`
 
 ## Phase 4:

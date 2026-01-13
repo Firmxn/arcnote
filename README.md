@@ -35,7 +35,9 @@ Aplikasi ini menggunakan pendekatan **Hybrid Storage**: Anda dapat menggunakan A
 -   **Bidirectional Sync**: 
     -   **Sync to Cloud**: Unggah data lokal Anda ke cloud saat online.
     -   **Save to Local**: Unduh dan simpan data cloud Anda ke penyimpanan lokal untuk akses offline.
--   **PWA Ready**: Dapat diinstal di perangkat mobile atau desktop dan digunakan tanpa koneksi internet.
+-   **Android & PWA Ready**: 
+    -   **Native Android App**: Build native APK via Capacitor.
+    -   **PWA**: Installable on any device, fully offline capable.
 
 ---
 
@@ -44,6 +46,7 @@ Aplikasi ini menggunakan pendekatan **Hybrid Storage**: Anda dapat menggunakan A
 | Komponen | Teknologi |
 | :--- | :--- |
 | **Frontend** | React 18, Vite 7, TypeScript |
+| **Mobile** | Capacitor v8 (Native Android), PWA |
 | **Styling** | Tailwind CSS v4 |
 | **Editor** | Tiptap v3 (Prosemirror-based) |
 | **Local DB** | Dexie.js (IndexedDB) |
