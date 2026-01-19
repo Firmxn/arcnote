@@ -37,6 +37,8 @@ interface FinanceState {
     selectAccount: (accountId: string) => Promise<void>;
     deleteAccount: (id: string) => Promise<void>;
     markAccountAsVisited: (id: string) => Promise<void>;
+    archiveAccount: (id: string) => Promise<void>;
+    restoreAccount: (id: string) => Promise<void>;
 
     // Transaction Actions
     loadTransactions: () => Promise<void>;
@@ -160,13 +162,26 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
     markAccountAsVisited: async (id: string) => {
         try {
             await financeRepository.markAccountAsVisited(id);
-            set(state => ({
-                accounts: state.accounts.map(acc =>
-                    acc.id === id ? { ...acc, lastVisitedAt: new Date() } : acc
-                )
-            }));
         } catch (error) {
             console.error('Failed to mark account as visited', error);
+        }
+    },
+
+    archiveAccount: async (id: string) => {
+        try {
+            await financeRepository.updateAccount(id, { isArchived: true });
+            get().loadAccounts();
+        } catch (error) {
+            console.error('Failed to archive account', error);
+        }
+    },
+
+    restoreAccount: async (id: string) => {
+        try {
+            await financeRepository.updateAccount(id, { isArchived: false });
+            get().loadAccounts();
+        } catch (error) {
+            console.error('Failed to restore account', error);
         }
     },
 

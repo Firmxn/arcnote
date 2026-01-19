@@ -15,7 +15,7 @@ interface PagesListPageProps {
 }
 
 export const PagesListPage: React.FC<PagesListPageProps> = ({ onPageSelect }) => {
-    const { pages, setCurrentPage, syncToCloud, syncToLocal, deletePage } = usePagesStore();
+    const { pages, setCurrentPage, syncToCloud, syncToLocal, deletePage, archivePage } = usePagesStore();
     const isBackendMode = localStorage.getItem('arcnote_storage_preference') === 'backend';
     const [expandedPages, setExpandedPages] = useState<Set<string>>(new Set());
     const [contextMenu, setContextMenu] = useState<{ x: number; y: number; pageId: string } | null>(null);
@@ -23,7 +23,7 @@ export const PagesListPage: React.FC<PagesListPageProps> = ({ onPageSelect }) =>
     const [searchQuery, setSearchQuery] = useState('');
 
     // Filter root pages (pages without parentId)
-    const rootPages = pages.filter(p => !p.parentId);
+    const rootPages = pages.filter(p => !p.parentId && !p.isArchived);
 
     // Helper function to get sub pages
     const getSubPages = (parentId: string): Page[] => {
@@ -172,7 +172,7 @@ export const PagesListPage: React.FC<PagesListPageProps> = ({ onPageSelect }) =>
                             <ActionButton
                                 icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>}
                                 variant="primary"
-                                onClick={(e) => { e.stopPropagation(); /* Archive Feature */ }}
+                                onClick={(e) => { e.stopPropagation(); archivePage(page.id); }}
                                 title="Archive"
                             />
                             <ActionButton

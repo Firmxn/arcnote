@@ -14,8 +14,11 @@ interface SchedulePageProps {
     initialEventId?: string | null;
 }
 
+import { useSearchParams } from 'react-router-dom';
+
 export const SchedulePage: React.FC<SchedulePageProps> = ({ initialEventId }) => {
-    const { events, loadEvents, createEvent, deleteEvent, markEventAsVisited, syncToCloud, syncToLocal } = useSchedulesStore();
+    const [searchParams, setSearchParams] = useSearchParams();
+    const { events, loadEvents, createEvent, updateEvent, deleteEvent, markEventAsVisited, archiveEvent, syncToCloud, syncToLocal } = useSchedulesStore();
     const isBackendMode = localStorage.getItem('arcnote_storage_preference') === 'backend';
     const [currentDate, setCurrentDate] = useState(dayjs());
     const [selectedDate, setSelectedDate] = useState(dayjs()); // Untuk mobile day view
@@ -44,7 +47,7 @@ export const SchedulePage: React.FC<SchedulePageProps> = ({ initialEventId }) =>
         if (initialEventId) {
             setSelectedEventId(initialEventId);
             // Also update current date to match the event date if needed
-            const event = events.find(e => e.id === initialEventId);
+            const event = events.find(e => e.id === initialEventId && !e.isArchived);
             if (event) {
                 setCurrentDate(dayjs(event.date));
                 setSelectedDate(dayjs(event.date));
@@ -96,6 +99,37 @@ export const SchedulePage: React.FC<SchedulePageProps> = ({ initialEventId }) =>
         });
         setSelectedEventId(null);
     };
+
+    // Handle URL params for creating event
+    useEffect(() => {
+        const action = searchParams.get('action');
+        const dateParam = searchParams.get('date');
+
+        if (action === 'create' && dateParam) {
+            const targetDate = dayjs(dateParam);
+            if (targetDate.isValid()) {
+                // Determine if we should warn about past date
+                const isPast = targetDate.isBefore(dayjs(), 'day');
+
+                // For this automatic flow, maybe we skip confirmation or show it?
+                // Use confirmation logic just to be safe/consistent
+                if (isPast) {
+                    setPendingDate(targetDate);
+                    setConfirmMessage(`You selected ${targetDate.format('MMM D, YYYY')}, which is in the past. Do you want to create an event for this date?`);
+                    setShowConfirm(true);
+                } else {
+                    createDraftEvent(targetDate);
+                }
+
+                // Update current view to that month
+                setCurrentDate(targetDate);
+
+                // Clear params so it doesn't re-trigger on simple refresh? 
+                // Using replace: true to clean URL
+                setSearchParams({}, { replace: true });
+            }
+        }
+    }, [searchParams, setSearchParams]);
 
     const handleConfirm = () => {
         if (pendingDate) {

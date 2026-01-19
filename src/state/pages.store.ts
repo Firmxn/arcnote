@@ -20,6 +20,8 @@ interface PagesState {
     deletePage: (id: string) => Promise<void>;
     setCurrentPage: (page: Page | null) => void;
     markPageAsVisited: (id: string) => Promise<void>;
+    archivePage: (id: string) => Promise<void>;
+    restorePage: (id: string) => Promise<void>;
     syncToCloud: (id: string) => Promise<void>;
     syncToLocal: (id: string) => Promise<void>;
 }
@@ -104,6 +106,24 @@ export const usePagesStore = create<PagesState>((set, get) => ({
             set({ pages });
         } catch (error) {
             console.error('Failed to mark page as visited:', error);
+        }
+    },
+
+    archivePage: async (id: string) => {
+        try {
+            await pagesRepository.update(id, { isArchived: true });
+            get().loadPages();
+        } catch (error) {
+            console.error('Failed to archive page:', error);
+        }
+    },
+
+    restorePage: async (id: string) => {
+        try {
+            await pagesRepository.update(id, { isArchived: false });
+            get().loadPages();
+        } catch (error) {
+            console.error('Failed to restore page:', error);
         }
     },
 

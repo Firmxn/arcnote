@@ -129,12 +129,13 @@ export const FinanceListPage: React.FC = () => {
     };
 
     // Filter accounts berdasarkan search query
-    const filteredAccounts = searchQuery.trim()
-        ? accounts.filter(account =>
+    const filteredAccounts = accounts
+        .filter(account => !account.isArchived) // Exclude archived
+        .filter(account =>
+            !searchQuery.trim() ||
             account.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
             (account.description?.toLowerCase().includes(searchQuery.toLowerCase()))
-        )
-        : accounts;
+        );
 
     // Convert filtered accounts to SearchResult format
     const searchResults: SearchResult[] = filteredAccounts.map(account => ({

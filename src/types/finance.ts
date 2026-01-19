@@ -31,6 +31,7 @@ export interface FinanceAccount {
     createdAt: Date;
     updatedAt: Date;
     lastVisitedAt?: Date;
+    isArchived?: boolean;
 }
 
 export interface FinanceTransaction {

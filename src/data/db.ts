@@ -71,6 +71,13 @@ export class ArcNoteDatabase extends Dexie {
                 await financeTable.toCollection().modify({ accountId: 'default' });
             }
         });
+
+        // Version 7: Add isArchived support
+        this.version(7).stores({
+            pages: 'id, title, parentId, isArchived, createdAt, updatedAt',
+            schedules: 'id, title, date, type, isAllDay, isArchived, createdAt, updatedAt',
+            financeAccounts: 'id, title, isArchived, createdAt, updatedAt'
+        });
     }
 }
 

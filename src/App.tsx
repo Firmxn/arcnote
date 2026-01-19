@@ -2,17 +2,20 @@ import { useEffect } from 'react';
 import { Routes, Route, useNavigate, useSearchParams } from 'react-router-dom';
 import { MainLayout } from './components/layout/MainLayout';
 import { HomePage } from './components/pages/HomePage';
+import { ArchivePage } from './components/pages/ArchivePage';
 import { PagesListPage } from './components/pages/PagesListPage';
 import { SettingsPage } from './components/pages/SettingsPage';
 import { SchedulePage } from './components/pages/SchedulePage';
 import { FinanceListPage } from './components/pages/FinanceListPage';
 import { FinanceDetailRoute } from './components/pages/FinanceDetailRoute';
 import { EditorRoute } from './components/pages/EditorRoute';
+import { LoginPage } from './components/pages/LoginPage';
 import { usePagesStore } from './state/pages.store';
 import { useSchedulesStore } from './state/schedules.store';
 import { useFinanceStore } from './state/finance.store';
+import { useAuthStore } from './state/auth.store';
 
-// --- Route Wrappers to Adapts Props to Router ---
+// --- Route Wrappers to Adapt Props to Router ---
 
 const HomeWithNav = () => {
   const navigate = useNavigate();
@@ -37,6 +40,7 @@ const HomeWithNav = () => {
       onEventSelect={(id) => navigate(`/schedule?eventId=${id}`)}
       onFinanceClick={(id) => navigate(`/finance/${id}`)}
       onNewPageClick={handleCreate}
+      onViewArchive={() => navigate('/archive')}
     />
   );
 };
@@ -55,12 +59,6 @@ const ScheduleWithNav = () => {
   const eventId = searchParams.get('eventId') || null;
   return <SchedulePage initialEventId={eventId} />;
 };
-
-
-import { LoginPage } from './components/pages/LoginPage';
-import { useAuthStore } from './state/auth.store';
-
-// ... (existing helper components HomeWithNav etc)
 
 function App() {
   // Auth State
@@ -110,6 +108,7 @@ function App() {
         <Route path="/" element={<HomeWithNav />} />
         <Route path="/pages" element={<PagesListWithNav />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/archive" element={<ArchivePage />} />
 
         {/* Finance Routes */}
         <Route path="/finance" element={<FinanceListPage />} />
