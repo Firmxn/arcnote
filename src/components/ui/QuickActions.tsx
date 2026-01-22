@@ -1,4 +1,5 @@
 import React from 'react';
+import { ListCard } from './ListCard';
 
 interface QuickActionItem {
     id: string;
@@ -76,36 +77,14 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
     return (
         <div className="space-y-2">
             {quickActions.map((action) => (
-                <div
+                <ListCard
                     key={action.id}
-                    className="flex items-center justify-between p-4 bg-white dark:bg-secondary rounded-xl border border-secondary/10 dark:border-white/5 hover:border-secondary/20 dark:hover:border-white/10 transition-all duration-200 group"
-                >
-                    {/* Left: Icon + Text */}
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                        {/* Icon */}
-                        <div className="w-10 h-10 rounded-lg bg-accent/10 dark:bg-accent/20 flex items-center justify-center text-accent shrink-0">
-                            {action.icon}
-                        </div>
-
-                        {/* Text */}
-                        <div className="flex-1 min-w-0">
-                            <h3 className="text-sm font-semibold text-text-neutral dark:text-text-primary truncate">
-                                {action.title}
-                            </h3>
-                            <p className="text-xs text-text-neutral/60 dark:text-text-secondary/60 truncate">
-                                {action.subtitle}
-                            </p>
-                        </div>
-                    </div>
-
-                    {/* Right: Button */}
-                    <button
-                        onClick={action.onButtonClick}
-                        className="px-4 py-1.5 text-xs font-medium text-accent hover:text-accent-hover border border-accent/20 hover:border-accent/40 rounded-full transition-all duration-200 hover:bg-accent/5 shrink-0"
-                    >
-                        {action.buttonText}
-                    </button>
-                </div>
+                    icon={action.icon}
+                    title={action.title}
+                    subtitle={action.subtitle}
+                    buttonText={action.buttonText}
+                    onButtonClick={action.onButtonClick}
+                />
             ))}
         </div>
     );

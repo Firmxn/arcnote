@@ -9,12 +9,14 @@ import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import type { FinanceAccount } from '../../types/finance';
+import { formatCurrency } from '../../utils/currency';
 import { FAB } from '../ui/FAB';
 import { MiniFAB } from '../ui/MiniFAB';
 import { SearchBar } from '../ui/SearchBar';
 import type { SearchResult } from '../ui/SearchBar';
 import { ActionGroup, ActionButton } from '../ui/ActionGroup';
 import { SectionHeader } from '../ui/SectionHeader';
+import { ActionSheet, type ActionSheetItem } from '../ui/ActionSheet';
 
 dayjs.extend(relativeTime);
 
@@ -31,6 +33,7 @@ export const FinanceListPage: React.FC = () => {
         createAccount,
         updateAccount,
         deleteAccount,
+        archiveAccount,
         isLoading,
         balances,
         loadBalances,
@@ -53,6 +56,7 @@ export const FinanceListPage: React.FC = () => {
     const [editDesc, setEditDesc] = useState('');
     const [accountToDelete, setAccountToDelete] = useState<FinanceAccount | null>(null);
     const [contextMenu, setContextMenu] = useState<{ x: number; y: number; accountId: string } | null>(null);
+    const [actionSheetAccount, setActionSheetAccount] = useState<FinanceAccount | null>(null);
 
     useEffect(() => {
         loadAccounts();
@@ -151,6 +155,79 @@ export const FinanceListPage: React.FC = () => {
         metadata: dayjs(account.createdAt).fromNow()
     }));
 
+    // Helper untuk generate action sheet items
+    const getActionSheetItems = (account: FinanceAccount): ActionSheetItem[] => {
+        const items: ActionSheetItem[] = [];
+
+        // View Option
+        items.push({
+            id: 'view',
+            label: 'View',
+            icon: (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+            ),
+            variant: 'default',
+            onClick: () => {
+                navigate(`/finance/${account.id}`);
+            }
+        });
+
+        // Edit Info Option
+        items.push({
+            id: 'edit_info',
+            label: 'Edit Info',
+            icon: (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+            ),
+            variant: 'default',
+            onClick: () => {
+                handleEditStart(account);
+            }
+        });
+
+        // Archive Option
+        items.push({
+            id: 'archive',
+            label: 'Archive',
+            icon: (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                </svg>
+            ),
+            variant: 'default',
+            onClick: async () => {
+                try {
+                    await archiveAccount(account.id);
+                    setActionSheetAccount(null);
+                } catch (error) {
+                    console.error('Error archiving account:', error);
+                }
+            }
+        });
+
+        // Delete Option
+        items.push({
+            id: 'delete',
+            label: 'Delete',
+            icon: (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+            ),
+            variant: 'danger',
+            onClick: () => {
+                setAccountToDelete(account);
+            }
+        });
+
+        return items;
+    };
+
     const handleSelectResult = (result: SearchResult) => {
         const account = accounts.find(acc => acc.id === result.id);
         if (account) {
@@ -224,18 +301,35 @@ export const FinanceListPage: React.FC = () => {
                                     </svg>
                                 }
                             />
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                            {/* Grid: 2 kolom di mobile, 3 di tablet, 4 di desktop */}
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
                                 {filteredAccounts.map(account => {
                                     const balance = balances[account.id] || 0;
-                                    const formattedBalance = new Intl.NumberFormat('id-ID', {
-                                        style: 'currency',
-                                        currency: account.currency || 'IDR',
-                                        minimumFractionDigits: 0
-                                    }).format(balance);
+                                    const formattedBalance = formatCurrency(balance, account.currency || 'IDR');
 
                                     return (
                                         <div key={account.id} className="relative group">
-                                            <div onClick={() => navigate(`/finance/${account.id}`)}>
+                                            <div
+                                                onClick={() => navigate(`/finance/${account.id}`)}
+                                                onContextMenu={(e) => {
+                                                    e.preventDefault();
+                                                    setActionSheetAccount(account);
+                                                }}
+                                                onTouchStart={(e) => {
+                                                    const timer = setTimeout(() => {
+                                                        setActionSheetAccount(account);
+                                                    }, 500);
+                                                    (e.currentTarget as any)._longPressTimer = timer;
+                                                }}
+                                                onTouchEnd={(e) => {
+                                                    const timer = (e.currentTarget as any)._longPressTimer;
+                                                    if (timer) clearTimeout(timer);
+                                                }}
+                                                onTouchMove={(e) => {
+                                                    const timer = (e.currentTarget as any)._longPressTimer;
+                                                    if (timer) clearTimeout(timer);
+                                                }}
+                                            >
                                                 <Card
                                                     icon={<WalletIcon />}
                                                     title={account.title}
@@ -254,8 +348,8 @@ export const FinanceListPage: React.FC = () => {
                                                 />
                                             </div>
 
-                                            {/* Action Buttons Overlay */}
-                                            <div className="absolute top-3 right-3 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity z-10">
+                                            {/* Action Buttons Overlay - Hidden di mobile */}
+                                            <div className="absolute top-3 right-3 opacity-0 md:group-hover:opacity-100 transition-opacity z-10">
                                                 <ActionGroup>
                                                     <ActionButton
                                                         icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>}
@@ -429,6 +523,14 @@ export const FinanceListPage: React.FC = () => {
                     ]}
                 />
             )}
+
+            {/* Action Sheet for mobile long press */}
+            <ActionSheet
+                isOpen={!!actionSheetAccount}
+                onClose={() => setActionSheetAccount(null)}
+                title={actionSheetAccount?.title}
+                items={actionSheetAccount ? getActionSheetItems(actionSheetAccount) : []}
+            />
 
             {/* Floating Action Button - Mobile Only */}
             <FAB onClick={() => setIsCreateModalOpen(true)} title="New Tracker" hide={isFabHidden} />

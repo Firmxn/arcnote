@@ -220,7 +220,7 @@ export const PagesListPage: React.FC<PagesListPageProps> = ({ onPageSelect }) =>
                 </div>
 
                 {/* Pages List */}
-                <div className="flex-1 overflow-y-auto min-h-0 pb-[100px]">
+                <div className="flex-1 overflow-y-auto min-h-0 pb-[100px] [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
                     {filteredRootPages.length === 0 ? (
                         <div className="max-w-7xl w-full mx-auto px-4 flex flex-col items-center justify-center text-center py-20">
                             <div className="text-6xl mb-4">{searchQuery.trim() ? '🔍' : '📝'}</div>

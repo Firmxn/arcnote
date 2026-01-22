@@ -6,6 +6,7 @@ import { ArchivePage } from './components/pages/ArchivePage';
 import { PagesListPage } from './components/pages/PagesListPage';
 import { SettingsPage } from './components/pages/SettingsPage';
 import { SchedulePage } from './components/pages/SchedulePage';
+import { FinanceDashboardPage } from './components/pages/FinanceDashboardPage';
 import { FinanceListPage } from './components/pages/FinanceListPage';
 import { FinanceDetailRoute } from './components/pages/FinanceDetailRoute';
 import { EditorRoute } from './components/pages/EditorRoute';
@@ -111,8 +112,11 @@ function App() {
         <Route path="/archive" element={<ArchivePage />} />
 
         {/* Finance Routes */}
-        <Route path="/finance" element={<FinanceListPage />} />
-        <Route path="/finance/:accountId" element={<FinanceDetailRoute />} />
+        <Route path="/finance">
+          <Route index element={<FinanceDashboardPage />} />
+          <Route path="wallets" element={<FinanceListPage />} />
+          <Route path=":accountId" element={<FinanceDetailRoute />} />
+        </Route>
 
         <Route path="/schedule" element={<ScheduleWithNav />} />
         <Route path="/page/:pageId" element={<EditorRoute />} />

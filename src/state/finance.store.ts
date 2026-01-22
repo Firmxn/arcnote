@@ -25,6 +25,11 @@ interface FinanceState {
     summary: FinanceSummary | null;
     balances: Record<string, number>; // Balance cache for all accounts
 
+    // Dashboard State (Global)
+    globalSummary: FinanceSummary | null;
+    monthlySummary: FinanceSummary | null; // Summary untuk bulan ini
+    recentTransactions: FinanceTransaction[];
+
     // UI State
     isLoading: boolean;
     error: string | null;
@@ -50,6 +55,11 @@ interface FinanceState {
     filterByType: (type: 'income' | 'expense' | 'all') => void;
     syncAccountToCloud: (id: string) => Promise<void>;
     syncAccountToLocal: (id: string) => Promise<void>;
+
+    // Dashboard Actions
+    loadGlobalSummary: () => Promise<void>;
+    loadMonthlySummary: () => Promise<void>;
+    loadRecentTransactions: (limit?: number) => Promise<void>;
 }
 
 export const useFinanceStore = create<FinanceState>((set, get) => ({
@@ -63,19 +73,39 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
         transactionCount: 0,
     },
     balances: {},
+
+    // Dashboard initial state
+    globalSummary: null,
+    monthlySummary: null,
+    recentTransactions: [],
+
     isLoading: false,
     error: null,
 
     // --- Account Actions ---
 
     loadAccounts: async () => {
+        if (get().isLoading) return;
         set({ isLoading: true, error: null });
         try {
-            const accounts = await financeRepository.getAllAccounts();
-            set({ accounts, isLoading: false });
+            let accounts = await financeRepository.getAllAccounts();
 
-            // If no current account but accounts exist, select the first one (usually 'default') if logic permits
-            // But we prefer explicit selection or based on URL.
+            // Auto-generate Main Wallet if no accounts exist (New User / Empty State)
+            if (accounts.length === 0) {
+                try {
+                    const mainWallet = await financeRepository.createAccount({
+                        title: 'Main Wallet',
+                        description: 'Default Wallet',
+                        currency: 'IDR'
+                    });
+                    accounts = [mainWallet];
+                } catch (createError) {
+                    console.error('Failed to auto-create main wallet', createError);
+                    // Continue with empty list if creation fails, don't block entirely
+                }
+            }
+
+            set({ accounts, isLoading: false });
         } catch (error) {
             set({ error: 'Failed to load accounts', isLoading: false });
         }
@@ -97,6 +127,15 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
     },
 
     createAccount: async (input: CreateAccountInput) => {
+        const { accounts } = get();
+        const exists = accounts.some(a => a.title.toLowerCase() === input.title.trim().toLowerCase());
+
+        if (exists) {
+            const error = 'Wallet title already exists';
+            set({ error });
+            throw new Error(error);
+        }
+
         try {
             const newAccount = await financeRepository.createAccount(input);
             set((state) => ({
@@ -110,6 +149,20 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
     },
 
     updateAccount: async (id: string, input: UpdateAccountInput) => { // Type fix needed: UpdateAccountInput
+        if (input.title) {
+            const { accounts } = get();
+            const exists = accounts.some(a =>
+                a.id !== id &&
+                a.title.toLowerCase() === input.title!.trim().toLowerCase()
+            );
+
+            if (exists) {
+                const error = 'Wallet title already exists';
+                set({ error });
+                throw new Error(error);
+            }
+        }
+
         try {
             await financeRepository.updateAccount(id, input);
             const accounts = await financeRepository.getAllAccounts();
@@ -218,22 +271,42 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
     },
 
     createTransaction: async (input: CreateTransactionInput) => {
-        const { currentAccount, loadTransactions, loadSummary, loadBalances } = get();
-        if (!currentAccount) throw new Error('No account selected');
+        const {
+            currentAccount,
+            loadTransactions,
+            loadSummary,
+            loadBalances,
+            loadGlobalSummary,
+            loadMonthlySummary,
+            loadRecentTransactions
+        } = get();
+
+        const targetAccountId = input.accountId || currentAccount?.id;
+
+        if (!targetAccountId) throw new Error('No account selected');
 
         set({ isLoading: true, error: null });
         try {
             await financeRepository.create({
                 ...input,
-                accountId: currentAccount.id
+                accountId: targetAccountId
             });
 
-            // Refresh data
-            await Promise.all([
-                loadTransactions(),
-                loadSummary(),
-                loadBalances() // Update balances list too
-            ]);
+            // Refresh data plan
+            const promises = [loadBalances()];
+
+            // If we are currently viewing this account, update detail views
+            if (currentAccount && currentAccount.id === targetAccountId) {
+                promises.push(loadTransactions());
+                promises.push(loadSummary());
+            }
+
+            // Update dashboard data
+            if (loadGlobalSummary) promises.push(loadGlobalSummary());
+            if (loadMonthlySummary) promises.push(loadMonthlySummary());
+            if (loadRecentTransactions) promises.push(loadRecentTransactions(5));
+
+            await Promise.all(promises);
 
             set({ isLoading: false });
         } catch (error) {
@@ -335,5 +408,108 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
 
         // Push to local
         await localFinanceRepository.syncAccount(account, transactions);
+    },
+
+    // --- Dashboard Actions ---
+
+    loadGlobalSummary: async () => {
+        const { accounts } = get();
+
+        try {
+            let totalIncome = 0;
+            let totalExpense = 0;
+            let transactionCount = 0;
+
+            // Aggregate summary dari semua account yang tidak di-archive
+            const activeAccounts = accounts.filter(a => !a.isArchived);
+
+            await Promise.all(activeAccounts.map(async (acc) => {
+                const summary = await financeRepository.getSummary(acc.id);
+                totalIncome += summary.totalIncome;
+                totalExpense += summary.totalExpense;
+                transactionCount += summary.transactionCount;
+            }));
+
+            set({
+                globalSummary: {
+                    totalIncome,
+                    totalExpense,
+                    balance: totalIncome - totalExpense,
+                    transactionCount
+                }
+            });
+        } catch (error) {
+            console.error('Failed to load global summary', error);
+        }
+    },
+
+    loadMonthlySummary: async () => {
+        const { accounts } = get();
+
+        try {
+            // Get current month range
+            const now = new Date();
+            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+            const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+
+            let totalIncome = 0;
+            let totalExpense = 0;
+            let transactionCount = 0;
+
+            // Fetch all transactions dan filter by bulan ini
+            const activeAccounts = accounts.filter(a => !a.isArchived);
+
+            await Promise.all(activeAccounts.map(async (acc) => {
+                const allTransactions = await financeRepository.getAll(acc.id);
+                const monthlyTransactions = allTransactions.filter(t => {
+                    const txDate = new Date(t.date);
+                    return txDate >= startOfMonth && txDate <= endOfMonth;
+                });
+
+                monthlyTransactions.forEach(t => {
+                    if (t.type === 'income') {
+                        totalIncome += t.amount;
+                    } else {
+                        totalExpense += t.amount;
+                    }
+                    transactionCount++;
+                });
+            }));
+
+            set({
+                monthlySummary: {
+                    totalIncome,
+                    totalExpense,
+                    balance: totalIncome - totalExpense,
+                    transactionCount
+                }
+            });
+        } catch (error) {
+            console.error('Failed to load monthly summary', error);
+        }
+    },
+
+    loadRecentTransactions: async (limit: number = 10) => {
+        const { accounts } = get();
+
+        try {
+            const allTransactions: FinanceTransaction[] = [];
+            const activeAccounts = accounts.filter(a => !a.isArchived);
+
+            // Fetch all transactions dari semua account
+            await Promise.all(activeAccounts.map(async (acc) => {
+                const transactions = await financeRepository.getAll(acc.id);
+                allTransactions.push(...transactions);
+            }));
+
+            // Sort by date descending dan limit
+            const sorted = allTransactions
+                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                .slice(0, limit);
+
+            set({ recentTransactions: sorted });
+        } catch (error) {
+            console.error('Failed to load recent transactions', error);
+        }
     },
 }));

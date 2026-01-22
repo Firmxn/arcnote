@@ -18,7 +18,7 @@ import { useSearchParams } from 'react-router-dom';
 
 export const SchedulePage: React.FC<SchedulePageProps> = ({ initialEventId }) => {
     const [searchParams, setSearchParams] = useSearchParams();
-    const { events, loadEvents, createEvent, updateEvent, deleteEvent, markEventAsVisited, archiveEvent, syncToCloud, syncToLocal } = useSchedulesStore();
+    const { events, loadEvents, createEvent, updateEvent: _updateEvent, deleteEvent, markEventAsVisited, archiveEvent: _archiveEvent, syncToCloud, syncToLocal } = useSchedulesStore();
     const isBackendMode = localStorage.getItem('arcnote_storage_preference') === 'backend';
     const [currentDate, setCurrentDate] = useState(dayjs());
     const [selectedDate, setSelectedDate] = useState(dayjs()); // Untuk mobile day view
@@ -251,7 +251,7 @@ export const SchedulePage: React.FC<SchedulePageProps> = ({ initialEventId }) =>
                     </div>
 
                     {/* Desktop Calendar Grid */}
-                    <div className="flex-1 p-4 md:p-8 overflow-y-auto">
+                    <div className="flex-1 p-4 md:p-8 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
                         <div className="max-w-7xl mx-auto">
                             <div className="grid grid-cols-7 gap-px bg-secondary/20 border border-secondary/20 rounded-lg overflow-hidden min-h-[500px] md:min-h-[600px]">
                                 {/* Headers */}

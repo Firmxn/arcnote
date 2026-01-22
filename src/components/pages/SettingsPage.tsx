@@ -23,7 +23,7 @@ export const SettingsPage: React.FC = () => {
     };
 
     return (
-        <div className="h-full w-full overflow-y-auto bg-neutral dark:bg-primary flex flex-col">
+        <div className="h-full w-full overflow-y-auto bg-neutral dark:bg-primary flex flex-col [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
             <div className="max-w-7xl w-full mx-auto px-4 md:px-8 py-6 md:py-12 flex-1 flex flex-col">
                 {/* Header */}
                 <div className="mb-6 md:mb-8 shrink-0">

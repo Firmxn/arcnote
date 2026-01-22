@@ -13,6 +13,7 @@ import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { SearchBar } from '../ui/SearchBar';
 import type { SearchResult } from '../ui/SearchBar';
+import { formatCurrency } from '../../utils/currency';
 import { ActionSheet, type ActionSheetItem } from '../ui/ActionSheet';
 import { RecentItemCard } from '../ui/RecentItemCard';
 import { Modal } from '../ui/Modal';
@@ -48,10 +49,10 @@ const WalletIcon = ({ className = "w-6 h-6" }) => (
 
 export const HomePage: React.FC<HomePageProps> = ({
     onPageSelect,
-    onScheduleClick,
+    onScheduleClick: _onScheduleClick,
     onEventSelect,
     onFinanceClick,
-    onFinanceListClick,
+    onFinanceListClick: _onFinanceListClick,
     onNewPageClick,
     onViewArchive
 }) => {
@@ -235,10 +236,7 @@ export const HomePage: React.FC<HomePageProps> = ({
     // Helper for formatting balance
     const formatBalance = (account: FinanceAccount) => {
         const amount = balances[account.id] || 0;
-        return new Intl.NumberFormat('id-ID', {
-            style: 'currency', currency: account.currency || 'IDR',
-            minimumFractionDigits: 0
-        }).format(amount);
+        return formatCurrency(amount, account.currency || 'IDR');
     };
 
     // Filter recent items based on search query
@@ -299,11 +297,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                     description: account.description || 'Finance Tracker',
                     category: 'Finance',
                     icon: <WalletIcon className="w-5 h-5" />,
-                    metadata: new Intl.NumberFormat('id-ID', {
-                        style: 'currency',
-                        currency: account.currency || 'IDR',
-                        minimumFractionDigits: 0
-                    }).format(amount)
+                    metadata: formatCurrency(amount, account.currency || 'IDR')
                 });
             });
     }
@@ -480,7 +474,7 @@ export const HomePage: React.FC<HomePageProps> = ({
     };
 
     return (
-        <div className="h-full w-full bg-neutral dark:bg-primary flex flex-col overflow-y-auto">
+        <div className="h-full w-full bg-neutral dark:bg-primary flex flex-col overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
             <div className="max-w-7xl w-full mx-auto px-4 md:px-8 py-6 md:py-12 pb-[70px] flex-1 flex flex-col">
                 {/* Header */}
                 <div className="mb-6 md:mb-8 shrink-0 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">

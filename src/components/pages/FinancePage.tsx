@@ -5,6 +5,7 @@ import { Button } from '../ui/Button';
 import { AddTransactionModal } from '../modals/AddTransactionModal';
 import dayjs from 'dayjs';
 import type { FinanceTransaction } from '../../types/finance';
+import { formatCurrency } from '../../utils/currency';
 import { FAB } from '../ui/FAB';
 import { MiniFAB } from '../ui/MiniFAB';
 
@@ -40,13 +41,7 @@ export const FinancePage: React.FC = () => {
         ? transactions
         : transactions.filter(t => t.type === filter);
 
-    const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('id-ID', {
-            style: 'currency',
-            currency: currentAccount?.currency || 'IDR',
-            minimumFractionDigits: 0,
-        }).format(amount);
-    };
+
 
     const handleTransactionClick = (transaction: FinanceTransaction) => {
         setSelectedTransaction(transaction);
@@ -116,7 +111,7 @@ export const FinancePage: React.FC = () => {
                                 <h3 className="text-xs md:text-sm font-medium text-text-neutral/60 dark:text-text-secondary">Total Income</h3>
                             </div>
                             <p className="text-xl md:text-2xl font-bold text-green-600 dark:text-green-400">
-                                {formatCurrency(summary.totalIncome)}
+                                {formatCurrency(summary.totalIncome, currentAccount?.currency || 'IDR')}
                             </p>
                         </div>
 
@@ -131,7 +126,7 @@ export const FinancePage: React.FC = () => {
                                 <h3 className="text-xs md:text-sm font-medium text-text-neutral/60 dark:text-text-secondary">Total Expense</h3>
                             </div>
                             <p className="text-xl md:text-2xl font-bold text-red-600 dark:text-red-400">
-                                {formatCurrency(summary.totalExpense)}
+                                {formatCurrency(summary.totalExpense, currentAccount?.currency || 'IDR')}
                             </p>
                         </div>
 
@@ -146,7 +141,7 @@ export const FinancePage: React.FC = () => {
                                 <h3 className="text-xs md:text-sm font-medium text-text-neutral/60 dark:text-text-secondary">Balance</h3>
                             </div>
                             <p className={`text-xl md:text-2xl font-bold ${summary.balance >= 0 ? 'text-primary dark:text-accent' : 'text-red-600 dark:text-red-400'}`}>
-                                {formatCurrency(summary.balance)}
+                                {formatCurrency(summary.balance, currentAccount?.currency || 'IDR')}
                             </p>
                         </div>
                     </div>
@@ -254,7 +249,7 @@ export const FinancePage: React.FC = () => {
                                             ? 'text-green-600 dark:text-green-400'
                                             : 'text-red-600 dark:text-red-400'
                                             }`}>
-                                            {transaction.type === 'income' ? '+' : '-'} {formatCurrency(transaction.amount)}
+                                            {transaction.type === 'income' ? '+' : '-'} {formatCurrency(transaction.amount, currentAccount?.currency || 'IDR')}
                                         </p>
                                     </div>
                                 </div>

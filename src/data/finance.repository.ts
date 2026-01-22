@@ -114,6 +114,10 @@ export const localFinanceRepository = {
             updatedAt: now,
         };
         await db.finance.add(transaction);
+
+        // Update account's updatedAt
+        await db.financeAccounts.update(input.accountId, { updatedAt: now });
+
         return transaction;
     },
 
@@ -121,18 +125,28 @@ export const localFinanceRepository = {
         const transaction = await db.finance.get(id);
         if (!transaction) return undefined;
 
+        const now = new Date();
         const updated: FinanceTransaction = {
             ...transaction,
             ...input,
-            updatedAt: new Date(),
+            updatedAt: now,
         };
 
         await db.finance.update(id, updated);
+
+        // Update account's updatedAt
+        await db.financeAccounts.update(transaction.accountId, { updatedAt: now });
+
         return updated;
     },
 
     async delete(id: string): Promise<void> {
-        await db.finance.delete(id);
+        const transaction = await db.finance.get(id);
+        if (transaction) {
+            await db.finance.delete(id);
+            // Update account's updatedAt
+            await db.financeAccounts.update(transaction.accountId, { updatedAt: new Date() });
+        }
     },
 
     async markAsVisited(id: string): Promise<void> {
@@ -333,13 +347,21 @@ export const backendFinanceRepository = {
             .single();
 
         if (error) throw error;
+
+        // Update account's updatedAt
+        await supabase
+            .from('finance_accounts')
+            .update({ updatedAt: now.toISOString() })
+            .eq('id', input.accountId);
+
         return { ...data, date: new Date(data.date), createdAt: new Date(data.createdAt), updatedAt: new Date(data.updatedAt) };
     },
 
     async update(id: string, input: UpdateTransactionInput): Promise<FinanceTransaction | undefined> {
+        const now = new Date();
         const updateData = {
             ...input,
-            updatedAt: new Date().toISOString()
+            updatedAt: now.toISOString()
         };
 
         const { data, error } = await supabase
@@ -350,15 +372,37 @@ export const backendFinanceRepository = {
             .single();
 
         if (error) throw error;
+
+        // Update account's updatedAt
+        await supabase
+            .from('finance_accounts')
+            .update({ updatedAt: now.toISOString() })
+            .eq('id', data.accountId);
+
         return { ...data, date: new Date(data.date), createdAt: new Date(data.createdAt), updatedAt: new Date(data.updatedAt) };
     },
 
     async delete(id: string): Promise<void> {
+        // Get transaction first to know which account to update
+        const { data: transaction } = await supabase
+            .from('finance_transactions')
+            .select('accountId')
+            .eq('id', id)
+            .single();
+
         const { error } = await supabase
             .from('finance_transactions')
             .delete()
             .eq('id', id);
         if (error) throw error;
+
+        // Update account's updatedAt
+        if (transaction) {
+            await supabase
+                .from('finance_accounts')
+                .update({ updatedAt: new Date().toISOString() })
+                .eq('id', transaction.accountId);
+        }
     },
 
     async markAsVisited(id: string): Promise<void> {
