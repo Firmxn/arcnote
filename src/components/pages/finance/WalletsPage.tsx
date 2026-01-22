@@ -1,22 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useFinanceStore } from '../../state/finance.store';
-import { Card } from '../ui/Card';
-import { Modal } from '../ui/Modal';
-import { ContextMenu } from '../ui/ContextMenu';
-import { ConfirmDialog } from '../ui/ConfirmDialog';
-import { Input } from '../ui/Input';
+import { useFinanceStore } from '../../../state/finance.store';
+import { Card } from '../../ui/Card';
+import { Modal } from '../../ui/Modal';
+import { ContextMenu } from '../../ui/ContextMenu';
+import { ConfirmDialog } from '../../ui/ConfirmDialog';
+import { Input } from '../../ui/Input';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
-import type { Wallet } from '../../types/finance';
-import { formatCurrency } from '../../utils/currency';
-import { FAB } from '../ui/FAB';
-import { MiniFAB } from '../ui/MiniFAB';
-import { SearchBar } from '../ui/SearchBar';
-import type { SearchResult } from '../ui/SearchBar';
-import { ActionGroup, ActionButton } from '../ui/ActionGroup';
-import { SectionHeader } from '../ui/SectionHeader';
-import { ActionSheet, type ActionSheetItem } from '../ui/ActionSheet';
+import type { Wallet } from '../../../types/finance';
+import { formatCurrency } from '../../../utils/currency';
+import { FAB } from '../../ui/FAB';
+import { MiniFAB } from '../../ui/MiniFAB';
+import { SearchBar } from '../../ui/SearchBar';
+import type { SearchResult } from '../../ui/SearchBar';
+import { ActionGroup, ActionButton } from '../../ui/ActionGroup';
+import { SectionHeader } from '../../ui/SectionHeader';
+import { ActionSheet, type ActionSheetItem } from '../../ui/ActionSheet';
 
 dayjs.extend(relativeTime);
 
@@ -26,7 +26,7 @@ const WalletIcon = ({ className = "w-6 h-6" }) => (
     </svg>
 );
 
-export const FinanceListPage: React.FC = () => {
+export const WalletsPage: React.FC = () => {
     const {
         wallets,
         loadWallets,
@@ -245,7 +245,7 @@ export const FinanceListPage: React.FC = () => {
                             Finance Trackers
                         </h1>
                         <p className="text-sm md:text-base text-text-neutral/60 dark:text-text-secondary">
-                            Manage your wallets, accounts, and budgets
+                            Manage your wallets and budgets
                         </p>
                     </div>
 

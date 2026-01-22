@@ -15,6 +15,13 @@
 - Jelaskan secara spesifik apa yang ditambahkan/diubah/diperbaiki.
 - Gunakan bahasa yang jelas dan deskriptif.
 
+## Penulisan kode
+- Jangan pernah mengubah kode yang tidak diperintah.
+- Jangan pernah menghapus kode yang tidak diperintah.
+- Jangan pernah mengubah struktur direktori yang tidak diperintah.
+- terapkan konsep DRY
+- terapkan best practice struktur direktori
+
 ### Format Commit:
 ```
 type(scope): short description

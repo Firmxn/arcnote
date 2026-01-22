@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useFinanceStore } from '../../state/finance.store';
-import { Button } from '../ui/Button';
-import { AddTransactionModal } from '../modals/AddTransactionModal';
+import { useFinanceStore } from '../../../state/finance.store';
+import { Button } from '../../ui/Button';
+import { AddTransactionModal } from '../../modals/AddTransactionModal';
 import dayjs from 'dayjs';
-import type { FinanceTransaction } from '../../types/finance';
-import { formatCurrency } from '../../utils/currency';
-import { FAB } from '../ui/FAB';
-import { MiniFAB } from '../ui/MiniFAB';
+import type { FinanceTransaction } from '../../../types/finance';
+import { formatCurrency } from '../../../utils/currency';
+import { FAB } from '../../ui/FAB';
+import { MiniFAB } from '../../ui/MiniFAB';
 
-export const FinancePage: React.FC = () => {
+export const WalletDetailPage: React.FC = () => {
     const {
         currentWallet,
         transactions,

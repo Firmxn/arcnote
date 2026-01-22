@@ -1,9 +1,9 @@
 import React, { useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useFinanceStore } from '../../state/finance.store';
-import { FinancePage } from './FinancePage';
+import { useFinanceStore } from '../../../state/finance.store';
+import { WalletDetailPage } from './WalletDetailPage';
 
-export const FinanceDetailRoute: React.FC = () => {
+export const WalletDetailRoute: React.FC = () => {
     const { walletId } = useParams<{ walletId: string }>();
     const { currentWallet, wallets, selectWallet, markWalletAsVisited, isLoading, error } = useFinanceStore();
     const navigate = useNavigate();
@@ -58,5 +58,5 @@ export const FinanceDetailRoute: React.FC = () => {
         return null;
     }
 
-    return <FinancePage />;
+    return <WalletDetailPage />;
 };

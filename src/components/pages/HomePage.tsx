@@ -35,7 +35,7 @@ interface HomePageProps {
     onPageSelect?: (pageId: string) => void;
     onScheduleClick?: () => void;  // Navigate to schedule page
     onEventSelect?: (eventId: string) => void;  // Open specific event
-    onFinanceClick?: (accountId: string) => void; // Open specific finance account
+    onFinanceClick?: (walletId: string) => void; // Open specific finance wallet
     onFinanceListClick?: () => void; // Navigate to finance list
     onNewPageClick?: () => void; // Create new page
     onViewArchive?: () => void; // Navigate to archive page
@@ -128,7 +128,7 @@ export const HomePage: React.FC<HomePageProps> = ({
     };
 
     useEffect(() => {
-        // Combine pages, schedules, and accounts into recent items
+        // Combine pages, schedules, and wallets into recent items
         const items: RecentItem[] = [];
 
         // Add pages

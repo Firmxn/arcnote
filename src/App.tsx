@@ -6,9 +6,9 @@ import { ArchivePage } from './components/pages/ArchivePage';
 import { PagesListPage } from './components/pages/PagesListPage';
 import { SettingsPage } from './components/pages/SettingsPage';
 import { SchedulePage } from './components/pages/SchedulePage';
-import { FinanceDashboardPage } from './components/pages/FinanceDashboardPage';
-import { FinanceListPage } from './components/pages/FinanceListPage';
-import { FinanceDetailRoute } from './components/pages/FinanceDetailRoute';
+import { DashboardPage } from './components/pages/finance/DashboardPage';
+import { WalletsPage } from './components/pages/finance/WalletsPage';
+import { WalletDetailRoute } from './components/pages/finance/WalletDetailRoute';
 import { EditorRoute } from './components/pages/EditorRoute';
 import { LoginPage } from './components/pages/LoginPage';
 import { usePagesStore } from './state/pages.store';
@@ -68,7 +68,7 @@ function App() {
   // Data State
   const { loadPages } = usePagesStore();
   const { loadEvents } = useSchedulesStore();
-  const { loadAccounts } = useFinanceStore();
+  const { loadWallets } = useFinanceStore();
 
   const isBackend = localStorage.getItem('arcnote_storage_preference') === 'backend';
 
@@ -85,9 +85,9 @@ function App() {
     if (canLoad) {
       loadPages();
       loadEvents();
-      loadAccounts();
+      loadWallets();
     }
-  }, [loadPages, loadEvents, loadAccounts, user, isBackend]);
+  }, [loadPages, loadEvents, loadWallets, user, isBackend]);
 
   // Auth Guard for Backend Mode
   if (isBackend) {
@@ -113,9 +113,9 @@ function App() {
 
         {/* Finance Routes */}
         <Route path="/finance">
-          <Route index element={<FinanceDashboardPage />} />
-          <Route path="wallets" element={<FinanceListPage />} />
-          <Route path=":accountId" element={<FinanceDetailRoute />} />
+          <Route index element={<DashboardPage />} />
+          <Route path="wallets" element={<WalletsPage />} />
+          <Route path=":walletId" element={<WalletDetailRoute />} />
         </Route>
 
         <Route path="/schedule" element={<ScheduleWithNav />} />

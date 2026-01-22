@@ -10,7 +10,7 @@ import dayjs from 'dayjs';
 export const ArchivePage: React.FC = () => {
     const { pages, restorePage, deletePage, loadPages } = usePagesStore();
     const { events, restoreEvent, deleteEvent, loadEvents } = useSchedulesStore();
-    const { accounts, restoreAccount, deleteAccount, loadAccounts } = useFinanceStore();
+    const { wallets, restoreWallet, deleteWallet, loadWallets } = useFinanceStore();
 
     const [activeTab, setActiveTab] = useState<'pages' | 'schedules' | 'finance'>('pages');
 
@@ -21,24 +21,24 @@ export const ArchivePage: React.FC = () => {
     useEffect(() => {
         loadPages();
         loadEvents();
-        loadAccounts();
+        loadWallets();
     }, []);
 
     // Filter Items
     const archivedPages = pages.filter(p => p.isArchived);
     const archivedEvents = events.filter(e => e.isArchived);
-    const archivedAccounts = accounts.filter(a => a.isArchived);
+    const archivedWallets = wallets.filter(w => w.isArchived);
 
     const activeCount = {
         pages: archivedPages.length,
         schedules: archivedEvents.length,
-        finance: archivedAccounts.length,
+        finance: archivedWallets.length,
     };
 
     const handleRestore = async (id: string, type: 'pages' | 'schedules' | 'finance') => {
         if (type === 'pages') await restorePage(id);
         else if (type === 'schedules') await restoreEvent(id);
-        else if (type === 'finance') await restoreAccount(id);
+        else if (type === 'finance') await restoreWallet(id);
     };
 
     const handleDelete = async () => {
@@ -46,7 +46,7 @@ export const ArchivePage: React.FC = () => {
 
         if (itemToDelete.type === 'pages') await deletePage(itemToDelete.id);
         else if (itemToDelete.type === 'schedules') await deleteEvent(itemToDelete.id);
-        else if (itemToDelete.type === 'finance') await deleteAccount(itemToDelete.id);
+        else if (itemToDelete.type === 'finance') await deleteWallet(itemToDelete.id);
 
         setItemToDelete(null);
     };
@@ -92,7 +92,7 @@ export const ArchivePage: React.FC = () => {
                 {activeTab === 'schedules' && archivedEvents.length === 0 && (
                     <EmptyState message="No archived events" />
                 )}
-                {activeTab === 'finance' && archivedAccounts.length === 0 && (
+                {activeTab === 'finance' && archivedWallets.length === 0 && (
                     <EmptyState message="No archived wallets" />
                 )}
 
@@ -116,13 +116,13 @@ export const ArchivePage: React.FC = () => {
                     />
                 ))}
 
-                {activeTab === 'finance' && archivedAccounts.map(account => (
+                {activeTab === 'finance' && archivedWallets.map(wallet => (
                     <ArchiveItem
-                        key={account.id}
-                        title={account.title}
-                        date={account.updatedAt}
-                        onRestore={() => handleRestore(account.id, 'finance')}
-                        onDelete={() => setItemToDelete({ id: account.id, type: 'finance', title: account.title })}
+                        key={wallet.id}
+                        title={wallet.title}
+                        date={wallet.updatedAt}
+                        onRestore={() => handleRestore(wallet.id, 'finance')}
+                        onDelete={() => setItemToDelete({ id: wallet.id, type: 'finance', title: wallet.title })}
                     />
                 ))}
             </div>
