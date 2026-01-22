@@ -8,7 +8,7 @@ import { Input } from '../ui/Input';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
-import type { FinanceAccount } from '../../types/finance';
+import type { Wallet } from '../../types/finance';
 import { formatCurrency } from '../../utils/currency';
 import { FAB } from '../ui/FAB';
 import { MiniFAB } from '../ui/MiniFAB';
@@ -28,17 +28,17 @@ const WalletIcon = ({ className = "w-6 h-6" }) => (
 
 export const FinanceListPage: React.FC = () => {
     const {
-        accounts,
-        loadAccounts,
-        createAccount,
-        updateAccount,
-        deleteAccount,
-        archiveAccount,
+        wallets,
+        loadWallets,
+        createWallet,
+        updateWallet,
+        deleteWallet,
+        archiveWallet,
         isLoading,
         balances,
         loadBalances,
-        syncAccountToCloud,
-        syncAccountToLocal
+        syncWalletToCloud,
+        syncWalletToLocal
     } = useFinanceStore();
     const navigate = useNavigate();
     const isBackendMode = localStorage.getItem('arcnote_storage_preference') === 'backend';
@@ -47,41 +47,41 @@ export const FinanceListPage: React.FC = () => {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isFabHidden, setIsFabHidden] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
-    const [newAccountTitle, setNewAccountTitle] = useState('');
-    const [newAccountDesc, setNewAccountDesc] = useState('');
+    const [newWalletTitle, setNewWalletTitle] = useState('');
+    const [newWalletDesc, setNewWalletDesc] = useState('');
 
     // Edit State
-    const [editingAccount, setEditingAccount] = useState<FinanceAccount | null>(null);
+    const [editingWallet, setEditingWallet] = useState<Wallet | null>(null);
     const [editTitle, setEditTitle] = useState('');
     const [editDesc, setEditDesc] = useState('');
-    const [accountToDelete, setAccountToDelete] = useState<FinanceAccount | null>(null);
-    const [contextMenu, setContextMenu] = useState<{ x: number; y: number; accountId: string } | null>(null);
-    const [actionSheetAccount, setActionSheetAccount] = useState<FinanceAccount | null>(null);
+    const [walletToDelete, setWalletToDelete] = useState<Wallet | null>(null);
+    const [contextMenu, setContextMenu] = useState<{ x: number; y: number; walletId: string } | null>(null);
+    const [actionSheetWallet, setActionSheetWallet] = useState<Wallet | null>(null);
 
     useEffect(() => {
-        loadAccounts();
-    }, [loadAccounts]);
+        loadWallets();
+    }, [loadWallets]);
 
     useEffect(() => {
-        if (accounts.length > 0) {
+        if (wallets.length > 0) {
             loadBalances();
         }
-    }, [accounts]); // loadBalances dependency is stable from zustand
+    }, [wallets]); // loadBalances dependency is stable from zustand
 
     const handleCreate = async () => {
-        if (!newAccountTitle.trim()) return;
+        if (!newWalletTitle.trim()) return;
         try {
-            await createAccount({
-                title: newAccountTitle,
-                description: newAccountDesc.trim() || undefined,
+            await createWallet({
+                title: newWalletTitle,
+                description: newWalletDesc.trim() || undefined,
                 currency: 'IDR'
             });
             setIsCreateModalOpen(false);
-            setNewAccountTitle('');
-            setNewAccountDesc('');
-            // Balances will auto-refresh via accounts effect
+            setNewWalletTitle('');
+            setNewWalletDesc('');
+            // Balances will auto-refresh via wallets effect
         } catch (error) {
-            console.error('Failed to create account:', error);
+            console.error('Failed to create wallet:', error);
         }
     };
 
@@ -97,66 +97,66 @@ export const FinanceListPage: React.FC = () => {
         listRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    const handleEditStart = (account: FinanceAccount) => {
-        setEditingAccount(account);
-        setEditTitle(account.title);
-        setEditDesc(account.description || '');
+    const handleEditStart = (wallet: Wallet) => {
+        setEditingWallet(wallet);
+        setEditTitle(wallet.title);
+        setEditDesc(wallet.description || '');
     };
 
     const handleEditSave = async () => {
-        if (!editingAccount || !editTitle.trim()) return;
+        if (!editingWallet || !editTitle.trim()) return;
         try {
-            await updateAccount(editingAccount.id, {
+            await updateWallet(editingWallet.id, {
                 title: editTitle,
                 description: editDesc.trim() || undefined
             });
-            setEditingAccount(null);
+            setEditingWallet(null);
             setEditTitle('');
             setEditDesc('');
         } catch (error) {
-            console.error('Failed to update account:', error);
+            console.error('Failed to update wallet:', error);
         }
     };
 
-    const handleDelete = (account: FinanceAccount) => {
-        setAccountToDelete(account);
+    const handleDelete = (wallet: Wallet) => {
+        setWalletToDelete(wallet);
     };
 
     const confirmDelete = async () => {
-        if (!accountToDelete) return;
+        if (!walletToDelete) return;
         try {
-            await deleteAccount(accountToDelete.id);
-            setAccountToDelete(null);
+            await deleteWallet(walletToDelete.id);
+            setWalletToDelete(null);
         } catch (error) {
-            console.error('Failed to delete account:', error);
+            console.error('Failed to delete wallet:', error);
         }
     };
 
-    // Filter accounts berdasarkan search query
-    const filteredAccounts = accounts
-        .filter(account => !account.isArchived) // Exclude archived
-        .filter(account =>
+    // Filter wallets berdasarkan search query
+    const filteredWallets = wallets
+        .filter(wallet => !wallet.isArchived) // Exclude archived
+        .filter(wallet =>
             !searchQuery.trim() ||
-            account.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (account.description?.toLowerCase().includes(searchQuery.toLowerCase()))
+            wallet.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (wallet.description?.toLowerCase().includes(searchQuery.toLowerCase()))
         );
 
-    // Convert filtered accounts to SearchResult format
-    const searchResults: SearchResult[] = filteredAccounts.map(account => ({
-        id: account.id,
-        title: account.title,
-        description: account.description,
+    // Convert filtered wallets to SearchResult format
+    const searchResults: SearchResult[] = filteredWallets.map(wallet => ({
+        id: wallet.id,
+        title: wallet.title,
+        description: wallet.description,
         category: 'Finance Trackers',
         icon: (
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
             </svg>
         ),
-        metadata: dayjs(account.createdAt).fromNow()
+        metadata: dayjs(wallet.createdAt).fromNow()
     }));
 
     // Helper untuk generate action sheet items
-    const getActionSheetItems = (account: FinanceAccount): ActionSheetItem[] => {
+    const getActionSheetItems = (wallet: Wallet): ActionSheetItem[] => {
         const items: ActionSheetItem[] = [];
 
         // View Option
@@ -171,7 +171,7 @@ export const FinanceListPage: React.FC = () => {
             ),
             variant: 'default',
             onClick: () => {
-                navigate(`/finance/${account.id}`);
+                navigate(`/finance/${wallet.id}`);
             }
         });
 
@@ -186,7 +186,7 @@ export const FinanceListPage: React.FC = () => {
             ),
             variant: 'default',
             onClick: () => {
-                handleEditStart(account);
+                handleEditStart(wallet);
             }
         });
 
@@ -202,10 +202,10 @@ export const FinanceListPage: React.FC = () => {
             variant: 'default',
             onClick: async () => {
                 try {
-                    await archiveAccount(account.id);
-                    setActionSheetAccount(null);
+                    await archiveWallet(wallet.id);
+                    setActionSheetWallet(null);
                 } catch (error) {
-                    console.error('Error archiving account:', error);
+                    console.error('Error archiving wallet:', error);
                 }
             }
         });
@@ -221,7 +221,7 @@ export const FinanceListPage: React.FC = () => {
             ),
             variant: 'danger',
             onClick: () => {
-                setAccountToDelete(account);
+                setWalletToDelete(wallet);
             }
         });
 
@@ -229,9 +229,9 @@ export const FinanceListPage: React.FC = () => {
     };
 
     const handleSelectResult = (result: SearchResult) => {
-        const account = accounts.find(acc => acc.id === result.id);
-        if (account) {
-            navigate(`/finance/${account.id}`);
+        const wallet = wallets.find(w => w.id === result.id);
+        if (wallet) {
+            navigate(`/finance/${wallet.id}`);
         }
     };
 
@@ -276,7 +276,7 @@ export const FinanceListPage: React.FC = () => {
                     className="flex-1 overflow-y-auto min-h-0 pb-[100px]"
                     onScroll={handleScroll}
                 >
-                    {filteredAccounts.length === 0 && !isLoading ? (
+                    {filteredWallets.length === 0 && !isLoading ? (
                         <div className="h-full max-w-7xl mx-auto w-full flex flex-col items-center justify-center text-center px-4">
                             <div className="text-6xl mb-4">
                                 {searchQuery.trim() ? '🔍' : '💰'}
@@ -303,21 +303,21 @@ export const FinanceListPage: React.FC = () => {
                             />
                             {/* Grid: 2 kolom di mobile, 3 di tablet, 4 di desktop */}
                             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
-                                {filteredAccounts.map(account => {
-                                    const balance = balances[account.id] || 0;
-                                    const formattedBalance = formatCurrency(balance, account.currency || 'IDR');
+                                {filteredWallets.map(wallet => {
+                                    const balance = balances[wallet.id] || 0;
+                                    const formattedBalance = formatCurrency(balance, wallet.currency || 'IDR');
 
                                     return (
-                                        <div key={account.id} className="relative group">
+                                        <div key={wallet.id} className="relative group">
                                             <div
-                                                onClick={() => navigate(`/finance/${account.id}`)}
+                                                onClick={() => navigate(`/finance/${wallet.id}`)}
                                                 onContextMenu={(e) => {
                                                     e.preventDefault();
-                                                    setActionSheetAccount(account);
+                                                    setActionSheetWallet(wallet);
                                                 }}
                                                 onTouchStart={(e) => {
                                                     const timer = setTimeout(() => {
-                                                        setActionSheetAccount(account);
+                                                        setActionSheetWallet(wallet);
                                                     }, 500);
                                                     (e.currentTarget as any)._longPressTimer = timer;
                                                 }}
@@ -332,18 +332,18 @@ export const FinanceListPage: React.FC = () => {
                                             >
                                                 <Card
                                                     icon={<WalletIcon />}
-                                                    title={account.title}
-                                                    description={account.description || `${account.currency} Account`}
+                                                    title={wallet.title}
+                                                    description={wallet.description || `${wallet.currency} Wallet`}
                                                     extra={
                                                         <div className="text-xl font-bold text-primary dark:text-accent font-mono tracking-tight">
                                                             {formattedBalance}
                                                         </div>
                                                     }
-                                                    updatedAt={dayjs(account.updatedAt).fromNow()}
-                                                    createdAt={dayjs(account.createdAt).format('MMM D, YYYY')}
+                                                    updatedAt={dayjs(wallet.updatedAt).fromNow()}
+                                                    createdAt={dayjs(wallet.createdAt).format('MMM D, YYYY')}
                                                     onContextMenu={(e) => {
                                                         e.preventDefault();
-                                                        setContextMenu({ x: e.pageX, y: e.pageY, accountId: account.id });
+                                                        setContextMenu({ x: e.pageX, y: e.pageY, walletId: wallet.id });
                                                     }}
                                                 />
                                             </div>
@@ -354,13 +354,13 @@ export const FinanceListPage: React.FC = () => {
                                                     <ActionButton
                                                         icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>}
                                                         variant="primary"
-                                                        onClick={(e) => { e.stopPropagation(); handleEditStart(account); }}
+                                                        onClick={(e) => { e.stopPropagation(); handleEditStart(wallet); }}
                                                         title="Edit Info"
                                                     />
                                                     <ActionButton
                                                         icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>}
                                                         variant="danger"
-                                                        onClick={(e) => { e.stopPropagation(); handleDelete(account); }}
+                                                        onClick={(e) => { e.stopPropagation(); handleDelete(wallet); }}
                                                         title="Delete"
                                                     />
                                                 </ActionGroup>
@@ -389,8 +389,8 @@ export const FinanceListPage: React.FC = () => {
                             <Input
                                 autoFocus
                                 placeholder="e.g. Personal Wallet"
-                                value={newAccountTitle}
-                                onChange={(e) => setNewAccountTitle(e.target.value)}
+                                value={newWalletTitle}
+                                onChange={(e) => setNewWalletTitle(e.target.value)}
                             />
                         </div>
                         <div>
@@ -399,8 +399,8 @@ export const FinanceListPage: React.FC = () => {
                             </label>
                             <Input
                                 placeholder="e.g. Daily expenses and savings"
-                                value={newAccountDesc}
-                                onChange={(e) => setNewAccountDesc(e.target.value)}
+                                value={newWalletDesc}
+                                onChange={(e) => setNewWalletDesc(e.target.value)}
                                 onKeyDown={(e) => {
                                     if (e.key === 'Enter') handleCreate();
                                 }}
@@ -424,10 +424,10 @@ export const FinanceListPage: React.FC = () => {
                 </div>
             </Modal>
 
-            {/* Edit Account Modal */}
+            {/* Edit Wallet Modal */}
             <Modal
-                isOpen={!!editingAccount}
-                onClose={() => setEditingAccount(null)}
+                isOpen={!!editingWallet}
+                onClose={() => setEditingWallet(null)}
                 title="Edit Tracker Info"
             >
                 <div>
@@ -458,7 +458,7 @@ export const FinanceListPage: React.FC = () => {
                     </div>
                     <div className="flex justify-end gap-3 pt-6">
                         <button
-                            onClick={() => setEditingAccount(null)}
+                            onClick={() => setEditingWallet(null)}
                             className="px-4 py-2 text-sm text-text-neutral dark:text-text-secondary hover:bg-neutral-100 dark:hover:bg-white/5 rounded-md transition-colors"
                         >
                             Cancel
@@ -472,16 +472,16 @@ export const FinanceListPage: React.FC = () => {
                     </div>
                 </div>
             </Modal>
-            {/* Delete Account Confirmation */}
+            {/* Delete Wallet Confirmation */}
             <ConfirmDialog
-                isOpen={!!accountToDelete}
+                isOpen={!!walletToDelete}
                 title="Delete Finance Tracker"
-                message={`Are you sure you want to delete "${accountToDelete?.title}"? All transactions in this tracker will be lost forever.`}
+                message={`Are you sure you want to delete "${walletToDelete?.title}"? All transactions in this tracker will be lost forever.`}
                 confirmText="Delete Tracker"
                 cancelText="Keep Rule"
                 type="danger"
                 onConfirm={confirmDelete}
-                onCancel={() => setAccountToDelete(null)}
+                onCancel={() => setWalletToDelete(null)}
             />
             {/* Context Menu */}
             {contextMenu && (
@@ -501,9 +501,9 @@ export const FinanceListPage: React.FC = () => {
                                 if (window.confirm(msg)) {
                                     try {
                                         if (isBackendMode) {
-                                            await syncAccountToLocal(contextMenu.accountId);
+                                            await syncWalletToLocal(contextMenu.walletId);
                                         } else {
-                                            await syncAccountToCloud(contextMenu.accountId);
+                                            await syncWalletToCloud(contextMenu.walletId);
                                         }
                                         alert(`${action} successful!`);
                                     } catch (e: any) {
@@ -526,10 +526,10 @@ export const FinanceListPage: React.FC = () => {
 
             {/* Action Sheet for mobile long press */}
             <ActionSheet
-                isOpen={!!actionSheetAccount}
-                onClose={() => setActionSheetAccount(null)}
-                title={actionSheetAccount?.title}
-                items={actionSheetAccount ? getActionSheetItems(actionSheetAccount) : []}
+                isOpen={!!actionSheetWallet}
+                onClose={() => setActionSheetWallet(null)}
+                title={actionSheetWallet?.title}
+                items={actionSheetWallet ? getActionSheetItems(actionSheetWallet) : []}
             />
 
             {/* Floating Action Button - Mobile Only */}

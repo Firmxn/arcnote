@@ -26,18 +26,18 @@ const WalletIcon = ({ className = "w-6 h-6" }) => (
 export const FinanceDashboardPage: React.FC = () => {
     const navigate = useNavigate();
     const {
-        accounts,
+        wallets,
         balances,
         globalSummary,
         monthlySummary,
         recentTransactions,
-        loadAccounts,
+        loadWallets,
         loadBalances,
         loadGlobalSummary,
         loadMonthlySummary,
         loadRecentTransactions,
         createTransaction,
-        createAccount,
+        createWallet,
         isLoading
     } = useFinanceStore();
 
@@ -45,17 +45,17 @@ export const FinanceDashboardPage: React.FC = () => {
     const [showDetailView, setShowDetailView] = React.useState(false);
     // State untuk modal add transaction
     const [isTransactionModalOpen, setIsTransactionModalOpen] = React.useState(false);
-    // State untuk modal create account from dashboard
-    const [isCreateAccountModalOpen, setIsCreateAccountModalOpen] = React.useState(false);
+    // State untuk modal create wallet from dashboard
+    const [isCreateWalletModalOpen, setIsCreateWalletModalOpen] = React.useState(false);
 
     // Load data saat mount - Optimized untuk menghindari loading flash
     useEffect(() => {
         const loadData = async () => {
-            // Load accounts dulu
-            await loadAccounts();
+            // Load wallets dulu
+            await loadWallets();
 
             // Kemudian load data dashboard lainnya secara parallel
-            // Kita panggil ini di sini agar flows-nya jelas: Akun -> Data lain
+            // Kita panggil ini di sini agar flows-nya jelas: Wallet -> Data lain
             loadBalances();
             loadGlobalSummary();
             loadMonthlySummary();
@@ -63,10 +63,10 @@ export const FinanceDashboardPage: React.FC = () => {
         };
 
         loadData();
-    }, [loadAccounts, loadBalances, loadGlobalSummary, loadMonthlySummary, loadRecentTransactions]);
+    }, [loadWallets, loadBalances, loadGlobalSummary, loadMonthlySummary, loadRecentTransactions]);
 
-    // Filter active accounts
-    const activeAccounts = accounts.filter(a => !a.isArchived);
+    // Filter active wallets
+    const activeWallets = wallets.filter(w => !w.isArchived);
     const currentMonth = dayjs().format('MMMM YYYY');
 
     return (
@@ -96,7 +96,7 @@ export const FinanceDashboardPage: React.FC = () => {
                             {globalSummary ? formatCurrency(globalSummary.balance) : 'Rp 0'}
                         </p>
                         <p className="text-xs text-text-neutral/50 dark:text-text-secondary/50">
-                            {activeAccounts.length} wallet aktif
+                            {activeWallets.length} wallet aktif
                         </p>
                     </div>
 
@@ -173,7 +173,7 @@ export const FinanceDashboardPage: React.FC = () => {
                 {/* Wallets Horizontal Scroll */}
                 <SectionHeader
                     title="Wallets"
-                    subtitle={`${activeAccounts.length} wallet`}
+                    subtitle={`${activeWallets.length} wallet`}
                     actionLabel="View All"
                     onAction={() => navigate('/finance/wallets')}
                     icon={
@@ -185,7 +185,7 @@ export const FinanceDashboardPage: React.FC = () => {
                 <div className="flex gap-3 overflow-x-auto pb-4 mb-6 -mx-4 px-4 scrollbar-hide">
                     {/* Add Wallet Button */}
                     <button
-                        onClick={() => setIsCreateAccountModalOpen(true)}
+                        onClick={() => setIsCreateWalletModalOpen(true)}
                         className="select-none shrink-0 w-32 h-40 bg-accent/10 dark:bg-accent/20 rounded-xl border-2 border-dashed border-accent/30 dark:border-accent/40 flex flex-col items-center justify-center gap-2 hover:bg-accent/20 dark:hover:bg-accent/30 transition-colors"
                     >
                         <div className="w-10 h-10 rounded-full bg-accent flex items-center justify-center text-white">
@@ -197,8 +197,8 @@ export const FinanceDashboardPage: React.FC = () => {
                     </button>
 
                     {/* Wallet Cards - tampil 2.25 cards untuk hint scrollable */}
-                    {activeAccounts.length > 0 ? (
-                        activeAccounts.map((account, index) => {
+                    {activeWallets.length > 0 ? (
+                        activeWallets.map((wallet, index) => {
                             // Main wallet (pertama) = primary-secondary, lainnya = accent
                             const isMainWallet = index === 0;
                             const colorClass = isMainWallet
@@ -207,8 +207,8 @@ export const FinanceDashboardPage: React.FC = () => {
 
                             return (
                                 <button
-                                    key={account.id}
-                                    onClick={() => navigate(`/finance/${account.id}`)}
+                                    key={wallet.id}
+                                    onClick={() => navigate(`/finance/${wallet.id}`)}
                                     className={`select-none shrink-0 w-32 h-40 bg-linear-to-br ${colorClass} rounded-xl p-3 text-left text-white shadow-md hover:shadow-lg transition-shadow relative overflow-hidden`}
                                 >
                                     {/* Decorative pattern */}
@@ -221,17 +221,17 @@ export const FinanceDashboardPage: React.FC = () => {
 
                                     {/* Title */}
                                     <p className="relative z-10 text-xs font-semibold mb-1 line-clamp-1 opacity-90">
-                                        {account.title}
+                                        {wallet.title}
                                     </p>
 
                                     {/* Balance */}
                                     <p className="select-text relative z-10 text-sm font-bold font-mono mt-auto">
-                                        {formatCurrency(balances[account.id] || 0, account.currency)}
+                                        {formatCurrency(balances[wallet.id] || 0, wallet.currency)}
                                     </p>
 
                                     {/* Card number style decoration */}
                                     <p className="relative z-10 text-[8px] font-mono opacity-60 mt-1">
-                                        •••• {account.id.slice(-4)}
+                                        •••• {wallet.id.slice(-4)}
                                     </p>
                                 </button>
                             );
@@ -258,7 +258,7 @@ export const FinanceDashboardPage: React.FC = () => {
                 {recentTransactions.length > 0 ? (
                     <div className="space-y-2">
                         {recentTransactions.map(tx => {
-                            const account = accounts.find(a => a.id === tx.accountId);
+                            const wallet = wallets.find(w => w.id === tx.walletId);
                             return (
                                 <ListCard
                                     key={tx.id}
@@ -276,13 +276,13 @@ export const FinanceDashboardPage: React.FC = () => {
                                     iconVariant={tx.type === 'income' ? 'success' : 'error'}
                                     iconShape="circle"
                                     title={tx.category}
-                                    subtitle={`${account?.title} • ${dayjs(tx.date).format('DD MMM')}`}
+                                    subtitle={`${wallet?.title} • ${dayjs(tx.date).format('DD MMM')}`}
                                     rightContent={
                                         <p className={`select-text text-sm font-bold font-mono ${tx.type === 'income'
                                             ? 'text-green-600 dark:text-green-400'
                                             : 'text-red-600 dark:text-red-400'
                                             }`}>
-                                            {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount, account?.currency)}
+                                            {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount, wallet?.currency)}
                                         </p>
                                     }
                                 />
@@ -296,7 +296,7 @@ export const FinanceDashboardPage: React.FC = () => {
                 )}
 
                 {/* Loading Overlay - Hanya tampil jika belum ada data sama sekali */}
-                {isLoading && accounts.length === 0 && (
+                {isLoading && wallets.length === 0 && (
                     <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50">
                         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-accent"></div>
                     </div>
@@ -309,20 +309,20 @@ export const FinanceDashboardPage: React.FC = () => {
                 <AddTransactionModal
                     isOpen={isTransactionModalOpen}
                     onClose={() => setIsTransactionModalOpen(false)}
-                    accounts={activeAccounts}
+                    wallets={activeWallets}
                     onSubmit={async (data) => {
-                        if (data.accountId) {
-                            await createTransaction({ ...data, accountId: data.accountId });
+                        if (data.walletId) {
+                            await createTransaction({ ...data, walletId: data.walletId });
                         }
                     }}
                 />
 
                 {/* Create Tracker Modal */}
                 <CreateFinanceTrackerModal
-                    isOpen={isCreateAccountModalOpen}
-                    onClose={() => setIsCreateAccountModalOpen(false)}
+                    isOpen={isCreateWalletModalOpen}
+                    onClose={() => setIsCreateWalletModalOpen(false)}
                     onSubmit={async (data) => {
-                        await createAccount(data);
+                        await createWallet(data);
                         // Data refresh handled by store updates or existing effects
                     }}
                 />

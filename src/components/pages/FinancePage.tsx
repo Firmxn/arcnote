@@ -11,7 +11,7 @@ import { MiniFAB } from '../ui/MiniFAB';
 
 export const FinancePage: React.FC = () => {
     const {
-        currentAccount,
+        currentWallet,
         transactions,
         summary,
         createTransaction,
@@ -89,10 +89,10 @@ export const FinancePage: React.FC = () => {
                     </button>
                     <div>
                         <h1 className="text-2xl md:text-3xl font-bold text-text-neutral dark:text-text-primary mb-1">
-                            {currentAccount?.title || 'Finance Tracker'}
+                            {currentWallet?.title || 'Finance Tracker'}
                         </h1>
                         <p className="text-sm md:text-base text-text-neutral/60 dark:text-text-secondary">
-                            {currentAccount?.description || 'Track your income and expenses'}
+                            {currentWallet?.description || 'Track your income and expenses'}
                         </p>
                     </div>
                 </div>
@@ -111,7 +111,7 @@ export const FinancePage: React.FC = () => {
                                 <h3 className="text-xs md:text-sm font-medium text-text-neutral/60 dark:text-text-secondary">Total Income</h3>
                             </div>
                             <p className="text-xl md:text-2xl font-bold text-green-600 dark:text-green-400">
-                                {formatCurrency(summary.totalIncome, currentAccount?.currency || 'IDR')}
+                                {formatCurrency(summary.totalIncome, currentWallet?.currency || 'IDR')}
                             </p>
                         </div>
 
@@ -126,7 +126,7 @@ export const FinancePage: React.FC = () => {
                                 <h3 className="text-xs md:text-sm font-medium text-text-neutral/60 dark:text-text-secondary">Total Expense</h3>
                             </div>
                             <p className="text-xl md:text-2xl font-bold text-red-600 dark:text-red-400">
-                                {formatCurrency(summary.totalExpense, currentAccount?.currency || 'IDR')}
+                                {formatCurrency(summary.totalExpense, currentWallet?.currency || 'IDR')}
                             </p>
                         </div>
 
@@ -141,7 +141,7 @@ export const FinancePage: React.FC = () => {
                                 <h3 className="text-xs md:text-sm font-medium text-text-neutral/60 dark:text-text-secondary">Balance</h3>
                             </div>
                             <p className={`text-xl md:text-2xl font-bold ${summary.balance >= 0 ? 'text-primary dark:text-accent' : 'text-red-600 dark:text-red-400'}`}>
-                                {formatCurrency(summary.balance, currentAccount?.currency || 'IDR')}
+                                {formatCurrency(summary.balance, currentWallet?.currency || 'IDR')}
                             </p>
                         </div>
                     </div>
@@ -249,7 +249,7 @@ export const FinancePage: React.FC = () => {
                                             ? 'text-green-600 dark:text-green-400'
                                             : 'text-red-600 dark:text-red-400'
                                             }`}>
-                                            {transaction.type === 'income' ? '+' : '-'} {formatCurrency(transaction.amount, currentAccount?.currency || 'IDR')}
+                                            {transaction.type === 'income' ? '+' : '-'} {formatCurrency(transaction.amount, currentWallet?.currency || 'IDR')}
                                         </p>
                                     </div>
                                 </div>
@@ -274,8 +274,8 @@ export const FinancePage: React.FC = () => {
                 } : undefined}
                 onSubmit={async (data) => {
                     if (modalMode === 'create') {
-                        if (!currentAccount) return;
-                        await createTransaction({ ...data, accountId: currentAccount.id });
+                        if (!currentWallet) return;
+                        await createTransaction({ ...data, walletId: currentWallet.id });
                     } else if (modalMode === 'edit' && selectedTransaction) {
                         await updateTransaction(selectedTransaction.id, data);
                     }

@@ -4,7 +4,7 @@ import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { DatePicker } from '../ui/DatePicker';
 import { Dropdown } from '../ui/Dropdown';
-import type { TransactionType, TransactionCategory, FinanceTransaction, FinanceAccount } from '../../types/finance';
+import type { TransactionType, TransactionCategory, FinanceTransaction, Wallet } from '../../types/finance';
 
 interface AddTransactionModalProps {
     isOpen: boolean;
@@ -15,13 +15,13 @@ interface AddTransactionModalProps {
         category: TransactionCategory;
         description?: string;
         date: Date;
-        accountId?: string;
+        walletId?: string;
     }) => Promise<void>;
     initialData?: FinanceTransaction;
     mode?: 'create' | 'edit';
     onDelete?: () => Promise<void>;
-    accounts?: FinanceAccount[];
-    defaultAccountId?: string;
+    wallets?: Wallet[];
+    defaultWalletId?: string;
 }
 
 const INCOME_CATEGORIES: TransactionCategory[] = [
@@ -50,31 +50,31 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
     initialData,
     mode = 'create',
     onDelete,
-    accounts = [],
-    defaultAccountId
+    wallets = [],
+    defaultWalletId
 }) => {
     const [type, setType] = useState<TransactionType>('expense');
     const [amount, setAmount] = useState('');
     const [category, setCategory] = useState<TransactionCategory>('Food & Dining');
     const [description, setDescription] = useState('');
     const [date, setDate] = useState(new Date());
-    const [accountId, setAccountId] = useState<string>(defaultAccountId || '');
+    const [walletId, setWalletId] = useState<string>(defaultWalletId || '');
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [isCategoryOpen, setIsCategoryOpen] = useState(false);
-    const [isAccountOpen, setIsAccountOpen] = useState(false);
+    const [isWalletOpen, setIsWalletOpen] = useState(false);
     const [error, setError] = useState('');
     const bottomRef = React.useRef<HTMLDivElement>(null);
 
     // Auto-scroll logic
     useEffect(() => {
-        if ((showDatePicker || isCategoryOpen || isAccountOpen) && bottomRef.current) {
+        if ((showDatePicker || isCategoryOpen || isWalletOpen) && bottomRef.current) {
             setTimeout(() => {
                 bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             }, 300);
         }
-    }, [showDatePicker, isCategoryOpen, isAccountOpen]);
+    }, [showDatePicker, isCategoryOpen, isWalletOpen]);
 
     // Initialize State based on Mode
     const prevIsOpen = React.useRef(isOpen);
@@ -97,11 +97,11 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                 setCategory('Food & Dining');
                 setDescription('');
                 setDate(new Date());
-                setAccountId(defaultAccountId || (accounts.length > 0 ? accounts[0].id : ''));
+                setWalletId(defaultWalletId || (wallets.length > 0 ? wallets[0].id : ''));
             }
         }
         prevIsOpen.current = isOpen;
-    }, [isOpen, initialData, mode, defaultAccountId, accounts]);
+    }, [isOpen, initialData, mode, defaultWalletId, wallets]);
 
     const categories = type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
 
@@ -139,7 +139,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                 category,
                 description: description.trim() || undefined,
                 date,
-                accountId: accounts.length > 0 ? accountId : undefined
+                walletId: wallets.length > 0 ? walletId : undefined
             });
             onClose();
         } catch (err) {
@@ -220,15 +220,15 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                         </div>
                     )}
 
-                    {/* Account Selection (If accounts provided and > 1 or forced) */}
-                    {accounts.length > 0 && mode === 'create' && (
+                    {/* Wallet Selection (If wallets provided and > 1 or forced) */}
+                    {wallets.length > 0 && mode === 'create' && (
                         <Dropdown
                             label="Wallet"
-                            options={accounts.map(acc => ({ value: acc.id, label: acc.title }))}
-                            value={accountId}
-                            onChange={(val) => setAccountId(val)}
-                            open={isAccountOpen}
-                            onOpenChange={setIsAccountOpen}
+                            options={wallets.map(w => ({ value: w.id, label: w.title }))}
+                            value={walletId}
+                            onChange={(val) => setWalletId(val)}
+                            open={isWalletOpen}
+                            onOpenChange={setIsWalletOpen}
                             placeholder="Select Wallet"
                         />
                     )}
