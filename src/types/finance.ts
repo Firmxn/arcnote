@@ -22,7 +22,7 @@ export type TransactionCategory =
     | 'Other Expense';
 
 
-export interface FinanceAccount {
+export interface Wallet {
     id: string;
     title: string;
     description?: string;
@@ -36,7 +36,7 @@ export interface FinanceAccount {
 
 export interface FinanceTransaction {
     id: string;
-    accountId: string; // Reference to FinanceAccount
+    walletId: string; // Reference to Wallet
     type: TransactionType;
     amount: number;
     category: TransactionCategory;
@@ -47,8 +47,8 @@ export interface FinanceTransaction {
     lastVisitedAt?: Date; // Untuk Recently Visited
 }
 
-export type CreateAccountInput = Omit<FinanceAccount, 'id' | 'createdAt' | 'updatedAt'>;
-export type UpdateAccountInput = Partial<CreateAccountInput>;
+export type CreateWalletInput = Omit<Wallet, 'id' | 'createdAt' | 'updatedAt'>;
+export type UpdateWalletInput = Partial<CreateWalletInput>;
 
 export type CreateTransactionInput = Omit<FinanceTransaction, 'id' | 'createdAt' | 'updatedAt' | 'lastVisitedAt'>;
 export type UpdateTransactionInput = Partial<CreateTransactionInput>;

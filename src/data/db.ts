@@ -8,14 +8,14 @@ import type { Table } from 'dexie';
 import type { Page } from '../types/page';
 import type { Block } from '../types/block';
 import type { ScheduleEvent } from '../types/schedule';
-import type { FinanceTransaction, FinanceAccount } from '../types/finance';
+import type { FinanceTransaction, Wallet } from '../types/finance';
 
 export class ArcNoteDatabase extends Dexie {
     pages!: Table<Page, string>;
     blocks!: Table<Block, string>;
     schedules!: Table<ScheduleEvent, string>;
     finance!: Table<FinanceTransaction, string>;
-    financeAccounts!: Table<FinanceAccount, string>;
+    wallets!: Table<Wallet, string>;
 
     constructor() {
         super('ArcNoteDB');
@@ -56,8 +56,8 @@ export class ArcNoteDatabase extends Dexie {
 
             const count = await financeTable.count();
             if (count > 0) {
-                // Create Default Account
-                const defaultAccount: FinanceAccount = {
+                // Create Default Account (using old type for migration compatibility)
+                const defaultAccount: any = {
                     id: 'default',
                     title: 'Main Wallet',
                     description: 'Default account',
@@ -67,7 +67,7 @@ export class ArcNoteDatabase extends Dexie {
                 };
                 await accountsTable.add(defaultAccount);
 
-                // Assign accountId to existng transactions
+                // Assign accountId to existing transactions
                 await financeTable.toCollection().modify({ accountId: 'default' });
             }
         });
@@ -77,6 +77,34 @@ export class ArcNoteDatabase extends Dexie {
             pages: 'id, title, parentId, isArchived, createdAt, updatedAt',
             schedules: 'id, title, date, type, isAllDay, isArchived, createdAt, updatedAt',
             financeAccounts: 'id, title, isArchived, createdAt, updatedAt'
+        });
+
+        // Version 8: Rename financeAccounts → wallets, accountId → walletId
+        this.version(8).stores({
+            wallets: 'id, title, isArchived, createdAt, updatedAt',
+            finance: 'id, walletId, type, category, date, amount, createdAt, updatedAt',
+            financeAccounts: null // Delete old table
+        }).upgrade(async trans => {
+            // Migration: Copy data from financeAccounts to wallets
+            const oldAccountsTable = trans.table('financeAccounts');
+            const newWalletsTable = trans.table('wallets');
+            const financeTable = trans.table('finance');
+
+            // Copy all accounts to wallets table
+            const accounts = await oldAccountsTable.toArray();
+            await newWalletsTable.bulkAdd(accounts);
+
+            // Rename accountId → walletId in transactions
+            const transactions = await financeTable.toArray();
+            await financeTable.clear();
+
+            const updatedTransactions = transactions.map((t: any) => ({
+                ...t,
+                walletId: t.accountId,
+                accountId: undefined
+            }));
+
+            await financeTable.bulkAdd(updatedTransactions);
         });
     }
 }
