@@ -36,6 +36,9 @@ interface FinanceRepo {
     delete(id: string): Promise<void>;
     markAsVisited(id: string): Promise<void>;
     getSummary(walletId?: string): Promise<FinanceSummary>;
+
+    // --- TRANSFER ---
+    transferBetweenWallets(fromWalletId: string, toWalletId: string, amount: number, description?: string, date?: Date): Promise<{ outTransaction: FinanceTransaction; inTransaction: FinanceTransaction }>;
 }
 
 /**
@@ -181,6 +184,62 @@ export const localFinanceRepository = {
         if (transactions.length > 0) {
             await db.finance.bulkPut(transactions);
         }
+    },
+
+    // --- TRANSFER ---
+    async transferBetweenWallets(
+        fromWalletId: string,
+        toWalletId: string,
+        amount: number,
+        description?: string,
+        date?: Date
+    ): Promise<{ outTransaction: FinanceTransaction; inTransaction: FinanceTransaction }> {
+        const now = new Date();
+        const txDate = date || now;
+        const outId = nanoid();
+        const inId = nanoid();
+
+        // Query wallet names untuk deskripsi
+        const fromWallet = await db.wallets.get(fromWalletId);
+        const toWallet = await db.wallets.get(toWalletId);
+
+        const fromWalletName = fromWallet?.title || 'Unknown Wallet';
+        const toWalletName = toWallet?.title || 'Unknown Wallet';
+
+        // Transaksi keluar (expense) dari wallet sumber
+        const outTransaction: FinanceTransaction = {
+            id: outId,
+            walletId: fromWalletId,
+            type: 'expense',
+            amount,
+            category: 'Transfer Out',
+            description: description || `Transfer ke ${toWalletName}`,
+            date: txDate,
+            createdAt: now,
+            updatedAt: now,
+            linkedTransactionId: inId,
+            linkedWalletId: toWalletId,
+        };
+
+        // Transaksi masuk (income) ke wallet tujuan
+        const inTransaction: FinanceTransaction = {
+            id: inId,
+            walletId: toWalletId,
+            type: 'income',
+            amount,
+            category: 'Transfer In',
+            description: description || `Transfer dari ${fromWalletName}`,
+            date: txDate,
+            createdAt: now,
+            updatedAt: now,
+            linkedTransactionId: outId,
+            linkedWalletId: fromWalletId,
+        };
+
+        // Simpan kedua transaksi dalam satu batch
+        await db.finance.bulkAdd([outTransaction, inTransaction]);
+
+        return { outTransaction, inTransaction };
     }
 };
 
@@ -462,6 +521,90 @@ export const backendFinanceRepository = {
             const { error: txError } = await supabase.from('finance_transactions').upsert(txPayloads);
             if (txError) throw txError;
         }
+    },
+
+    // --- TRANSFER ---
+    async transferBetweenWallets(
+        fromWalletId: string,
+        toWalletId: string,
+        amount: number,
+        description?: string,
+        date?: Date
+    ): Promise<{ outTransaction: FinanceTransaction; inTransaction: FinanceTransaction }> {
+        const now = new Date();
+        const txDate = date || now;
+        const outId = nanoid();
+        const inId = nanoid();
+
+        // Query wallet names untuk deskripsi
+        const { data: fromWallet } = await supabase
+            .from('wallets')
+            .select('title')
+            .eq('id', fromWalletId)
+            .single();
+
+        const { data: toWallet } = await supabase
+            .from('wallets')
+            .select('title')
+            .eq('id', toWalletId)
+            .single();
+
+        const fromWalletName = fromWallet?.title || 'Unknown Wallet';
+        const toWalletName = toWallet?.title || 'Unknown Wallet';
+
+        // Transaksi keluar (expense) dari wallet sumber
+        const outTransaction: FinanceTransaction = {
+            id: outId,
+            walletId: fromWalletId,
+            type: 'expense',
+            amount,
+            category: 'Transfer Out',
+            description: description || `Transfer ke ${toWalletName}`,
+            date: txDate,
+            createdAt: now,
+            updatedAt: now,
+            linkedTransactionId: inId,
+            linkedWalletId: toWalletId,
+        };
+
+        // Transaksi masuk (income) ke wallet tujuan
+        const inTransaction: FinanceTransaction = {
+            id: inId,
+            walletId: toWalletId,
+            type: 'income',
+            amount,
+            category: 'Transfer In',
+            description: description || `Transfer dari ${fromWalletName}`,
+            date: txDate,
+            createdAt: now,
+            updatedAt: now,
+            linkedTransactionId: outId,
+            linkedWalletId: fromWalletId,
+        };
+
+        // Insert ke Supabase
+        const payloads = [outTransaction, inTransaction].map(t => ({
+            ...t,
+            date: t.date.toISOString(),
+            createdAt: t.createdAt.toISOString(),
+            updatedAt: t.updatedAt.toISOString(),
+        }));
+
+        console.log('Transfer payloads:', payloads);
+
+        const { data, error } = await supabase
+            .from('finance_transactions')
+            .insert(payloads)
+            .select();
+
+        if (error) {
+            console.error('Transfer error:', error);
+            throw error;
+        }
+
+        console.log('Transfer success:', data);
+
+        return { outTransaction, inTransaction };
     }
 };
 
@@ -485,4 +628,6 @@ export const financeRepository: FinanceRepo = {
     delete: (id) => getRepo().delete(id),
     markAsVisited: (id) => getRepo().markAsVisited(id),
     getSummary: (walletId) => getRepo().getSummary(walletId),
+    transferBetweenWallets: (fromWalletId, toWalletId, amount, description, date) =>
+        getRepo().transferBetweenWallets(fromWalletId, toWalletId, amount, description, date),
 };

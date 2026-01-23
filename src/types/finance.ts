@@ -11,6 +11,7 @@ export type TransactionCategory =
     | 'Investment'
     | 'Gift'
     | 'Other Income'
+    | 'Transfer In' // Transfer masuk dari wallet lain
     // Expense categories
     | 'Food & Dining'
     | 'Transportation'
@@ -19,7 +20,8 @@ export type TransactionCategory =
     | 'Bills & Utilities'
     | 'Healthcare'
     | 'Education'
-    | 'Other Expense';
+    | 'Other Expense'
+    | 'Transfer Out'; // Transfer keluar ke wallet lain
 
 
 export interface Wallet {
@@ -45,6 +47,9 @@ export interface FinanceTransaction {
     createdAt: Date;
     updatedAt: Date;
     lastVisitedAt?: Date; // Untuk Recently Visited
+    // Transfer-related fields
+    linkedTransactionId?: string; // ID transaksi pasangan (untuk transfer)
+    linkedWalletId?: string; // ID wallet tujuan/sumber (untuk transfer)
 }
 
 export type CreateWalletInput = Omit<Wallet, 'id' | 'createdAt' | 'updatedAt'>;

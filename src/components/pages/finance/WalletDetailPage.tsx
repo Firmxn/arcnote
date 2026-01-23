@@ -3,11 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { useFinanceStore } from '../../../state/finance.store';
 import { Button } from '../../ui/Button';
 import { AddTransactionModal } from '../../modals/AddTransactionModal';
+import { TransferModal } from '../../modals/TransferModal';
+import { TransferDetailModal } from '../../modals/TransferDetailModal';
 import dayjs from 'dayjs';
 import type { FinanceTransaction } from '../../../types/finance';
-import { formatCurrency } from '../../../utils/currency';
+import { formatCurrency, formatCurrencyCompact } from '../../../utils/currency';
 import { FAB } from '../../ui/FAB';
 import { MiniFAB } from '../../ui/MiniFAB';
+import { ListCard } from '../../ui/ListCard';
 
 export const WalletDetailPage: React.FC = () => {
     const {
@@ -17,11 +20,17 @@ export const WalletDetailPage: React.FC = () => {
         createTransaction,
         updateTransaction,
         deleteTransaction,
+        wallets,
+        balances,
+        transferBetweenWallets,
         isLoading
     } = useFinanceStore();
 
     const [filter, setFilter] = useState<'all' | 'income' | 'expense'>('all');
+    const [showDetailView, setShowDetailView] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+    const [isTransferDetailOpen, setIsTransferDetailOpen] = useState(false);
     const [selectedTransaction, setSelectedTransaction] = useState<FinanceTransaction | undefined>(undefined);
     const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -44,9 +53,15 @@ export const WalletDetailPage: React.FC = () => {
 
 
     const handleTransactionClick = (transaction: FinanceTransaction) => {
-        setSelectedTransaction(transaction);
-        setModalMode('edit');
-        setIsModalOpen(true);
+        // Cek apakah transaksi adalah transfer
+        if (transaction.category === 'Transfer In' || transaction.category === 'Transfer Out') {
+            setSelectedTransaction(transaction);
+            setIsTransferDetailOpen(true);
+        } else {
+            setSelectedTransaction(transaction);
+            setModalMode('edit');
+            setIsModalOpen(true);
+        }
     };
 
     // Ref for scroll to top
@@ -72,7 +87,7 @@ export const WalletDetailPage: React.FC = () => {
     return (
         <div
             ref={containerRef}
-            className="h-full w-full overflow-y-auto bg-neutral dark:bg-primary"
+            className="h-full w-full overflow-y-auto bg-neutral dark:bg-primary [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']"
             onScroll={handleScroll}
         >
             <div className="max-w-7xl mx-auto px-4 md:px-8 py-6 md:py-12 pb-[100px] md:pb-12">
@@ -95,54 +110,104 @@ export const WalletDetailPage: React.FC = () => {
                             {currentWallet?.description || 'Track your income and expenses'}
                         </p>
                     </div>
+
+                    {/* Transfer Button */}
+                    {wallets.filter(w => !w.isArchived).length > 1 && (
+                        <button
+                            onClick={() => setIsTransferModalOpen(true)}
+                            className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-text-neutral dark:text-text-secondary transition-colors"
+                            title="Transfer ke wallet lain"
+                        >
+                            <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                            </svg>
+                        </button>
+                    )}
                 </div>
 
-                {/* Summary Cards */}
+                {/* Combined Balance & Summary Card */}
                 {summary && (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                        {/* Total Income */}
-                        <div className="bg-white dark:bg-secondary rounded-2xl p-4 md:p-6 shadow-sm">
-                            <div className="flex items-center gap-3 mb-2">
-                                <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-green-500/10 dark:bg-green-500/20 flex items-center justify-center">
-                                    <svg className="w-4 h-4 md:w-5 md:h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                                    </svg>
-                                </div>
-                                <h3 className="text-xs md:text-sm font-medium text-text-neutral/60 dark:text-text-secondary">Total Income</h3>
+                    <div className="bg-white dark:bg-secondary rounded-xl p-4 md:p-6 mb-6 border border-secondary/10 dark:border-white/5">
+                        {/* Total Balance Section */}
+                        <div className="mb-4">
+                            <div className="flex items-center justify-between mb-2">
+                                <p className="text-xs text-text-neutral/60 dark:text-text-secondary">Current Balance</p>
+                                <p className="text-xs text-text-neutral/50 dark:text-text-secondary/50">
+                                    {dayjs().format('MMMM YYYY')}
+                                </p>
                             </div>
-                            <p className="text-xl md:text-2xl font-bold text-green-600 dark:text-green-400">
-                                {formatCurrency(summary.totalIncome, currentWallet?.currency || 'IDR')}
-                            </p>
-                        </div>
-
-                        {/* Total Expense */}
-                        <div className="bg-white dark:bg-secondary rounded-2xl p-4 md:p-6 shadow-sm">
-                            <div className="flex items-center gap-3 mb-2">
-                                <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-red-500/10 dark:bg-red-500/20 flex items-center justify-center">
-                                    <svg className="w-4 h-4 md:w-5 md:h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
-                                    </svg>
-                                </div>
-                                <h3 className="text-xs md:text-sm font-medium text-text-neutral/60 dark:text-text-secondary">Total Expense</h3>
-                            </div>
-                            <p className="text-xl md:text-2xl font-bold text-red-600 dark:text-red-400">
-                                {formatCurrency(summary.totalExpense, currentWallet?.currency || 'IDR')}
-                            </p>
-                        </div>
-
-                        {/* Balance */}
-                        <div className="bg-white dark:bg-secondary rounded-2xl p-4 md:p-6 shadow-sm">
-                            <div className="flex items-center gap-3 mb-2">
-                                <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-primary/10 dark:bg-primary/20 flex items-center justify-center">
-                                    <svg className="w-4 h-4 md:w-5 md:h-5 text-primary dark:text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                </div>
-                                <h3 className="text-xs md:text-sm font-medium text-text-neutral/60 dark:text-text-secondary">Balance</h3>
-                            </div>
-                            <p className={`text-xl md:text-2xl font-bold ${summary.balance >= 0 ? 'text-primary dark:text-accent' : 'text-red-600 dark:text-red-400'}`}>
+                            <p className="text-3xl md:text-4xl font-bold font-mono tracking-tight text-primary dark:text-accent mb-1">
                                 {formatCurrency(summary.balance, currentWallet?.currency || 'IDR')}
                             </p>
+                        </div>
+
+                        {/* Monthly Summary - Tap untuk toggle detail */}
+                        <div className="grid grid-cols-3 gap-2">
+                            {/* Income */}
+                            <button
+                                onClick={() => setShowDetailView(!showDetailView)}
+                                className="select-none bg-green-50 dark:bg-green-900/10 rounded-lg p-2 text-left active:scale-95 transition-transform"
+                            >
+                                <p className="text-[10px] text-green-600 dark:text-green-400 mb-1 flex items-center gap-0.5">
+                                    Income
+                                    <svg className="w-2.5 h-2.5 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </p>
+                                <p className="select-text text-xs md:text-sm font-bold font-mono text-green-600 dark:text-green-400 wrap-break-word">
+                                    {showDetailView
+                                        ? formatCurrency(summary.totalIncome || 0, currentWallet?.currency || 'IDR')
+                                        : formatCurrencyCompact(summary.totalIncome || 0)
+                                    }
+                                </p>
+                            </button>
+
+                            {/* Expense */}
+                            <button
+                                onClick={() => setShowDetailView(!showDetailView)}
+                                className="select-none bg-red-50 dark:bg-red-900/10 rounded-lg p-2 text-left active:scale-95 transition-transform"
+                            >
+                                <p className="text-[10px] text-red-600 dark:text-red-400 mb-1 flex items-center gap-0.5">
+                                    Expense
+                                    <svg className="w-2.5 h-2.5 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </p>
+                                <p className="select-text text-xs md:text-sm font-bold font-mono text-red-600 dark:text-red-400 wrap-break-word">
+                                    {showDetailView
+                                        ? formatCurrency(summary.totalExpense || 0, currentWallet?.currency || 'IDR')
+                                        : formatCurrencyCompact(summary.totalExpense || 0)
+                                    }
+                                </p>
+                            </button>
+
+                            {/* Net */}
+                            <button
+                                onClick={() => setShowDetailView(!showDetailView)}
+                                className={`select-none rounded-lg p-2 text-left active:scale-95 transition-transform ${(summary.balance || 0) >= 0
+                                    ? 'bg-blue-50 dark:bg-blue-900/10'
+                                    : 'bg-red-50 dark:bg-red-900/10'
+                                    }`}
+                            >
+                                <p className={`text-[10px] mb-1 flex items-center gap-0.5 ${(summary.balance || 0) >= 0
+                                    ? 'text-blue-600 dark:text-blue-400'
+                                    : 'text-red-600 dark:text-red-400'
+                                    }`}>
+                                    Net
+                                    <svg className="w-2.5 h-2.5 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </p>
+                                <p className={`select-text text-xs md:text-sm font-bold font-mono wrap-break-word ${(summary.balance || 0) >= 0
+                                    ? 'text-blue-600 dark:text-blue-400'
+                                    : 'text-red-600 dark:text-red-400'
+                                    }`}>
+                                    {showDetailView
+                                        ? formatCurrency(summary.balance || 0, currentWallet?.currency || 'IDR')
+                                        : formatCurrencyCompact(summary.balance || 0)
+                                    }
+                                </p>
+                            </button>
                         </div>
                     </div>
                 )}
@@ -212,48 +277,33 @@ export const WalletDetailPage: React.FC = () => {
                         </div>
                     ) : (
                         filteredTransactions.map((transaction) => (
-                            <div
+                            <ListCard
                                 key={transaction.id}
                                 onClick={() => handleTransactionClick(transaction)}
-                                className="bg-white dark:bg-secondary rounded-xl p-4 shadow-sm hover:shadow-md cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 active:scale-[0.99] transition-all duration-200"
-                            >
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-4">
-                                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${transaction.type === 'income'
-                                            ? 'bg-green-500/10 dark:bg-green-500/20'
-                                            : 'bg-red-500/10 dark:bg-red-500/20'
-                                            }`}>
-                                            <svg className={`w-6 h-6 ${transaction.type === 'income'
-                                                ? 'text-green-600 dark:text-green-400'
-                                                : 'text-red-600 dark:text-red-400'
-                                                }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                                                    d={transaction.type === 'income' ? "M12 4v16m8-8H4" : "M20 12H4"}
-                                                />
-                                            </svg>
-                                        </div>
-                                        <div>
-                                            <h4 className="font-semibold text-text-neutral dark:text-text-primary">
-                                                {transaction.category}
-                                            </h4>
-                                            <p className="text-sm text-text-neutral/60 dark:text-text-secondary">
-                                                {transaction.description || 'No description'}
-                                            </p>
-                                            <p className="text-xs text-text-neutral/50 dark:text-text-secondary/70 mt-1">
-                                                {dayjs(transaction.date).format('DD MMM YYYY')}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className={`text-xl font-bold ${transaction.type === 'income'
-                                            ? 'text-green-600 dark:text-green-400'
-                                            : 'text-red-600 dark:text-red-400'
-                                            }`}>
-                                            {transaction.type === 'income' ? '+' : '-'} {formatCurrency(transaction.amount, currentWallet?.currency || 'IDR')}
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
+                                icon={
+                                    transaction.type === 'income' ? (
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11l5-5m0 0l5 5m-5-5v12" />
+                                        </svg>
+                                    ) : (
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 13l-5 5m0 0l-5-5m5 5V6" />
+                                        </svg>
+                                    )
+                                }
+                                iconVariant={transaction.type === 'income' ? 'success' : 'error'}
+                                iconShape="circle"
+                                title={transaction.category}
+                                subtitle={`${transaction.description || 'No description'} • ${dayjs(transaction.date).format('DD MMM')}`}
+                                rightContent={
+                                    <p className={`select-text text-sm font-bold font-mono ${transaction.type === 'income'
+                                        ? 'text-green-600 dark:text-green-400'
+                                        : 'text-red-600 dark:text-red-400'
+                                        }`}>
+                                        {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount, currentWallet?.currency || 'IDR')}
+                                    </p>
+                                }
+                            />
                         ))
                     )}
                 </div>
@@ -281,6 +331,45 @@ export const WalletDetailPage: React.FC = () => {
                     }
                 }}
             />
+
+            {/* Transfer Modal */}
+            <TransferModal
+                isOpen={isTransferModalOpen}
+                onClose={() => setIsTransferModalOpen(false)}
+                wallets={wallets}
+                balances={balances}
+                defaultFromWalletId={currentWallet?.id}
+                onSubmit={async (data) => {
+                    await transferBetweenWallets(
+                        data.fromWalletId,
+                        data.toWalletId,
+                        data.amount,
+                        data.description,
+                        data.date
+                    );
+                }}
+            />
+
+            {/* Transfer Detail Modal */}
+            {selectedTransaction && (
+                <TransferDetailModal
+                    isOpen={isTransferDetailOpen}
+                    onClose={() => setIsTransferDetailOpen(false)}
+                    transaction={selectedTransaction}
+                    currentWallet={currentWallet!}
+                    linkedWallet={wallets.find(w => w.id === selectedTransaction.linkedWalletId)}
+                    onNavigateToWallet={(walletId) => {
+                        navigate(`/finance/${walletId}`);
+                    }}
+                    onDelete={async () => {
+                        // Delete kedua transaksi (current dan linked)
+                        await deleteTransaction(selectedTransaction.id);
+                        if (selectedTransaction.linkedTransactionId) {
+                            await deleteTransaction(selectedTransaction.linkedTransactionId);
+                        }
+                    }}
+                />
+            )}
         </div>
     );
 };

@@ -22,6 +22,9 @@
 - terapkan konsep DRY
 - terapkan best practice struktur direktori
 
+## Penerapan prompting
+- Jangan langsung implementasi setelah planning jika belum saya perintahkan
+
 ### Format Commit:
 ```
 type(scope): short description

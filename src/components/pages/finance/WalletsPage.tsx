@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useFinanceStore } from '../../../state/finance.store';
-import { Card } from '../../ui/Card';
+
+import { WalletCard } from '../../ui/WalletCard';
 import { Modal } from '../../ui/Modal';
 import { ContextMenu } from '../../ui/ContextMenu';
 import { ConfirmDialog } from '../../ui/ConfirmDialog';
@@ -9,7 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import type { Wallet } from '../../../types/finance';
-import { formatCurrency } from '../../../utils/currency';
+
 import { FAB } from '../../ui/FAB';
 import { MiniFAB } from '../../ui/MiniFAB';
 import { SearchBar } from '../../ui/SearchBar';
@@ -20,11 +21,7 @@ import { ActionSheet, type ActionSheetItem } from '../../ui/ActionSheet';
 
 dayjs.extend(relativeTime);
 
-const WalletIcon = ({ className = "w-6 h-6" }) => (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-    </svg>
-);
+
 
 export const WalletsPage: React.FC = () => {
     const {
@@ -303,13 +300,18 @@ export const WalletsPage: React.FC = () => {
                             />
                             {/* Grid: 2 kolom di mobile, 3 di tablet, 4 di desktop */}
                             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
-                                {filteredWallets.map(wallet => {
+                                {filteredWallets.map((wallet, index) => {
                                     const balance = balances[wallet.id] || 0;
-                                    const formattedBalance = formatCurrency(balance, wallet.currency || 'IDR');
 
                                     return (
                                         <div key={wallet.id} className="relative group">
-                                            <div
+                                            <WalletCard
+                                                title={wallet.title}
+                                                balance={balance}
+                                                currency={wallet.currency}
+                                                id={wallet.id}
+                                                variant={index === 0 ? 'primary' : 'accent'}
+                                                className="w-full aspect-[1.586/1]"
                                                 onClick={() => navigate(`/finance/${wallet.id}`)}
                                                 onContextMenu={(e) => {
                                                     e.preventDefault();
@@ -329,24 +331,7 @@ export const WalletsPage: React.FC = () => {
                                                     const timer = (e.currentTarget as any)._longPressTimer;
                                                     if (timer) clearTimeout(timer);
                                                 }}
-                                            >
-                                                <Card
-                                                    icon={<WalletIcon />}
-                                                    title={wallet.title}
-                                                    description={wallet.description || `${wallet.currency} Wallet`}
-                                                    extra={
-                                                        <div className="text-xl font-bold text-primary dark:text-accent font-mono tracking-tight">
-                                                            {formattedBalance}
-                                                        </div>
-                                                    }
-                                                    updatedAt={dayjs(wallet.updatedAt).fromNow()}
-                                                    createdAt={dayjs(wallet.createdAt).format('MMM D, YYYY')}
-                                                    onContextMenu={(e) => {
-                                                        e.preventDefault();
-                                                        setContextMenu({ x: e.pageX, y: e.pageY, walletId: wallet.id });
-                                                    }}
-                                                />
-                                            </div>
+                                            />
 
                                             {/* Action Buttons Overlay - Hidden di mobile */}
                                             <div className="absolute top-3 right-3 opacity-0 md:group-hover:opacity-100 transition-opacity z-10">

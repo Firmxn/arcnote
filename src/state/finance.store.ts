@@ -60,6 +60,9 @@ interface FinanceState {
     loadGlobalSummary: () => Promise<void>;
     loadMonthlySummary: () => Promise<void>;
     loadRecentTransactions: (limit?: number) => Promise<void>;
+
+    // Transfer Actions
+    transferBetweenWallets: (fromWalletId: string, toWalletId: string, amount: number, description?: string, date?: Date) => Promise<void>;
 }
 
 export const useFinanceStore = create<FinanceState>((set, get) => ({
@@ -402,6 +405,42 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
 
         // Push to local
         await localFinanceRepository.syncWallet(wallet, transactions);
+    },
+
+    // --- Transfer Actions ---
+    transferBetweenWallets: async (
+        fromWalletId: string,
+        toWalletId: string,
+        amount: number,
+        description?: string,
+        date?: Date
+    ) => {
+        set({ isLoading: true, error: null });
+        try {
+            // Eksekusi transfer via repository
+            await financeRepository.transferBetweenWallets(
+                fromWalletId,
+                toWalletId,
+                amount,
+                description,
+                date
+            );
+
+            // Reload balances dari database untuk memastikan konsistensi
+            await get().loadBalances();
+
+            // Jika sedang melihat salah satu wallet, reload transactions
+            const { currentWallet } = get();
+            if (currentWallet && (currentWallet.id === fromWalletId || currentWallet.id === toWalletId)) {
+                await get().loadTransactions();
+                await get().loadSummary();
+            }
+
+            set({ isLoading: false });
+        } catch (error) {
+            set({ error: 'Gagal melakukan transfer', isLoading: false });
+            throw error;
+        }
     },
 
     // --- Dashboard Actions ---
