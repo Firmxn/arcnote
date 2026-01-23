@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFinanceStore } from '../../../state/finance.store';
 import { SectionHeader } from '../../ui/SectionHeader';
+import { PageHeader } from '../../ui/PageHeader';
 import { ListCard } from '../../ui/ListCard';
 import { FAB } from '../../ui/FAB';
 import { AddTransactionModal } from '../../modals/AddTransactionModal';
@@ -11,10 +12,11 @@ import relativeTime from 'dayjs/plugin/relativeTime';
 import { formatCurrency, formatCurrencyCompact } from '../../../utils/currency';
 import { WalletCard } from '../../ui/WalletCard';
 import { ActionSheet, type ActionSheetItem } from '../../ui/ActionSheet';
-import { ContextMenu } from '../../ui/ContextMenu';
+
 import { ConfirmDialog } from '../../ui/ConfirmDialog';
 import { Modal } from '../../ui/Modal';
 import { Input } from '../../ui/Input';
+import BudgetModal from '../../modals/BudgetModal';
 import type { Wallet } from '../../../types/finance';
 
 dayjs.extend(relativeTime);
@@ -36,14 +38,13 @@ export const DashboardPage: React.FC = () => {
         createWallet,
         updateWallet,
         deleteWallet,
-        syncWalletToCloud,
-        syncWalletToLocal,
-        // isBackendMode, // Removed from store
+        // Budget state
+        budgets,
+        budgetSummaries,
+        loadBudgets,
+        loadBudgetSummary,
         isLoading
     } = useFinanceStore();
-
-    // Mock/Default backend mode
-    const isBackendMode = false;
 
     // State untuk toggle compact/detail view
     const [showDetailView, setShowDetailView] = useState(false);
@@ -54,13 +55,14 @@ export const DashboardPage: React.FC = () => {
 
     // State untuk Action Sheet & Context Menu
     const [actionSheetWallet, setActionSheetWallet] = useState<Wallet | null>(null);
-    const [contextMenu, setContextMenu] = useState<{ x: number; y: number; walletId: string } | null>(null);
+
 
     // State untuk Edit/Delete
     const [editingWallet, setEditingWallet] = useState<Wallet | null>(null);
     const [editTitle, setEditTitle] = useState('');
     const [editDesc, setEditDesc] = useState('');
     const [walletToDelete, setWalletToDelete] = useState<Wallet | null>(null);
+    const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
 
     // Load data
     useEffect(() => {
@@ -70,9 +72,10 @@ export const DashboardPage: React.FC = () => {
             loadGlobalSummary();
             loadMonthlySummary();
             loadRecentTransactions(5);
+            await loadBudgets(); // Load budgets
         };
         loadData();
-    }, [loadWallets, loadBalances, loadGlobalSummary, loadMonthlySummary, loadRecentTransactions]);
+    }, [loadWallets, loadBalances, loadGlobalSummary, loadMonthlySummary, loadRecentTransactions, loadBudgets]);
 
     // Active Wallets & Sorting Logic
     const activeWallets = wallets.filter(w => !w.isArchived);
@@ -106,7 +109,6 @@ export const DashboardPage: React.FC = () => {
         setEditTitle(wallet.title);
         setEditDesc(wallet.description || '');
         setActionSheetWallet(null); // Close sheet if open
-        setContextMenu(null);
     };
 
     const handleEditSave = async () => {
@@ -127,7 +129,6 @@ export const DashboardPage: React.FC = () => {
     const handleDelete = (wallet: Wallet) => {
         setWalletToDelete(wallet);
         setActionSheetWallet(null); // Close sheet if open
-        setContextMenu(null);
     };
 
     const confirmDelete = async () => {
@@ -152,33 +153,6 @@ export const DashboardPage: React.FC = () => {
             onClick: () => handleEditStart(wallet)
         },
         {
-            id: 'sync',
-            label: isBackendMode ? 'Save to Local' : 'Sync to Cloud',
-            icon: (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={isBackendMode
-                        ? "M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                        : "M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                    } />
-                </svg>
-            ),
-            onClick: async () => {
-                const action = isBackendMode ? 'Save to Local' : 'Upload to Cloud';
-                const msg = isBackendMode
-                    ? 'Overwrite local data with this tracker?'
-                    : 'Overwrite cloud data with this tracker?';
-                if (window.confirm(msg)) {
-                    try {
-                        if (isBackendMode) await syncWalletToLocal(wallet.id);
-                        else await syncWalletToCloud(wallet.id);
-                        alert(`${action} successful!`);
-                    } catch (e: any) {
-                        alert(`${action} failed: ` + e.message);
-                    }
-                }
-            }
-        },
-        {
             id: 'delete',
             label: 'Delete',
             icon: (
@@ -194,18 +168,14 @@ export const DashboardPage: React.FC = () => {
     return (
         <div
             className="flex-1 h-full overflow-y-auto bg-neutral [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']"
-            onClick={() => setContextMenu(null)}
+
         >
             <div className="max-w-7xl mx-auto px-4 md:px-8 pt-6 md:pt-12 pb-[100px]">
                 {/* Header */}
-                <div className="mb-6">
-                    <h1 className="text-2xl md:text-3xl font-bold text-text-neutral dark:text-text-primary">
-                        Finance
-                    </h1>
-                    <p className="text-sm md:text-base text-text-neutral/60 dark:text-text-secondary">
-                        Overview keuangan kamu
-                    </p>
-                </div>
+                <PageHeader
+                    title="Finance"
+                    description="Overview keuangan kamu"
+                />
 
                 {/* Combined Balance & Summary Card */}
                 <div className="bg-white dark:bg-secondary rounded-xl p-4 md:p-6 mb-6 border border-secondary/10 dark:border-white/5">
@@ -338,10 +308,7 @@ export const DashboardPage: React.FC = () => {
                                     variant={isMainWallet ? 'primary' : 'accent'}
                                     className="snap-start w-[42vw] md:w-[240px] aspect-[1.586/1]"
                                     // Add Events for Action Sheet
-                                    onContextMenu={(e) => {
-                                        e.preventDefault();
-                                        setContextMenu({ x: e.pageX, y: e.pageY, walletId: wallet.id });
-                                    }}
+
                                     onTouchStart={(e) => {
                                         const timer = setTimeout(() => {
                                             setActionSheetWallet(wallet);
@@ -361,6 +328,98 @@ export const DashboardPage: React.FC = () => {
                         })
                     ) : null}
                 </div>
+
+                {/* Budgets Overview */}
+                <SectionHeader
+                    title="Budgets"
+                    subtitle={`${budgets.filter(b => !b.isArchived).length} budget aktif`}
+                    actionLabel="View All"
+                    onAction={() => navigate('/finance/budgets')}
+                    icon={
+                        <svg className="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                        </svg>
+                    }
+                />
+                {budgets.filter(b => !b.isArchived).length > 0 ? (
+                    <div className="space-y-2 mb-6">
+                        {budgets
+                            .filter(b => !b.isArchived)
+                            .sort((a, b) => {
+                                const summaryA = budgetSummaries[a.id];
+                                const summaryB = budgetSummaries[b.id];
+                                const percentA = summaryA?.percentageUsed || 0;
+                                const percentB = summaryB?.percentageUsed || 0;
+                                return percentB - percentA; // Sort by percentage descending
+                            })
+                            .slice(0, 3) // Top 3 budgets
+                            .map(budget => {
+                                const summary = budgetSummaries[budget.id];
+                                const percentage = summary?.percentageUsed || 0;
+                                const spent = summary?.totalSpent || 0;
+                                const remaining = summary?.remainingAmount || budget.targetAmount;
+
+                                // Load summary jika belum ada
+                                if (!summary) {
+                                    loadBudgetSummary(budget.id);
+                                }
+
+                                const getProgressColor = () => {
+                                    if (percentage >= 100) return 'bg-red-500';
+                                    if (percentage >= 90) return 'bg-red-500';
+                                    if (percentage >= 70) return 'bg-yellow-500';
+                                    return 'bg-green-500';
+                                };
+
+                                return (
+                                    <div
+                                        key={budget.id}
+                                        onClick={() => navigate(`/finance/budgets/${budget.id}`)}
+                                        className="bg-white dark:bg-secondary rounded-lg p-3 border border-secondary/10 dark:border-white/5 cursor-pointer hover:border-accent/30 transition-colors"
+                                    >
+                                        <div className="flex justify-between items-start mb-2">
+                                            <div>
+                                                <p className="font-medium text-sm text-text-neutral dark:text-text-primary">{budget.title}</p>
+                                                <p className="text-xs text-text-neutral/60 dark:text-text-secondary">
+                                                    {budget.period === 'weekly' ? 'Mingguan' : budget.period === 'monthly' ? 'Bulanan' : 'Tahunan'}
+                                                </p>
+                                            </div>
+                                            <p className="text-xs font-mono text-text-neutral/60 dark:text-text-secondary">
+                                                {formatCurrencyCompact(spent)} / {formatCurrencyCompact(budget.targetAmount)}
+                                            </p>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <div className="w-full bg-neutral/20 dark:bg-neutral/40 rounded-full h-2 overflow-hidden">
+                                                <div
+                                                    className={`h-full ${getProgressColor()} transition-all duration-300`}
+                                                    style={{ width: `${Math.min(percentage, 100)}%` }}
+                                                />
+                                            </div>
+                                            <div className="flex justify-between items-center">
+                                                <p className={`text-xs font-medium ${percentage >= 100 ? 'text-red-600 dark:text-red-400' : 'text-text-neutral/60 dark:text-text-secondary'
+                                                    }`}>
+                                                    {percentage.toFixed(1)}%
+                                                </p>
+                                                <p className={`text-xs font-medium ${remaining < 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'
+                                                    }`}>
+                                                    Sisa: {formatCurrencyCompact(remaining)}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                    </div>
+                ) : (
+                    <div className="text-center py-8 text-text-neutral/60 dark:text-text-secondary mb-6">
+                        <button
+                            onClick={() => setIsBudgetModalOpen(true)}
+                            className="mt-2 text-sm text-accent hover:underline"
+                        >
+                            Buat budget pertama
+                        </button>
+                    </div>
+                )}
 
                 {/* Recent Transactions */}
                 <SectionHeader
@@ -495,28 +554,7 @@ export const DashboardPage: React.FC = () => {
                     onCancel={() => setWalletToDelete(null)}
                 />
 
-                {/* Context Menu */}
-                {contextMenu && (
-                    <ContextMenu
-                        x={contextMenu.x}
-                        y={contextMenu.y}
-                        onClose={() => setContextMenu(null)}
-                        items={[
-                            {
-                                label: 'Edit', onClick: () => {
-                                    const w = wallets.find(w => w.id === contextMenu.walletId);
-                                    if (w) handleEditStart(w);
-                                }
-                            },
-                            {
-                                label: 'Delete', variant: 'danger', onClick: () => {
-                                    const w = wallets.find(w => w.id === contextMenu.walletId);
-                                    if (w) handleDelete(w);
-                                }
-                            }
-                        ]}
-                    />
-                )}
+
 
                 {/* Mobile Action Sheet */}
                 <ActionSheet
@@ -524,6 +562,12 @@ export const DashboardPage: React.FC = () => {
                     onClose={() => setActionSheetWallet(null)}
                     title={actionSheetWallet?.title}
                     items={actionSheetWallet ? getActionSheetItems(actionSheetWallet) : []}
+                />
+
+                {/* Budget Modal */}
+                <BudgetModal
+                    isOpen={isBudgetModalOpen}
+                    onClose={() => setIsBudgetModalOpen(false)}
                 />
             </div>
         </div>

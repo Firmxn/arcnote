@@ -2,6 +2,8 @@
  * Type definitions untuk Finance Tracker
  */
 
+import type { Syncable } from './sync';
+
 export type TransactionType = 'income' | 'expense';
 
 export type TransactionCategory =
@@ -24,7 +26,7 @@ export type TransactionCategory =
     | 'Transfer Out'; // Transfer keluar ke wallet lain
 
 
-export interface Wallet {
+export interface Wallet extends Syncable {
     id: string;
     title: string;
     description?: string;
@@ -36,7 +38,7 @@ export interface Wallet {
     isArchived?: boolean;
 }
 
-export interface FinanceTransaction {
+export interface FinanceTransaction extends Syncable {
     id: string;
     walletId: string; // Reference to Wallet
     type: TransactionType;
@@ -64,3 +66,53 @@ export interface FinanceSummary {
     balance: number;
     transactionCount: number;
 }
+
+/**
+ * Budget Period type
+ * Menentukan periode budget (mingguan, bulanan, atau tahunan)
+ */
+export type BudgetPeriod = 'weekly' | 'monthly' | 'yearly';
+
+/**
+ * Budget interface
+ * Virtual wallet untuk tracking pengeluaran terhadap target
+ */
+export interface Budget extends Syncable {
+    id: string;
+    title: string;
+    description?: string;
+    targetAmount: number; // Target pengeluaran dalam currency
+    period: BudgetPeriod; // Periode budget
+    categoryFilter?: TransactionCategory[]; // Optional: filter category untuk auto-assignment
+    createdAt: Date;
+    updatedAt: Date;
+    isArchived?: boolean;
+}
+
+/**
+ * Budget Assignment
+ * Junction table untuk link transaction ke budget
+ */
+export interface BudgetAssignment extends Syncable {
+    id: string;
+    budgetId: string;
+    transactionId: string;
+    createdAt: Date;
+}
+
+/**
+ * Budget Summary
+ * Summary untuk dashboard dan budget detail
+ */
+export interface BudgetSummary {
+    budget: Budget;
+    totalSpent: number; // Total amount dari assigned transactions
+    transactionCount: number; // Jumlah transactions yang di-assign
+    percentageUsed: number; // Percentage spent vs target (0-100+)
+    remainingAmount: number; // Target - spent (bisa negative jika over budget)
+    isOverBudget: boolean; // True jika spent > target
+}
+
+// Helper types untuk CRUD operations
+export type CreateBudgetInput = Omit<Budget, 'id' | 'createdAt' | 'updatedAt'>;
+export type UpdateBudgetInput = Partial<CreateBudgetInput>;

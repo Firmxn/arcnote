@@ -5,7 +5,7 @@
 
 import { create } from 'zustand';
 import type { Page, UpdatePageInput } from '../types/page';
-import { pagesRepository, backendPagesRepository, localPagesRepository } from '../data/pages.repository';
+import { pagesRepository } from '../data/pages.repository';
 
 interface PagesState {
     pages: Page[];
@@ -22,8 +22,7 @@ interface PagesState {
     markPageAsVisited: (id: string) => Promise<void>;
     archivePage: (id: string) => Promise<void>;
     restorePage: (id: string) => Promise<void>;
-    syncToCloud: (id: string) => Promise<void>;
-    syncToLocal: (id: string) => Promise<void>;
+
 }
 
 export const usePagesStore = create<PagesState>((set, get) => ({
@@ -127,15 +126,5 @@ export const usePagesStore = create<PagesState>((set, get) => ({
         }
     },
 
-    syncToCloud: async (id: string) => {
-        const page = get().pages.find(p => p.id === id);
-        if (!page) throw new Error("Page not found locally");
-        await backendPagesRepository.sync(page);
-    },
 
-    syncToLocal: async (id: string) => {
-        const page = get().pages.find(p => p.id === id);
-        if (!page) throw new Error("Page not found");
-        await localPagesRepository.sync(page);
-    },
 }));

@@ -13,7 +13,9 @@ export type BlockType =
     | 'quote'
     | 'divider';
 
-export interface Block {
+import type { Syncable } from './sync';
+
+export interface Block extends Syncable {
     id: string;
     pageId: string;
     type: BlockType;

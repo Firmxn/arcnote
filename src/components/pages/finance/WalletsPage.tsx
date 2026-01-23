@@ -2,8 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useFinanceStore } from '../../../state/finance.store';
 
 import { WalletCard } from '../../ui/WalletCard';
+import { TransferModal } from '../../modals/TransferModal';
 import { Modal } from '../../ui/Modal';
-import { ContextMenu } from '../../ui/ContextMenu';
+
 import { ConfirmDialog } from '../../ui/ConfirmDialog';
 import { Input } from '../../ui/Input';
 import { useNavigate } from 'react-router-dom';
@@ -17,6 +18,7 @@ import { SearchBar } from '../../ui/SearchBar';
 import type { SearchResult } from '../../ui/SearchBar';
 import { ActionGroup, ActionButton } from '../../ui/ActionGroup';
 import { SectionHeader } from '../../ui/SectionHeader';
+import { PageHeader } from '../../ui/PageHeader';
 import { ActionSheet, type ActionSheetItem } from '../../ui/ActionSheet';
 
 dayjs.extend(relativeTime);
@@ -34,14 +36,13 @@ export const WalletsPage: React.FC = () => {
         isLoading,
         balances,
         loadBalances,
-        syncWalletToCloud,
-        syncWalletToLocal
+        transferBetweenWallets
     } = useFinanceStore();
     const navigate = useNavigate();
-    const isBackendMode = localStorage.getItem('arcnote_storage_preference') === 'backend';
 
     // Create State
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
     const [isFabHidden, setIsFabHidden] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [newWalletTitle, setNewWalletTitle] = useState('');
@@ -52,7 +53,7 @@ export const WalletsPage: React.FC = () => {
     const [editTitle, setEditTitle] = useState('');
     const [editDesc, setEditDesc] = useState('');
     const [walletToDelete, setWalletToDelete] = useState<Wallet | null>(null);
-    const [contextMenu, setContextMenu] = useState<{ x: number; y: number; walletId: string } | null>(null);
+
     const [actionSheetWallet, setActionSheetWallet] = useState<Wallet | null>(null);
 
     useEffect(() => {
@@ -236,24 +237,48 @@ export const WalletsPage: React.FC = () => {
         <div className="h-full w-full bg-neutral dark:bg-primary flex flex-col min-h-0">
             <div className="flex-1 flex flex-col min-h-0">
                 {/* Header */}
-                <div className="max-w-7xl w-full mx-auto px-4 md:px-8 pt-6 md:pt-12 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 md:mb-8 shrink-0">
-                    <div className="flex-1">
-                        <h1 className="text-2xl md:text-3xl font-bold text-text-neutral dark:text-text-primary mb-2">
-                            Finance Trackers
-                        </h1>
-                        <p className="text-sm md:text-base text-text-neutral/60 dark:text-text-secondary">
-                            Manage your wallets and budgets
-                        </p>
-                    </div>
-
-                    {/* Search Bar */}
-                    <SearchBar
-                        onSearch={setSearchQuery}
-                        onSelectResult={handleSelectResult}
-                        results={searchResults}
-                        placeholder="Search trackers..."
-                        className="shrink-0"
+                <div className="max-w-7xl w-full mx-auto px-4 md:px-8 pt-6 md:pt-12 shrink-0">
+                    <PageHeader
+                        title="Finance Trackers"
+                        description="Manage your wallets and budgets"
+                        className="mb-4 md:mb-8"
+                        leading={
+                            <button
+                                onClick={() => navigate('/finance')}
+                                className="p-2 -ml-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-text-neutral dark:text-text-secondary transition-colors"
+                                title="Back to Finance Dashboard"
+                            >
+                                <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                                </svg>
+                            </button>
+                        }
+                        trailing={
+                            wallets.filter(w => !w.isArchived).length > 1 && (
+                                <button
+                                    onClick={() => setIsTransferModalOpen(true)}
+                                    className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-text-neutral dark:text-text-secondary transition-colors"
+                                    title="Transfer antar wallet"
+                                >
+                                    <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                                    </svg>
+                                </button>
+                            )
+                        }
                     />
+
+
+                    {/* Search Bar Area */}
+                    <div className="mb-6 flex justify-end">
+                        <SearchBar
+                            onSearch={setSearchQuery}
+                            onSelectResult={handleSelectResult}
+                            results={searchResults}
+                            placeholder="Search trackers..."
+                            className="w-full sm:max-w-md"
+                        />
+                    </div>
 
                     {/* Desktop Button - Hidden on Mobile */}
                     <button
@@ -468,46 +493,7 @@ export const WalletsPage: React.FC = () => {
                 onConfirm={confirmDelete}
                 onCancel={() => setWalletToDelete(null)}
             />
-            {/* Context Menu */}
-            {contextMenu && (
-                <ContextMenu
-                    x={contextMenu.x}
-                    y={contextMenu.y}
-                    onClose={() => setContextMenu(null)}
-                    items={[
-                        {
-                            label: isBackendMode ? 'Save Tracker to Local' : 'Sync Tracker to Cloud',
-                            onClick: async () => {
-                                const action = isBackendMode ? 'Save to Local' : 'Upload to Cloud';
-                                const msg = isBackendMode
-                                    ? 'Save this tracker and ALL transactions to Local Storage? This will overwrite local data.'
-                                    : 'Sync this tracker and ALL its transactions to Cloud? This will overwrite existing cloud data.';
 
-                                if (window.confirm(msg)) {
-                                    try {
-                                        if (isBackendMode) {
-                                            await syncWalletToLocal(contextMenu.walletId);
-                                        } else {
-                                            await syncWalletToCloud(contextMenu.walletId);
-                                        }
-                                        alert(`${action} successful!`);
-                                    } catch (e: any) {
-                                        alert(`${action} failed: ` + e.message);
-                                    }
-                                }
-                            },
-                            icon: (
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={isBackendMode
-                                        ? "M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                                        : "M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                                    } />
-                                </svg>
-                            )
-                        }
-                    ]}
-                />
-            )}
 
             {/* Action Sheet for mobile long press */}
             <ActionSheet
@@ -520,6 +506,18 @@ export const WalletsPage: React.FC = () => {
             {/* Floating Action Button - Mobile Only */}
             <FAB onClick={() => setIsCreateModalOpen(true)} title="New Tracker" hide={isFabHidden} />
             <MiniFAB onClick={scrollToTop} show={isFabHidden} />
+            {/* Transfer Modal */}
+            <TransferModal
+                isOpen={isTransferModalOpen}
+                onClose={() => setIsTransferModalOpen(false)}
+                wallets={wallets.filter(w => !w.isArchived)}
+                balances={balances}
+                onSubmit={async ({ fromWalletId, toWalletId, amount, description, date }) => {
+                    await transferBetweenWallets(fromWalletId, toWalletId, amount, description, date);
+                    await loadBalances();
+                    setIsTransferModalOpen(false);
+                }}
+            />
         </div>
     );
 };

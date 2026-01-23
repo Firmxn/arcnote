@@ -2,7 +2,9 @@
  * Type definitions untuk Page
  */
 
-export interface Page {
+import type { Syncable } from './sync';
+
+export interface Page extends Syncable {
     id: string;
     title: string;
     description?: string; // Short description for card display

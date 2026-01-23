@@ -8,7 +8,7 @@ import type { Table } from 'dexie';
 import type { Page } from '../types/page';
 import type { Block } from '../types/block';
 import type { ScheduleEvent } from '../types/schedule';
-import type { FinanceTransaction, Wallet } from '../types/finance';
+import type { FinanceTransaction, Wallet, Budget, BudgetAssignment } from '../types/finance';
 
 export class ArcNoteDatabase extends Dexie {
     pages!: Table<Page, string>;
@@ -16,6 +16,9 @@ export class ArcNoteDatabase extends Dexie {
     schedules!: Table<ScheduleEvent, string>;
     finance!: Table<FinanceTransaction, string>;
     wallets!: Table<Wallet, string>;
+    budgets!: Table<Budget, string>;
+    budgetAssignments!: Table<BudgetAssignment, string>;
+    syncQueue!: Table<SyncQueueItem, string>; // Added queue table definition
 
     constructor() {
         super('ArcNoteDB');
@@ -106,7 +109,43 @@ export class ArcNoteDatabase extends Dexie {
 
             await financeTable.bulkAdd(updatedTransactions);
         });
+
+        // Version 9: Add budgets and budgetAssignments tables
+        this.version(9).stores({
+            budgets: 'id, title, period, isArchived, createdAt, updatedAt',
+            budgetAssignments: 'id, budgetId, transactionId, createdAt'
+        });
+
+        // Version 10: Add Sync Support
+        this.version(10).stores({
+            wallets: 'id, title, isArchived, syncStatus, createdAt, updatedAt', // Added syncStatus
+            finance: 'id, walletId, type, category, date, amount, syncStatus, createdAt, updatedAt', // Added syncStatus
+            budgets: 'id, title, period, isArchived, syncStatus, createdAt, updatedAt', // Added syncStatus
+            budgetAssignments: 'id, budgetId, transactionId, syncStatus, createdAt', // Added syncStatus
+            schedules: 'id, title, date, type, isAllDay, isArchived, syncStatus, createdAt, updatedAt', // Added syncStatus
+            pages: 'id, title, parentId, isArchived, syncStatus, createdAt, updatedAt', // Added syncStatus
+            blocks: 'id, pageId, type, order, syncStatus, createdAt, updatedAt', // Added syncStatus
+
+            // New Table: Queue for deletions
+            syncQueue: 'id, table, action, createdAt'
+        }).upgrade(async trans => {
+            // Initialize syncStatus for existing records
+            const tables = ['wallets', 'finance', 'budgets', 'budgetAssignments', 'schedules', 'pages', 'blocks'];
+
+            for (const tableName of tables) {
+                await trans.table(tableName).toCollection().modify({
+                    syncStatus: 'created' // Assume existing local data needs to be pushed if not synced
+                });
+            }
+        });
     }
+}
+
+export interface SyncQueueItem {
+    id: string; // The ID of the deleted item
+    table: string; // The table name
+    action: 'delete'; // Only delete needs queue, updates/creates are in the record itself
+    createdAt: Date;
 }
 
 

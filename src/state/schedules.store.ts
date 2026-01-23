@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { ScheduleEvent, CreateEventInput, UpdateEventInput } from '../types/schedule';
-import { schedulesRepository, backendSchedulesRepository, localSchedulesRepository } from '../data/schedules.repository';
+import { schedulesRepository } from '../data/schedules.repository';
 
 interface SchedulesState {
     events: ScheduleEvent[];
@@ -14,8 +14,7 @@ interface SchedulesState {
     markEventAsVisited: (id: string) => Promise<void>;
     archiveEvent: (id: string) => Promise<void>;
     restoreEvent: (id: string) => Promise<void>;
-    syncToCloud: (id: string) => Promise<void>;
-    syncToLocal: (id: string) => Promise<void>;
+
 }
 
 export const useSchedulesStore = create<SchedulesState>((set, get) => ({
@@ -90,15 +89,5 @@ export const useSchedulesStore = create<SchedulesState>((set, get) => ({
         }
     },
 
-    syncToCloud: async (id: string) => {
-        const event = get().events.find(e => e.id === id);
-        if (!event) throw new Error("Event not found locally");
-        await backendSchedulesRepository.sync(event);
-    },
 
-    syncToLocal: async (id: string) => {
-        const event = get().events.find(e => e.id === id);
-        if (!event) throw new Error("Event not found");
-        await localSchedulesRepository.sync(event);
-    },
 }));

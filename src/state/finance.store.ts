@@ -11,9 +11,14 @@ import type {
     UpdateTransactionInput,
     CreateWalletInput,
     UpdateWalletInput,
-    FinanceSummary
+    FinanceSummary,
+    Budget,
+    BudgetAssignment,
+    CreateBudgetInput,
+    UpdateBudgetInput,
+    BudgetSummary
 } from '../types/finance';
-import { financeRepository, backendFinanceRepository, localFinanceRepository } from '../data/finance.repository';
+import { financeRepository } from '../data/finance.repository';
 
 interface FinanceState {
     // Wallets State
@@ -34,6 +39,12 @@ interface FinanceState {
     isLoading: boolean;
     error: string | null;
 
+    // Budget State
+    budgets: Budget[];
+    budgetAssignments: BudgetAssignment[];
+    currentBudget: Budget | null;
+    budgetSummaries: Record<string, BudgetSummary>; // Cache budget summaries by budgetId
+
     // Wallet Actions
     loadWallets: () => Promise<void>;
     loadBalances: () => Promise<void>; // Load balances for all loaded wallets
@@ -53,8 +64,7 @@ interface FinanceState {
     deleteTransaction: (id: string) => Promise<void>;
     markTransactionAsVisited: (id: string) => Promise<void>;
     filterByType: (type: 'income' | 'expense' | 'all') => void;
-    syncWalletToCloud: (id: string) => Promise<void>;
-    syncWalletToLocal: (id: string) => Promise<void>;
+
 
     // Dashboard Actions
     loadGlobalSummary: () => Promise<void>;
@@ -63,6 +73,20 @@ interface FinanceState {
 
     // Transfer Actions
     transferBetweenWallets: (fromWalletId: string, toWalletId: string, amount: number, description?: string, date?: Date) => Promise<void>;
+
+    // Budget Actions
+    loadBudgets: () => Promise<void>;
+    createBudget: (input: CreateBudgetInput) => Promise<Budget>;
+    updateBudget: (id: string, input: UpdateBudgetInput) => Promise<void>;
+    deleteBudget: (id: string) => Promise<void>;
+    selectBudget: (budgetId: string) => Promise<void>;
+    loadBudgetSummary: (budgetId: string) => Promise<BudgetSummary>;
+
+    // Budget Assignment Actions
+    assignTransactionToBudget: (transactionId: string, budgetId: string) => Promise<void>;
+    unassignTransactionFromBudget: (transactionId: string, budgetId: string) => Promise<void>;
+    loadAssignmentsForBudget: (budgetId: string) => Promise<BudgetAssignment[]>;
+    getAssignmentsForTransaction: (transactionId: string) => Promise<BudgetAssignment[]>;
 }
 
 export const useFinanceStore = create<FinanceState>((set, get) => ({
@@ -84,6 +108,12 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
 
     isLoading: false,
     error: null,
+
+    // Budget initial state
+    budgets: [],
+    budgetAssignments: [],
+    currentBudget: null,
+    budgetSummaries: {},
 
     // --- Wallet Actions ---
 
@@ -385,28 +415,6 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
         }
     },
 
-    syncWalletToCloud: async (id: string) => {
-        const wallet = get().wallets.find(w => w.id === id);
-        if (!wallet) throw new Error("Wallet not found locally");
-
-        // Fetch all transactions for this wallet locally
-        const transactions = await financeRepository.getAll(id);
-
-        // Push to cloud
-        await backendFinanceRepository.syncWallet(wallet, transactions);
-    },
-
-    syncWalletToLocal: async (id: string) => {
-        const wallet = get().wallets.find(w => w.id === id);
-        if (!wallet) throw new Error("Wallet not found");
-
-        // Fetch all transactions (from current source, e.g. Backend)
-        const transactions = await financeRepository.getAll(id);
-
-        // Push to local
-        await localFinanceRepository.syncWallet(wallet, transactions);
-    },
-
     // --- Transfer Actions ---
     transferBetweenWallets: async (
         fromWalletId: string,
@@ -543,6 +551,213 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
             set({ recentTransactions: sorted });
         } catch (error) {
             console.error('Failed to load recent transactions', error);
+        }
+    },
+
+    // --- Budget Actions ---
+
+    loadBudgets: async () => {
+        set({ isLoading: true, error: null });
+        try {
+            const budgets = await financeRepository.getAllBudgets();
+            set({ budgets, isLoading: false });
+        } catch (error) {
+            set({ error: 'Failed to load budgets', isLoading: false });
+        }
+    },
+
+    createBudget: async (input: CreateBudgetInput) => {
+        const { budgets } = get();
+        const exists = budgets.some(b => b.title.toLowerCase() === input.title.trim().toLowerCase());
+
+        if (exists) {
+            const error = 'Budget title already exists';
+            set({ error });
+            throw new Error(error);
+        }
+
+        try {
+            const newBudget = await financeRepository.createBudget(input);
+            set((state) => ({
+                budgets: [...state.budgets, newBudget]
+            }));
+            return newBudget;
+        } catch (error) {
+            set({ error: 'Failed to create budget' });
+            throw error;
+        }
+    },
+
+    updateBudget: async (id: string, input: UpdateBudgetInput) => {
+        if (input.title) {
+            const { budgets } = get();
+            const exists = budgets.some(b =>
+                b.id !== id &&
+                b.title.toLowerCase() === input.title!.trim().toLowerCase()
+            );
+
+            if (exists) {
+                const error = 'Budget title already exists';
+                set({ error });
+                throw new Error(error);
+            }
+        }
+
+        try {
+            await financeRepository.updateBudget(id, input);
+            const budgets = await financeRepository.getAllBudgets();
+            set({ budgets });
+
+            // Update current budget if matched
+            const { currentBudget } = get();
+            if (currentBudget?.id === id) {
+                const updated = budgets.find(b => b.id === id) || null;
+                set({ currentBudget: updated });
+            }
+        } catch (error) {
+            set({ error: 'Failed to update budget' });
+        }
+    },
+
+    deleteBudget: async (id: string) => {
+        try {
+            await financeRepository.deleteBudget(id);
+            const budgets = await financeRepository.getAllBudgets();
+            set({ budgets });
+            if (get().currentBudget?.id === id) {
+                set({ currentBudget: null });
+            }
+        } catch (error) {
+            set({ error: 'Failed to delete budget' });
+        }
+    },
+
+    selectBudget: async (budgetId: string) => {
+        const { budgets } = get();
+        let targetBudget = budgets.find(b => b.id === budgetId);
+
+        if (!targetBudget) {
+            // Try fetch fresh
+            const refreshedBudgets = await financeRepository.getAllBudgets();
+            targetBudget = refreshedBudgets.find(b => b.id === budgetId);
+            set({ budgets: refreshedBudgets });
+        }
+
+        if (targetBudget) {
+            set({ currentBudget: targetBudget });
+            // Load summary for this budget
+            await get().loadBudgetSummary(budgetId);
+        }
+    },
+
+    loadBudgetSummary: async (budgetId: string) => {
+        try {
+            const budget = await financeRepository.getBudgetById(budgetId);
+            if (!budget) throw new Error('Budget not found');
+
+            // Calculate period range based on budget period
+            const now = new Date();
+            let periodStart: Date;
+            let periodEnd: Date;
+
+            switch (budget.period) {
+                case 'weekly':
+                    // Current week (Monday - Sunday)
+                    const dayOfWeek = now.getDay();
+                    const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Adjust for Monday start
+                    periodStart = new Date(now);
+                    periodStart.setDate(now.getDate() + diff);
+                    periodStart.setHours(0, 0, 0, 0);
+                    periodEnd = new Date(periodStart);
+                    periodEnd.setDate(periodStart.getDate() + 6);
+                    periodEnd.setHours(23, 59, 59, 999);
+                    break;
+
+                case 'monthly':
+                    // Current month
+                    periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+                    periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+                    break;
+
+                case 'yearly':
+                    // Current year
+                    periodStart = new Date(now.getFullYear(), 0, 1);
+                    periodEnd = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+                    break;
+
+                default:
+                    throw new Error('Invalid budget period');
+            }
+
+            const summary = await financeRepository.getBudgetSummary(budgetId, periodStart, periodEnd);
+
+            set((state) => ({
+                budgetSummaries: {
+                    ...state.budgetSummaries,
+                    [budgetId]: summary
+                }
+            }));
+
+            return summary;
+        } catch (error) {
+            console.error('Failed to load budget summary', error);
+            throw error;
+        }
+    },
+
+    // --- Budget Assignment Actions ---
+
+    assignTransactionToBudget: async (transactionId: string, budgetId: string) => {
+        try {
+            await financeRepository.assignTransactionToBudget(transactionId, budgetId);
+
+            // Reload budget summary untuk update spending
+            await get().loadBudgetSummary(budgetId);
+
+            // Reload assignments jika currentBudget adalah budget ini
+            if (get().currentBudget?.id === budgetId) {
+                await get().loadAssignmentsForBudget(budgetId);
+            }
+        } catch (error) {
+            set({ error: 'Failed to assign transaction to budget' });
+            throw error;
+        }
+    },
+
+    unassignTransactionFromBudget: async (transactionId: string, budgetId: string) => {
+        try {
+            await financeRepository.unassignTransactionFromBudget(transactionId, budgetId);
+
+            // Reload budget summary untuk update spending
+            await get().loadBudgetSummary(budgetId);
+
+            // Reload assignments jika currentBudget adalah budget ini
+            if (get().currentBudget?.id === budgetId) {
+                await get().loadAssignmentsForBudget(budgetId);
+            }
+        } catch (error) {
+            set({ error: 'Failed to unassign transaction from budget' });
+            throw error;
+        }
+    },
+
+    loadAssignmentsForBudget: async (budgetId: string) => {
+        try {
+            const assignments = await financeRepository.getAssignmentsForBudget(budgetId);
+            set({ budgetAssignments: assignments });
+            return assignments;
+        } catch (error) {
+            console.error('Failed to load budget assignments', error);
+            return [];
+        }
+    },
+
+    getAssignmentsForTransaction: async (transactionId: string) => {
+        try {
+            return await financeRepository.getAssignmentsForTransaction(transactionId);
+        } catch (error) {
+            console.error('Failed to load transaction assignments', error);
+            return [];
         }
     },
 }));

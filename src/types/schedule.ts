@@ -2,7 +2,9 @@
  * Type definitions untuk Schedule/Event
  */
 
-export interface ScheduleEvent {
+import type { Syncable } from './sync';
+
+export interface ScheduleEvent extends Syncable {
     id: string;
     title: string;
     description?: string;
