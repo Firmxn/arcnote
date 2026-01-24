@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { ScheduleEvent, CreateEventInput, UpdateEventInput } from '../types/schedule';
-import { schedulesRepository, backendSchedulesRepository, localSchedulesRepository } from '../data/schedules.repository';
+import { schedulesRepository } from '../data/schedules.repository';
 
 interface SchedulesState {
     events: ScheduleEvent[];
@@ -12,8 +12,9 @@ interface SchedulesState {
     updateEvent: (id: string, input: UpdateEventInput) => Promise<void>;
     deleteEvent: (id: string) => Promise<void>;
     markEventAsVisited: (id: string) => Promise<void>;
-    syncToCloud: (id: string) => Promise<void>;
-    syncToLocal: (id: string) => Promise<void>;
+    archiveEvent: (id: string) => Promise<void>;
+    restoreEvent: (id: string) => Promise<void>;
+
 }
 
 export const useSchedulesStore = create<SchedulesState>((set, get) => ({
@@ -64,23 +65,29 @@ export const useSchedulesStore = create<SchedulesState>((set, get) => ({
     markEventAsVisited: async (id: string) => {
         try {
             await schedulesRepository.markAsVisited(id);
-            // Reload events untuk update lastVisitedAt di state
-            const events = await schedulesRepository.getAll();
-            set({ events });
+            // Optionally reload or separate store for "recent"
         } catch (error) {
-            console.error('Failed to mark event as visited:', error);
+            console.error('Failed to mark as visited', error);
         }
     },
 
-    syncToCloud: async (id: string) => {
-        const event = get().events.find(e => e.id === id);
-        if (!event) throw new Error("Event not found locally");
-        await backendSchedulesRepository.sync(event);
+    archiveEvent: async (id: string) => {
+        try {
+            await schedulesRepository.update(id, { isArchived: true });
+            get().loadEvents();
+        } catch (error) {
+            console.error('Failed to archive event', error);
+        }
     },
 
-    syncToLocal: async (id: string) => {
-        const event = get().events.find(e => e.id === id);
-        if (!event) throw new Error("Event not found");
-        await localSchedulesRepository.sync(event);
+    restoreEvent: async (id: string) => {
+        try {
+            await schedulesRepository.update(id, { isArchived: false });
+            get().loadEvents();
+        } catch (error) {
+            console.error('Failed to restore event', error);
+        }
     },
+
+
 }));

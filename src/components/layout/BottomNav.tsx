@@ -88,7 +88,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
     }
 
     return (
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 pb-safe">
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 pb-safe select-none">
             <div className="mx-4 mb-4">
                 <div className="bg-white dark:bg-secondary rounded-2xl shadow-lg border border-secondary/20 dark:border-neutral">
                     <div className="flex items-center justify-around px-2 py-2 relative">

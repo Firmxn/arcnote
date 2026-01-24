@@ -2,7 +2,9 @@
  * Type definitions untuk Page
  */
 
-export interface Page {
+import type { Syncable } from './sync';
+
+export interface Page extends Syncable {
     id: string;
     title: string;
     description?: string; // Short description for card display
@@ -11,6 +13,7 @@ export interface Page {
     createdAt: Date;
     updatedAt: Date;
     lastVisitedAt?: Date; // Tracking kapan terakhir dibuka (untuk Recently Visited)
+    isArchived?: boolean; // New: Archive support
 }
 
 export type CreatePageInput = Omit<Page, 'id' | 'createdAt' | 'updatedAt'>;

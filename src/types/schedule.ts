@@ -2,7 +2,9 @@
  * Type definitions untuk Schedule/Event
  */
 
-export interface ScheduleEvent {
+import type { Syncable } from './sync';
+
+export interface ScheduleEvent extends Syncable {
     id: string;
     title: string;
     description?: string;
@@ -16,6 +18,7 @@ export interface ScheduleEvent {
     createdAt: Date;
     updatedAt: Date;
     lastVisitedAt?: Date; // Tracking kapan terakhir dibuka (untuk Recently Visited)
+    isArchived?: boolean;
 }
 
 export type CreateEventInput = Omit<ScheduleEvent, 'id' | 'createdAt' | 'updatedAt'>;

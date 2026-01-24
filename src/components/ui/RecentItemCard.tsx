@@ -4,7 +4,7 @@ import { ActionGroup, ActionButton } from './ActionGroup';
 import { useLongPress } from '../../hooks/useLongPress';
 import type { Page } from '../../types/page';
 import type { ScheduleEvent } from '../../types/schedule';
-import type { FinanceAccount } from '../../types/finance';
+import type { Wallet } from '../../types/finance';
 
 interface RecentItemCardProps {
     item: {
@@ -13,14 +13,14 @@ interface RecentItemCardProps {
         title: string;
         date: Date;
         icon: React.ReactNode;
-        data: Page | ScheduleEvent | FinanceAccount;
+        data: Page | ScheduleEvent | Wallet;
     };
     onItemClick: () => void;
     onLongPress: () => void;
     onContextMenu: (e: React.MouseEvent) => void;
     onArchive: () => void;
     onDelete: () => void;
-    formatBalance?: (data: FinanceAccount) => string;
+    formatBalance?: (data: Wallet) => string;
     getRelativeTime: (date: Date) => string;
 }
 
@@ -57,13 +57,13 @@ export const RecentItemCard: React.FC<RecentItemCardProps> = ({
                     item.type === 'page'
                         ? (item.data as Page).description || 'Page Document'
                         : item.type === 'finance'
-                            ? (item.data as FinanceAccount).description || 'Finance Tracker'
+                            ? (item.data as Wallet).description || 'Finance Tracker'
                             : (item.data as ScheduleEvent).type || 'Calendar Event'
                 }
                 extra={
                     item.type === 'finance' && formatBalance ? (
                         <div className="font-bold text-primary dark:text-accent font-mono">
-                            {formatBalance(item.data as FinanceAccount)}
+                            {formatBalance(item.data as Wallet)}
                         </div>
                     ) : undefined
                 }

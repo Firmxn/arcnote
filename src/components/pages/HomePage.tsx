@@ -3,19 +3,24 @@ import { usePagesStore } from '../../state/pages.store';
 import { useSchedulesStore } from '../../state/schedules.store';
 import { useFinanceStore } from '../../state/finance.store';
 import { Button } from '../ui/Button';
+import { SchedulePickerModal } from '../modals/SchedulePickerModal';
 import { QuickActions } from '../ui/QuickActions';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
 import type { Page } from '../../types/page';
 import type { ScheduleEvent } from '../../types/schedule';
-import type { FinanceAccount } from '../../types/finance';
+import type { Wallet } from '../../types/finance';
 import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
 import { SearchBar } from '../ui/SearchBar';
 import type { SearchResult } from '../ui/SearchBar';
+import { formatCurrency } from '../../utils/currency';
 import { ActionSheet, type ActionSheetItem } from '../ui/ActionSheet';
 import { RecentItemCard } from '../ui/RecentItemCard';
 import { Modal } from '../ui/Modal';
 import { Input } from '../ui/Input';
 import { SectionHeader } from '../ui/SectionHeader';
+
+dayjs.extend(relativeTime);
 
 interface RecentItem {
     id: string;
@@ -23,16 +28,17 @@ interface RecentItem {
     title: string;
     date: Date;
     icon: React.ReactNode;
-    data: Page | ScheduleEvent | FinanceAccount;
+    data: Page | ScheduleEvent | Wallet;
 }
 
 interface HomePageProps {
     onPageSelect?: (pageId: string) => void;
     onScheduleClick?: () => void;  // Navigate to schedule page
     onEventSelect?: (eventId: string) => void;  // Open specific event
-    onFinanceClick?: (accountId: string) => void; // Open specific finance account
+    onFinanceClick?: (walletId: string) => void; // Open specific finance wallet
     onFinanceListClick?: () => void; // Navigate to finance list
     onNewPageClick?: () => void; // Create new page
+    onViewArchive?: () => void; // Navigate to archive page
 }
 
 const WalletIcon = ({ className = "w-6 h-6" }) => (
@@ -43,15 +49,26 @@ const WalletIcon = ({ className = "w-6 h-6" }) => (
 
 export const HomePage: React.FC<HomePageProps> = ({
     onPageSelect,
-    onScheduleClick,
+    onScheduleClick: _onScheduleClick,
     onEventSelect,
     onFinanceClick,
-    onFinanceListClick,
-    onNewPageClick
+    onFinanceListClick: _onFinanceListClick,
+    onNewPageClick,
+    onViewArchive
 }) => {
-    const { pages, deletePage } = usePagesStore();
-    const { events, markEventAsVisited, deleteEvent } = useSchedulesStore();
-    const { accounts, loadAccounts, balances, loadBalances, markAccountAsVisited, deleteAccount, updateAccount } = useFinanceStore();
+    const { pages, deletePage, archivePage } = usePagesStore();
+    const { events, markEventAsVisited, deleteEvent, archiveEvent } = useSchedulesStore();
+    const {
+        wallets,
+        loadWallets,
+        createWallet,
+        deleteWallet,
+        updateWallet,
+        archiveWallet,
+        balances,
+        loadBalances,
+        markWalletAsVisited
+    } = useFinanceStore();
 
     const [recentItems, setRecentItems] = useState<RecentItem[]>([]);
     const [itemToDelete, setItemToDelete] = useState<RecentItem | null>(null);
@@ -65,6 +82,12 @@ export const HomePage: React.FC<HomePageProps> = ({
     const [itemToEdit, setItemToEdit] = useState<RecentItem | null>(null);
     const [editName, setEditName] = useState('');
     const [editDescription, setEditDescription] = useState('');
+
+    // Create Finance Modal State
+    const [isCreateFinanceModalOpen, setIsCreateFinanceModalOpen] = useState(false);
+    const [newWalletTitle, setNewWalletTitle] = useState('');
+    const [newWalletDesc, setNewWalletDesc] = useState('');
+    const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
 
     // Check Scroll Logic
     const checkScroll = () => {
@@ -81,16 +104,16 @@ export const HomePage: React.FC<HomePageProps> = ({
         return () => window.removeEventListener('resize', checkScroll);
     }, [recentItems]);
 
-    // Load Accounts
+    // Load Wallets
     useEffect(() => {
-        loadAccounts();
-    }, [loadAccounts]);
+        loadWallets();
+    }, [loadWallets]);
 
     useEffect(() => {
-        if (accounts.length > 0) {
+        if (wallets.length > 0) {
             loadBalances();
         }
-    }, [accounts, loadBalances]);
+    }, [wallets, loadBalances]);
 
     const scroll = (direction: 'left' | 'right') => {
         if (scrollContainerRef.current) {
@@ -105,11 +128,11 @@ export const HomePage: React.FC<HomePageProps> = ({
     };
 
     useEffect(() => {
-        // Combine pages, schedules, and accounts into recent items
+        // Combine pages, schedules, and wallets into recent items
         const items: RecentItem[] = [];
 
         // Add pages
-        pages.forEach(page => {
+        pages.filter(p => !p.isArchived).forEach(page => {
             items.push({
                 id: page.id,
                 type: 'page',
@@ -125,7 +148,7 @@ export const HomePage: React.FC<HomePageProps> = ({
         });
 
         // Add schedule events
-        events.forEach((event: ScheduleEvent) => {
+        events.filter(e => !e.isArchived).forEach((event: ScheduleEvent) => {
             items.push({
                 id: event.id,
                 type: 'schedule',
@@ -140,15 +163,15 @@ export const HomePage: React.FC<HomePageProps> = ({
             });
         });
 
-        // Add finance accounts
-        accounts.forEach((acc: FinanceAccount) => {
+        // Add finance wallets
+        wallets.filter(w => !w.isArchived).forEach((wallet: Wallet) => {
             items.push({
-                id: acc.id,
+                id: wallet.id,
                 type: 'finance',
-                title: acc.title,
-                date: acc.lastVisitedAt || acc.updatedAt || acc.createdAt,
+                title: wallet.title,
+                date: wallet.lastVisitedAt || wallet.updatedAt || wallet.createdAt,
                 icon: <WalletIcon />,
-                data: acc
+                data: wallet
             });
         });
 
@@ -158,7 +181,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             .slice(0, 12);
 
         setRecentItems(sorted);
-    }, [pages, events, accounts]);
+    }, [pages, events, wallets]);
 
     const handleConfirmDelete = async () => {
         if (!itemToDelete) return;
@@ -169,7 +192,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             } else if (itemToDelete.type === 'schedule') {
                 await deleteEvent(itemToDelete.id);
             } else if (itemToDelete.type === 'finance') {
-                await deleteAccount(itemToDelete.id);
+                await deleteWallet(itemToDelete.id);
             }
             setItemToDelete(null);
         } catch (error) {
@@ -191,7 +214,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             markEventAsVisited(item.id);
             onEventSelect(item.id);
         } else if (item.type === 'finance' && onFinanceClick) {
-            markAccountAsVisited(item.id);
+            markWalletAsVisited(item.id);
             onFinanceClick(item.id);
         }
     };
@@ -211,12 +234,9 @@ export const HomePage: React.FC<HomePageProps> = ({
     };
 
     // Helper for formatting balance
-    const formatBalance = (account: FinanceAccount) => {
-        const amount = balances[account.id] || 0;
-        return new Intl.NumberFormat('id-ID', {
-            style: 'currency', currency: account.currency || 'IDR',
-            minimumFractionDigits: 0
-        }).format(amount);
+    const formatBalance = (wallet: Wallet) => {
+        const amount = balances[wallet.id] || 0;
+        return formatCurrency(amount, wallet.currency || 'IDR');
     };
 
     // Filter recent items based on search query
@@ -266,22 +286,18 @@ export const HomePage: React.FC<HomePageProps> = ({
                 });
             });
 
-        // Add all finance accounts
-        accounts
-            .filter(account => account.title.toLowerCase().includes(searchQuery.toLowerCase()))
-            .forEach(account => {
-                const amount = balances[account.id] || 0;
+        // Add all finance wallets
+        wallets
+            .filter(wallet => wallet.title.toLowerCase().includes(searchQuery.toLowerCase()))
+            .forEach(wallet => {
+                const amount = balances[wallet.id] || 0;
                 searchResults.push({
-                    id: account.id,
-                    title: account.title,
-                    description: account.description || 'Finance Tracker',
+                    id: wallet.id,
+                    title: wallet.title,
+                    description: wallet.description || 'Finance Tracker',
                     category: 'Finance',
                     icon: <WalletIcon className="w-5 h-5" />,
-                    metadata: new Intl.NumberFormat('id-ID', {
-                        style: 'currency',
-                        currency: account.currency || 'IDR',
-                        minimumFractionDigits: 0
-                    }).format(amount)
+                    metadata: formatCurrency(amount, wallet.currency || 'IDR')
                 });
             });
     }
@@ -300,9 +316,9 @@ export const HomePage: React.FC<HomePageProps> = ({
             return;
         }
 
-        const account = accounts.find(a => a.id === result.id);
-        if (account && onFinanceClick) {
-            onFinanceClick(account.id);
+        const wallet = wallets.find(w => w.id === result.id);
+        if (wallet && onFinanceClick) {
+            onFinanceClick(wallet.id);
             return;
         }
     };
@@ -358,7 +374,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 onClick: () => {
                     setItemToEdit(item);
                     setEditName(item.title);
-                    setEditDescription((item.data as FinanceAccount).description || '');
+                    setEditDescription((item.data as Wallet).description || '');
                 }
             });
         }
@@ -372,8 +388,28 @@ export const HomePage: React.FC<HomePageProps> = ({
                 </svg>
             ),
             variant: 'default', // Changed from primary to default to match style
-            onClick: () => {
-                // Archive feature - coming soon
+            onClick: async () => {
+                console.log('Archiving item:', item); // Debug log
+                try {
+                    if (item.type === 'page') {
+                        await archivePage(item.id);
+                        console.log('Archived page:', item.id);
+                    } else if (item.type === 'schedule') {
+                        await archiveEvent(item.id);
+                        console.log('Archived schedule:', item.id);
+                    } else if (item.type === 'finance') {
+                        await archiveWallet(item.id);
+                        console.log('Archived finance:', item.id);
+                    }
+                } catch (error) {
+                    console.error('Error archiving item:', error);
+                }
+
+                // Force reload of related lists just in case
+                // (Stores should handle this internally in load*, but extra safety for UX)
+
+                // Close action sheet implicitly by state update (re-render)
+                setActionSheetItem(null);
             }
         });
 
@@ -408,20 +444,38 @@ export const HomePage: React.FC<HomePageProps> = ({
         if (!itemToEdit) return;
 
         if (itemToEdit.type === 'finance') {
-            await updateAccount(itemToEdit.id, {
+            await updateWallet(itemToEdit.id, {
                 title: editName,
                 description: editDescription
             });
-            // Reload accounts to refresh UI
-            await loadAccounts();
+            // Reload wallets to refresh UI
+            await loadWallets();
         }
 
         setItemToEdit(null);
     };
 
+    // Handle Create Finance Wallet
+    const handleCreateFinanceSubmission = async () => {
+        if (!newWalletTitle.trim()) return;
+        try {
+            await createWallet({
+                title: newWalletTitle,
+                description: newWalletDesc.trim() || undefined,
+                currency: 'IDR'
+            });
+            setIsCreateFinanceModalOpen(false);
+            setNewWalletTitle('');
+            setNewWalletDesc('');
+            await loadWallets(); // Refresh list
+        } catch (error) {
+            console.error('Failed to create wallet:', error);
+        }
+    };
+
     return (
-        <div className="h-full w-full bg-neutral dark:bg-primary flex flex-col overflow-y-auto">
-            <div className="max-w-7xl w-full mx-auto px-4 md:px-8 py-6 md:py-12 pb-[100px] flex-1 flex flex-col">
+        <div className="h-full w-full bg-neutral dark:bg-primary flex flex-col overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
+            <div className="max-w-7xl w-full mx-auto px-4 md:px-8 py-6 md:py-12 pb-[70px] flex-1 flex flex-col">
                 {/* Header */}
                 <div className="mb-6 md:mb-8 shrink-0 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div className="flex-1">
@@ -538,10 +592,10 @@ export const HomePage: React.FC<HomePageProps> = ({
                         }
                     />
                     <QuickActions
-                        onAddFinance={onFinanceListClick}
+                        onAddFinance={() => setIsCreateFinanceModalOpen(true)}
                         onAddPage={onNewPageClick}
-                        onAddSchedule={onScheduleClick}
-                        onViewArchive={() => { /* Archive feature - coming soon */ }}
+                        onAddSchedule={() => setIsScheduleModalOpen(true)}
+                        onViewArchive={onViewArchive}
                     />
                 </div>
 
@@ -608,6 +662,57 @@ export const HomePage: React.FC<HomePageProps> = ({
                         </div>
                     </div>
                 </Modal>
+
+                {/* Create Finance Modal */}
+                <Modal
+                    isOpen={isCreateFinanceModalOpen}
+                    onClose={() => setIsCreateFinanceModalOpen(false)}
+                    title="Create Finance Tracker"
+                >
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-text-neutral dark:text-text-primary mb-1">
+                                Account Name
+                            </label>
+                            <Input
+                                value={newWalletTitle}
+                                onChange={(e) => setNewWalletTitle(e.target.value)}
+                                placeholder="e.g. Personal Wallet, Business Account"
+                                autoFocus
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-text-neutral dark:text-text-primary mb-1">
+                                Description
+                            </label>
+                            <Input
+                                value={newWalletDesc}
+                                onChange={(e) => setNewWalletDesc(e.target.value)}
+                                placeholder="e.g. Daily expenses"
+                            />
+                        </div>
+                        <div className="flex justify-end pt-4 gap-3">
+                            <Button
+                                variant="ghost"
+                                onClick={() => setIsCreateFinanceModalOpen(false)}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                variant="primary"
+                                onClick={handleCreateFinanceSubmission}
+                                disabled={!newWalletTitle.trim()}
+                            >
+                                Create Tracker
+                            </Button>
+                        </div>
+                    </div>
+                </Modal>
+
+                <SchedulePickerModal
+                    isOpen={isScheduleModalOpen}
+                    onClose={() => setIsScheduleModalOpen(false)}
+                />
             </div>
         </div>
     );

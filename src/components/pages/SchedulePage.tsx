@@ -8,15 +8,17 @@ import { MonthYearPicker } from '../ui/MonthYearPicker';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
-import { ContextMenu } from '../ui/ContextMenu';
+
 
 interface SchedulePageProps {
     initialEventId?: string | null;
 }
 
+import { useSearchParams } from 'react-router-dom';
+
 export const SchedulePage: React.FC<SchedulePageProps> = ({ initialEventId }) => {
-    const { events, loadEvents, createEvent, deleteEvent, markEventAsVisited, syncToCloud, syncToLocal } = useSchedulesStore();
-    const isBackendMode = localStorage.getItem('arcnote_storage_preference') === 'backend';
+    const [searchParams, setSearchParams] = useSearchParams();
+    const { events, loadEvents, createEvent, updateEvent: _updateEvent, deleteEvent, markEventAsVisited, archiveEvent: _archiveEvent } = useSchedulesStore();
     const [currentDate, setCurrentDate] = useState(dayjs());
     const [selectedDate, setSelectedDate] = useState(dayjs()); // Untuk mobile day view
     const [selectedEventId, setSelectedEventId] = useState<string | null>(initialEventId || null);
@@ -28,7 +30,7 @@ export const SchedulePage: React.FC<SchedulePageProps> = ({ initialEventId }) =>
 
     const [pendingDate, setPendingDate] = useState<dayjs.Dayjs | null>(null);
     const [eventToDelete, setEventToDelete] = useState<string | null>(null);
-    const [contextMenu, setContextMenu] = useState<{ x: number; y: number; eventId: string } | null>(null);
+
 
     // Detect mobile screen size
     useEffect(() => {
@@ -44,7 +46,7 @@ export const SchedulePage: React.FC<SchedulePageProps> = ({ initialEventId }) =>
         if (initialEventId) {
             setSelectedEventId(initialEventId);
             // Also update current date to match the event date if needed
-            const event = events.find(e => e.id === initialEventId);
+            const event = events.find(e => e.id === initialEventId && !e.isArchived);
             if (event) {
                 setCurrentDate(dayjs(event.date));
                 setSelectedDate(dayjs(event.date));
@@ -96,6 +98,37 @@ export const SchedulePage: React.FC<SchedulePageProps> = ({ initialEventId }) =>
         });
         setSelectedEventId(null);
     };
+
+    // Handle URL params for creating event
+    useEffect(() => {
+        const action = searchParams.get('action');
+        const dateParam = searchParams.get('date');
+
+        if (action === 'create' && dateParam) {
+            const targetDate = dayjs(dateParam);
+            if (targetDate.isValid()) {
+                // Determine if we should warn about past date
+                const isPast = targetDate.isBefore(dayjs(), 'day');
+
+                // For this automatic flow, maybe we skip confirmation or show it?
+                // Use confirmation logic just to be safe/consistent
+                if (isPast) {
+                    setPendingDate(targetDate);
+                    setConfirmMessage(`You selected ${targetDate.format('MMM D, YYYY')}, which is in the past. Do you want to create an event for this date?`);
+                    setShowConfirm(true);
+                } else {
+                    createDraftEvent(targetDate);
+                }
+
+                // Update current view to that month
+                setCurrentDate(targetDate);
+
+                // Clear params so it doesn't re-trigger on simple refresh? 
+                // Using replace: true to clean URL
+                setSearchParams({}, { replace: true });
+            }
+        }
+    }, [searchParams, setSearchParams]);
 
     const handleConfirm = () => {
         if (pendingDate) {
@@ -217,7 +250,7 @@ export const SchedulePage: React.FC<SchedulePageProps> = ({ initialEventId }) =>
                     </div>
 
                     {/* Desktop Calendar Grid */}
-                    <div className="flex-1 p-4 md:p-8 overflow-y-auto">
+                    <div className="flex-1 p-4 md:p-8 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
                         <div className="max-w-7xl mx-auto">
                             <div className="grid grid-cols-7 gap-px bg-secondary/20 border border-secondary/20 rounded-lg overflow-hidden min-h-[500px] md:min-h-[600px]">
                                 {/* Headers */}
@@ -263,11 +296,7 @@ export const SchedulePage: React.FC<SchedulePageProps> = ({ initialEventId }) =>
                                                     <Badge
                                                         key={event.id}
                                                         onClick={(e: React.MouseEvent) => handleEventClick(e, event.id)}
-                                                        onContextMenu={(e: React.MouseEvent) => {
-                                                            e.preventDefault();
-                                                            e.stopPropagation();
-                                                            setContextMenu({ x: e.pageX, y: e.pageY, eventId: event.id });
-                                                        }}
+
                                                         variant="soft"
                                                         size="sm"
                                                         color={
@@ -331,45 +360,7 @@ export const SchedulePage: React.FC<SchedulePageProps> = ({ initialEventId }) =>
                 onCancel={() => setEventToDelete(null)}
             />
             {/* Context Menu */}
-            {contextMenu && (
-                <ContextMenu
-                    x={contextMenu.x}
-                    y={contextMenu.y}
-                    onClose={() => setContextMenu(null)}
-                    items={[
-                        {
-                            label: isBackendMode ? 'Save to Local' : 'Upload Event to Cloud',
-                            onClick: async () => {
-                                const action = isBackendMode ? 'Save to Local' : 'Upload to Cloud';
-                                const msg = isBackendMode
-                                    ? 'Save this event to Local Storage? This will overwrite the local backup.'
-                                    : 'Sync this event to Cloud? This will overwrite existing cloud data.';
 
-                                if (window.confirm(msg)) {
-                                    try {
-                                        if (isBackendMode) {
-                                            await syncToLocal(contextMenu.eventId);
-                                        } else {
-                                            await syncToCloud(contextMenu.eventId);
-                                        }
-                                        alert(`${action} successful!`);
-                                    } catch (e: any) {
-                                        alert(`${action} failed: ` + e.message);
-                                    }
-                                }
-                            },
-                            icon: (
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={isBackendMode
-                                        ? "M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                                        : "M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                                    } />
-                                </svg>
-                            )
-                        }
-                    ]}
-                />
-            )}
         </div>
     );
 };

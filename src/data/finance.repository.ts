@@ -1,100 +1,135 @@
 /**
- * Finance Repository
- * Data access layer untuk Finance (Accounts & Transactions)
- * Supports switching between Local (IndexedDB) and Backend (Supabase)
+ * Finance Repository (Unified Local-First)
+ *
+ * Architecture:
+ * - Reads: Always from Local DB (Dexie)
+ * - Writes: Update Local DB + Set Sync Flag ('created' | 'updated')
+ * - Deletes: Delete Local DB + Add to Sync Queue
+ *
+ * Background Sync Service will handle pushing changes to Supabase.
  */
+
 import { db } from './db';
 import type {
     FinanceTransaction,
-    FinanceAccount,
+    Wallet,
     CreateTransactionInput,
     UpdateTransactionInput,
-    CreateAccountInput,
-    UpdateAccountInput,
-    FinanceSummary
+    CreateWalletInput,
+    UpdateWalletInput,
+    FinanceSummary,
+    Budget,
+    BudgetAssignment,
+    CreateBudgetInput,
+    UpdateBudgetInput,
+    BudgetSummary
 } from '../types/finance';
 import { nanoid } from 'nanoid';
-import { supabase } from './supabase';
 
 /**
  * Interface Repository
  */
 interface FinanceRepo {
-    // --- ACCOUNTS ---
-    getAllAccounts(): Promise<FinanceAccount[]>;
-    getAccountById(id: string): Promise<FinanceAccount | undefined>;
-    createAccount(input: CreateAccountInput): Promise<FinanceAccount>;
-    updateAccount(id: string, input: UpdateAccountInput): Promise<FinanceAccount | undefined>;
-    deleteAccount(id: string): Promise<void>;
-    markAccountAsVisited(id: string): Promise<void>;
+    // --- WALLETS ---
+    getAllWallets(): Promise<Wallet[]>;
+    getWalletById(id: string): Promise<Wallet | undefined>;
+    createWallet(input: CreateWalletInput): Promise<Wallet>;
+    updateWallet(id: string, input: UpdateWalletInput): Promise<Wallet | undefined>;
+    deleteWallet(id: string): Promise<void>;
+    markWalletAsVisited(id: string): Promise<void>;
 
     // --- TRANSACTIONS ---
-    getAll(accountId?: string): Promise<FinanceTransaction[]>;
+    getAll(walletId?: string): Promise<FinanceTransaction[]>;
     getById(id: string): Promise<FinanceTransaction | undefined>;
     create(input: CreateTransactionInput): Promise<FinanceTransaction>;
     update(id: string, input: UpdateTransactionInput): Promise<FinanceTransaction | undefined>;
     delete(id: string): Promise<void>;
     markAsVisited(id: string): Promise<void>;
-    getSummary(accountId?: string): Promise<FinanceSummary>;
+    getSummary(walletId?: string): Promise<FinanceSummary>;
+
+    // --- TRANSFER ---
+    transferBetweenWallets(fromWalletId: string, toWalletId: string, amount: number, description?: string, date?: Date): Promise<{ outTransaction: FinanceTransaction; inTransaction: FinanceTransaction }>;
+
+    // --- BUDGETS ---
+    getAllBudgets(): Promise<Budget[]>;
+    getBudgetById(id: string): Promise<Budget | undefined>;
+    createBudget(input: CreateBudgetInput): Promise<Budget>;
+    updateBudget(id: string, input: UpdateBudgetInput): Promise<Budget | undefined>;
+    deleteBudget(id: string): Promise<void>;
+    getBudgetSummary(budgetId: string, periodStart: Date, periodEnd: Date): Promise<BudgetSummary>;
+
+    // --- BUDGET ASSIGNMENTS ---
+    assignTransactionToBudget(transactionId: string, budgetId: string): Promise<BudgetAssignment>;
+    unassignTransactionFromBudget(transactionId: string, budgetId: string): Promise<void>;
+    getAssignmentsForBudget(budgetId: string): Promise<BudgetAssignment[]>;
+    getAssignmentsForTransaction(transactionId: string): Promise<BudgetAssignment[]>;
 }
 
-/**
- * Local Implementation (IndexedDB)
- */
-/**
- * Local Implementation (IndexedDB)
- */
-export const localFinanceRepository = {
-    async getAllAccounts(): Promise<FinanceAccount[]> {
-        return await db.financeAccounts.orderBy('createdAt').toArray();
+export const financeRepository: FinanceRepo = {
+    // --- WALLETS ---
+    async getAllWallets(): Promise<Wallet[]> {
+        return await db.wallets.orderBy('createdAt').toArray();
     },
 
-    async getAccountById(id: string): Promise<FinanceAccount | undefined> {
-        return await db.financeAccounts.get(id);
+    async getWalletById(id: string): Promise<Wallet | undefined> {
+        return await db.wallets.get(id);
     },
 
-    async createAccount(input: CreateAccountInput): Promise<FinanceAccount> {
+    async createWallet(input: CreateWalletInput): Promise<Wallet> {
         const now = new Date();
-        const account: FinanceAccount = {
+        const wallet: Wallet = {
             id: nanoid(),
             ...input,
             createdAt: now,
             updatedAt: now,
+            syncStatus: 'created', // Sync Flag
         };
-        await db.financeAccounts.add(account);
-        return account;
+        await db.wallets.add(wallet);
+        return wallet;
     },
 
-    async updateAccount(id: string, input: UpdateAccountInput): Promise<FinanceAccount | undefined> {
-        const account = await db.financeAccounts.get(id);
-        if (!account) return undefined;
+    async updateWallet(id: string, input: UpdateWalletInput): Promise<Wallet | undefined> {
+        const wallet = await db.wallets.get(id);
+        if (!wallet) return undefined;
 
-        const updated: FinanceAccount = {
-            ...account,
+        const updated: Wallet = {
+            ...wallet,
             ...input,
             updatedAt: new Date(),
+            syncStatus: wallet.syncStatus === 'created' ? 'created' : 'updated', // Keep 'created' if not yet synced
         };
 
-        await db.financeAccounts.update(id, updated);
+        await db.wallets.put(updated);
         return updated;
     },
 
-    async deleteAccount(id: string): Promise<void> {
-        return db.transaction('rw', db.financeAccounts, db.finance, async () => {
-            await db.finance.where('accountId').equals(id).delete();
-            await db.financeAccounts.delete(id);
+    async deleteWallet(id: string): Promise<void> {
+        return db.transaction('rw', db.wallets, db.finance, db.syncQueue, async () => {
+            // Queue Deletion
+            await db.syncQueue.add({
+                id,
+                table: 'wallets',
+                action: 'delete',
+                createdAt: new Date()
+            });
+
+            // Local Delete (Manual Cascade)
+            await db.finance.where('walletId').equals(id).delete();
+            await db.wallets.delete(id);
         });
     },
 
-    async markAccountAsVisited(id: string): Promise<void> {
-        await db.financeAccounts.update(id, { lastVisitedAt: new Date() });
+    async markWalletAsVisited(id: string): Promise<void> {
+        // This is a minor update, optionally sync it
+        await db.wallets.update(id, { lastVisitedAt: new Date() });
     },
 
-    async getAll(accountId?: string): Promise<FinanceTransaction[]> {
-        if (accountId) {
+    // --- TRANSACTIONS ---
+    async getAll(walletId?: string): Promise<FinanceTransaction[]> {
+        if (walletId) {
             return await db.finance
-                .where('accountId')
-                .equals(accountId)
+                .where('walletId')
+                .equals(walletId)
                 .reverse()
                 .sortBy('date');
         }
@@ -112,27 +147,75 @@ export const localFinanceRepository = {
             ...input,
             createdAt: now,
             updatedAt: now,
+            syncStatus: 'created', // Sync Flag
         };
-        await db.finance.add(transaction);
-        return transaction;
+
+        return db.transaction('rw', db.finance, db.wallets, async () => {
+            await db.finance.add(transaction);
+
+            // Update wallet's updatedAt (trigger wallet sync too)
+            const wallet = await db.wallets.get(input.walletId);
+            if (wallet) {
+                await db.wallets.update(input.walletId, {
+                    updatedAt: now,
+                    syncStatus: wallet.syncStatus === 'created' ? 'created' : 'updated'
+                });
+            }
+
+            return transaction;
+        });
     },
 
     async update(id: string, input: UpdateTransactionInput): Promise<FinanceTransaction | undefined> {
         const transaction = await db.finance.get(id);
         if (!transaction) return undefined;
 
+        const now = new Date();
         const updated: FinanceTransaction = {
             ...transaction,
             ...input,
-            updatedAt: new Date(),
+            updatedAt: now,
+            syncStatus: transaction.syncStatus === 'created' ? 'created' : 'updated',
         };
 
-        await db.finance.update(id, updated);
-        return updated;
+        return db.transaction('rw', db.finance, db.wallets, async () => {
+            await db.finance.put(updated);
+
+            // Update wallet's updatedAt
+            const wallet = await db.wallets.get(updated.walletId);
+            if (wallet) {
+                await db.wallets.update(updated.walletId, {
+                    updatedAt: now,
+                    syncStatus: wallet.syncStatus === 'created' ? 'created' : 'updated'
+                });
+            }
+
+            return updated;
+        });
     },
 
     async delete(id: string): Promise<void> {
-        await db.finance.delete(id);
+        const transaction = await db.finance.get(id);
+        if (transaction) {
+            return db.transaction('rw', db.finance, db.wallets, db.syncQueue, async () => {
+                // Queue Deletion
+                await db.syncQueue.add({
+                    id,
+                    table: 'finance_transactions', // Note: Table name in Supabase
+                    action: 'delete',
+                    createdAt: new Date()
+                });
+
+                await db.finance.delete(id);
+
+                // Update wallet
+                await db.wallets.update(transaction.walletId, {
+                    updatedAt: new Date(),
+                    // We don't necessarily update syncStatus of wallet just for transaction delete, 
+                    // unless we want to bump timestamp. Let's do it to be safe.
+                });
+            });
+        }
     },
 
     async markAsVisited(id: string): Promise<void> {
@@ -141,10 +224,10 @@ export const localFinanceRepository = {
         });
     },
 
-    async getSummary(accountId?: string): Promise<FinanceSummary> {
+    async getSummary(walletId?: string): Promise<FinanceSummary> {
         let transactions: FinanceTransaction[];
-        if (accountId) {
-            transactions = await db.finance.where('accountId').equals(accountId).toArray();
+        if (walletId) {
+            transactions = await db.finance.where('walletId').equals(walletId).toArray();
         } else {
             transactions = await db.finance.toArray();
         }
@@ -165,283 +248,207 @@ export const localFinanceRepository = {
         };
     },
 
-    async syncAccount(account: FinanceAccount, transactions: FinanceTransaction[] = []): Promise<void> {
-        await db.financeAccounts.put(account);
-        if (transactions.length > 0) {
-            await db.finance.bulkPut(transactions);
-        }
-    }
-};
-
-/**
- * Backend Implementation (Supabase)
- */
-export const backendFinanceRepository = {
-    // --- ACCOUNTS ---
-    async getAllAccounts(): Promise<FinanceAccount[]> {
-        const { data, error } = await supabase
-            .from('finance_accounts') // Expect snake_case table name or match
-            .select('*')
-            .order('createdAt', { ascending: true });
-
-        if (error) {
-            console.error('Supabase Error:', error);
-            return [];
-        }
-
-        return data.map(a => ({
-            ...a,
-            createdAt: new Date(a.createdAt),
-            updatedAt: new Date(a.updatedAt),
-            lastVisitedAt: a.lastVisitedAt ? new Date(a.lastVisitedAt) : undefined
-        }));
-    },
-
-    async getAccountById(id: string): Promise<FinanceAccount | undefined> {
-        const { data, error } = await supabase
-            .from('finance_accounts')
-            .select('*')
-            .eq('id', id)
-            .single();
-
-        if (error) return undefined;
-
-        return {
-            ...data,
-            createdAt: new Date(data.createdAt),
-            updatedAt: new Date(data.updatedAt),
-            lastVisitedAt: data.lastVisitedAt ? new Date(data.lastVisitedAt) : undefined
-        };
-    },
-
-    async createAccount(input: CreateAccountInput): Promise<FinanceAccount> {
+    // --- TRANSFER ---
+    async transferBetweenWallets(
+        fromWalletId: string,
+        toWalletId: string,
+        amount: number,
+        description?: string,
+        date?: Date
+    ): Promise<{ outTransaction: FinanceTransaction; inTransaction: FinanceTransaction }> {
         const now = new Date();
-        const newAccount = {
+        const txDate = date || now;
+        const outId = nanoid();
+        const inId = nanoid();
+
+        // Query wallet names untuk deskripsi
+        const fromWallet = await db.wallets.get(fromWalletId);
+        const toWallet = await db.wallets.get(toWalletId);
+
+        const fromWalletName = fromWallet?.title || 'Unknown Wallet';
+        const toWalletName = toWallet?.title || 'Unknown Wallet';
+
+        const outTransaction: FinanceTransaction = {
+            id: outId,
+            walletId: fromWalletId,
+            type: 'expense',
+            amount,
+            category: 'Transfer Out',
+            description: description || `Transfer ke ${toWalletName}`,
+            date: txDate,
+            createdAt: now,
+            updatedAt: now,
+            linkedTransactionId: inId,
+            linkedWalletId: toWalletId,
+            syncStatus: 'created'
+        };
+
+        const inTransaction: FinanceTransaction = {
+            id: inId,
+            walletId: toWalletId,
+            type: 'income',
+            amount,
+            category: 'Transfer In',
+            description: description || `Transfer dari ${fromWalletName}`,
+            date: txDate,
+            createdAt: now,
+            updatedAt: now,
+            linkedTransactionId: outId,
+            linkedWalletId: fromWalletId,
+            syncStatus: 'created'
+        };
+
+        await db.transaction('rw', db.finance, db.wallets, async () => {
+            await db.finance.bulkAdd([outTransaction, inTransaction]);
+
+            // Mark wallets as updated
+            if (fromWallet) await db.wallets.update(fromWalletId, { updatedAt: now, syncStatus: fromWallet.syncStatus === 'created' ? 'created' : 'updated' });
+            if (toWallet) await db.wallets.update(toWalletId, { updatedAt: now, syncStatus: toWallet.syncStatus === 'created' ? 'created' : 'updated' });
+        });
+
+        return { outTransaction, inTransaction };
+    },
+
+    // --- BUDGETS ---
+    async getAllBudgets(): Promise<Budget[]> {
+        return await db.budgets.orderBy('createdAt').toArray();
+    },
+
+    async getBudgetById(id: string): Promise<Budget | undefined> {
+        return await db.budgets.get(id);
+    },
+
+    async createBudget(input: CreateBudgetInput): Promise<Budget> {
+        const now = new Date();
+        const budget: Budget = {
             id: nanoid(),
             ...input,
-            createdAt: now.toISOString(),
-            updatedAt: now.toISOString()
+            createdAt: now,
+            updatedAt: now,
+            syncStatus: 'created'
         };
-
-        const { data, error } = await supabase
-            .from('finance_accounts')
-            .insert(newAccount)
-            .select()
-            .single();
-
-        if (error) throw error;
-
-        return {
-            ...data,
-            createdAt: new Date(data.createdAt),
-            updatedAt: new Date(data.updatedAt)
-        };
+        await db.budgets.add(budget);
+        return budget;
     },
 
-    async updateAccount(id: string, input: UpdateAccountInput): Promise<FinanceAccount | undefined> {
-        const updateData = {
+    async updateBudget(id: string, input: UpdateBudgetInput): Promise<Budget | undefined> {
+        const budget = await db.budgets.get(id);
+        if (!budget) return undefined;
+
+        const updated: Budget = {
+            ...budget,
             ...input,
-            updatedAt: new Date().toISOString()
+            updatedAt: new Date(),
+            syncStatus: budget.syncStatus === 'created' ? 'created' : 'updated'
         };
 
-        const { data, error } = await supabase
-            .from('finance_accounts')
-            .update(updateData)
-            .eq('id', id)
-            .select()
-            .single();
+        await db.budgets.put(updated);
+        return updated;
+    },
 
-        if (error) throw error;
+    async deleteBudget(id: string): Promise<void> {
+        return db.transaction('rw', db.budgets, db.budgetAssignments, db.syncQueue, async () => {
+            // Queue Deletion
+            await db.syncQueue.add({
+                id,
+                table: 'budgets',
+                action: 'delete',
+                createdAt: new Date()
+            });
+
+            // Delete local assignments (Cascade)
+            await db.budgetAssignments.where('budgetId').equals(id).delete();
+            // Delete budget
+            await db.budgets.delete(id);
+        });
+    },
+
+    async getBudgetSummary(budgetId: string, periodStart: Date, periodEnd: Date): Promise<BudgetSummary> {
+        const budget = await db.budgets.get(budgetId);
+        if (!budget) {
+            throw new Error(`Budget dengan id ${budgetId} tidak ditemukan`);
+        }
+
+        // Get semua assignments untuk budget ini
+        const assignments = await db.budgetAssignments.where('budgetId').equals(budgetId).toArray();
+        const transactionIds = assignments.map(a => a.transactionId);
+
+        // Get transactions yang di-assign dan filter by period
+        const transactions = await db.finance.bulkGet(transactionIds);
+        const filteredTransactions = transactions.filter(t => {
+            if (!t) return false;
+            const txDate = new Date(t.date);
+            return txDate >= periodStart && txDate <= periodEnd;
+        });
+
+        const totalSpent = filteredTransactions
+            .filter(t => t?.type === 'expense')
+            .reduce((sum, t) => sum + (t?.amount || 0), 0);
+
+        const transactionCount = filteredTransactions.length;
+        const percentageUsed = budget.targetAmount > 0 ? (totalSpent / budget.targetAmount) * 100 : 0;
+        const remainingAmount = budget.targetAmount - totalSpent;
+        const isOverBudget = totalSpent > budget.targetAmount;
 
         return {
-            ...data,
-            createdAt: new Date(data.createdAt),
-            updatedAt: new Date(data.updatedAt)
+            budget,
+            totalSpent,
+            transactionCount,
+            percentageUsed,
+            remainingAmount,
+            isOverBudget
         };
     },
 
-    async deleteAccount(id: string): Promise<void> {
-        // Assume Cascade delete is configured in Postgres for transactions!
-        // If not, we trigger delete manually.
+    // --- BUDGET ASSIGNMENTS ---
+    async assignTransactionToBudget(transactionId: string, budgetId: string): Promise<BudgetAssignment> {
+        const existing = await db.budgetAssignments
+            .where(['budgetId', 'transactionId'])
+            .equals([budgetId, transactionId])
+            .first();
 
-        // 1. Delete transactions
-        await supabase.from('finance_transactions').delete().eq('accountId', id);
-
-        // 2. Delete account
-        const { error } = await supabase.from('finance_accounts').delete().eq('id', id);
-        if (error) throw error;
-    },
-
-    async markAccountAsVisited(id: string): Promise<void> {
-        await supabase
-            .from('finance_accounts')
-            .update({ lastVisitedAt: new Date().toISOString() })
-            .eq('id', id);
-    },
-
-    // --- TRANSACTIONS ---
-    async getAll(accountId?: string): Promise<FinanceTransaction[]> {
-        let query = supabase
-            .from('finance_transactions')
-            .select('*')
-            .order('date', { ascending: false }); // Latest first
-
-        if (accountId) {
-            query = query.eq('accountId', accountId);
+        if (existing) {
+            return existing;
         }
 
-        const { data, error } = await query;
-
-        if (error) {
-            console.error('Supabase Error:', error);
-            return [];
-        }
-
-        return data.map(t => ({
-            ...t,
-            date: new Date(t.date),
-            createdAt: new Date(t.createdAt),
-            updatedAt: new Date(t.updatedAt),
-            lastVisitedAt: t.lastVisitedAt ? new Date(t.lastVisitedAt) : undefined
-        }));
-    },
-
-    async getById(id: string): Promise<FinanceTransaction | undefined> {
-        const { data, error } = await supabase
-            .from('finance_transactions')
-            .select('*')
-            .eq('id', id)
-            .single();
-
-        if (error) return undefined;
-        return { ...data, date: new Date(data.date), createdAt: new Date(data.createdAt), updatedAt: new Date(data.updatedAt) };
-    },
-
-    async create(input: CreateTransactionInput): Promise<FinanceTransaction> {
-        const now = new Date();
-        const newTransaction = {
+        const assignment: BudgetAssignment = {
             id: nanoid(),
-            ...input,
-            createdAt: now.toISOString(),
-            updatedAt: now.toISOString()
+            budgetId,
+            transactionId,
+            createdAt: new Date(),
+            syncStatus: 'created'
         };
 
-        const { data, error } = await supabase
-            .from('finance_transactions')
-            .insert(newTransaction)
-            .select()
-            .single();
-
-        if (error) throw error;
-        return { ...data, date: new Date(data.date), createdAt: new Date(data.createdAt), updatedAt: new Date(data.updatedAt) };
+        await db.budgetAssignments.add(assignment);
+        return assignment;
     },
 
-    async update(id: string, input: UpdateTransactionInput): Promise<FinanceTransaction | undefined> {
-        const updateData = {
-            ...input,
-            updatedAt: new Date().toISOString()
-        };
+    async unassignTransactionFromBudget(transactionId: string, budgetId: string): Promise<void> {
+        return db.transaction('rw', db.budgetAssignments, db.syncQueue, async () => {
+            // Find ID first to queue it
+            const existing = await db.budgetAssignments
+                .where(['budgetId', 'transactionId'])
+                .equals([budgetId, transactionId])
+                .first();
 
-        const { data, error } = await supabase
-            .from('finance_transactions')
-            .update(updateData)
-            .eq('id', id)
-            .select()
-            .single();
+            if (existing) {
+                await db.syncQueue.add({
+                    id: existing.id,
+                    table: 'budget_assignments',
+                    action: 'delete',
+                    createdAt: new Date()
+                });
 
-        if (error) throw error;
-        return { ...data, date: new Date(data.date), createdAt: new Date(data.createdAt), updatedAt: new Date(data.updatedAt) };
+                await db.budgetAssignments.delete(existing.id);
+            }
+        });
     },
 
-    async delete(id: string): Promise<void> {
-        const { error } = await supabase
-            .from('finance_transactions')
-            .delete()
-            .eq('id', id);
-        if (error) throw error;
+    async getAssignmentsForBudget(budgetId: string): Promise<BudgetAssignment[]> {
+        return await db.budgetAssignments.where('budgetId').equals(budgetId).toArray();
     },
 
-    async markAsVisited(id: string): Promise<void> {
-        await supabase
-            .from('finance_transactions')
-            .update({ lastVisitedAt: new Date().toISOString() })
-            .eq('id', id);
-    },
-
-    async getSummary(accountId?: string): Promise<FinanceSummary> {
-        // Calculate via client-side sum for now (MVP phase 2)
-        // Select only necessary columns
-        let query = supabase.from('finance_transactions').select('amount, type');
-        if (accountId) {
-            query = query.eq('accountId', accountId);
-        }
-
-        const { data, error } = await query;
-        if (error || !data) {
-            return { totalIncome: 0, totalExpense: 0, balance: 0, transactionCount: 0 };
-        }
-
-        const totalIncome = data
-            .filter((t: any) => t.type === 'income')
-            .reduce((sum, t: any) => sum + t.amount, 0);
-
-        const totalExpense = data
-            .filter((t: any) => t.type === 'expense')
-            .reduce((sum, t: any) => sum + t.amount, 0);
-
-        return {
-            totalIncome,
-            totalExpense,
-            balance: totalIncome - totalExpense,
-            transactionCount: data.length,
-        };
-    },
-
-    // --- SYNC METHODS ---
-    async syncAccount(account: FinanceAccount, transactions: FinanceTransaction[] = []): Promise<void> {
-        // 1. Upsert Account
-        const accPayload = {
-            ...account,
-            createdAt: account.createdAt.toISOString(),
-            updatedAt: account.updatedAt.toISOString(),
-            lastVisitedAt: account.lastVisitedAt?.toISOString()
-        };
-        const { error: accError } = await supabase.from('finance_accounts').upsert(accPayload);
-        if (accError) throw accError;
-
-        // 2. Upsert Transactions
-        if (transactions.length > 0) {
-            const txPayloads = transactions.map(t => ({
-                ...t,
-                date: t.date.toISOString(),
-                createdAt: t.createdAt.toISOString(),
-                updatedAt: t.updatedAt.toISOString(),
-                lastVisitedAt: t.lastVisitedAt?.toISOString()
-            }));
-            const { error: txError } = await supabase.from('finance_transactions').upsert(txPayloads);
-            if (txError) throw txError;
-        }
+    async getAssignmentsForTransaction(transactionId: string): Promise<BudgetAssignment[]> {
+        return await db.budgetAssignments.where('transactionId').equals(transactionId).toArray();
     }
-};
-
-const getRepo = (): FinanceRepo => {
-    const pref = localStorage.getItem('arcnote_storage_preference');
-    return pref === 'backend' ? backendFinanceRepository : localFinanceRepository;
-};
-
-export const financeRepository: FinanceRepo = {
-    getAllAccounts: () => getRepo().getAllAccounts(),
-    getAccountById: (id) => getRepo().getAccountById(id),
-    createAccount: (input) => getRepo().createAccount(input),
-    updateAccount: (id, input) => getRepo().updateAccount(id, input),
-    deleteAccount: (id) => getRepo().deleteAccount(id),
-    markAccountAsVisited: (id) => getRepo().markAccountAsVisited(id),
-
-    getAll: (accId) => getRepo().getAll(accId),
-    getById: (id) => getRepo().getById(id),
-    create: (input) => getRepo().create(input),
-    update: (id, input) => getRepo().update(id, input),
-    delete: (id) => getRepo().delete(id),
-    markAsVisited: (id) => getRepo().markAsVisited(id),
-    getSummary: (accId) => getRepo().getSummary(accId),
 };

@@ -2,14 +2,27 @@ import React, { useState } from 'react';
 import { supabase } from '../../data/supabase';
 import { Capacitor } from '@capacitor/core';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
+import { useNavigate } from 'react-router-dom';
+import { syncManager } from '../../lib/sync';
 
 export const LoginPage = () => {
+    const navigate = useNavigate();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [mode, setMode] = useState<'login' | 'register'>('login');
     const [message, setMessage] = useState<string | null>(null);
+
+    const performPostLoginSync = async () => {
+        setMessage('Syncing your data...');
+        try {
+            await syncManager.sync();
+        } catch (e) {
+            console.error('Post-login sync failed', e);
+            // Non-blocking error
+        }
+    };
 
     const handleAuth = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -24,6 +37,9 @@ export const LoginPage = () => {
                     password,
                 });
                 if (error) throw error;
+
+                await performPostLoginSync();
+                navigate('/');
             } else {
                 const { error, data } = await supabase.auth.signUp({
                     email,
@@ -31,9 +47,9 @@ export const LoginPage = () => {
                 });
                 if (error) throw error;
 
-                // Cek apakah butuh konfirmasi email
                 if (data.session) {
-                    // Auto logged in
+                    await performPostLoginSync();
+                    navigate('/');
                 } else if (data.user) {
                     setMessage('Registration successful! Please check your email to confirm your account.');
                     setMode('login');
@@ -47,27 +63,22 @@ export const LoginPage = () => {
         }
     };
 
-
-
     const handleGoogleLogin = async () => {
         setLoading(true);
         setError(null);
         try {
             if (Capacitor.isNativePlatform()) {
-                // Initial check (optional, but good for safety)
                 await GoogleAuth.initialize();
-
                 const googleUser = await GoogleAuth.signIn();
-
-                // Login ke Supabase pakai token dari Google
                 const { error } = await supabase.auth.signInWithIdToken({
                     provider: 'google',
                     token: googleUser.authentication.idToken,
                 });
-
                 if (error) throw error;
+
+                await performPostLoginSync();
+                navigate('/');
             } else {
-                // Web Flow
                 const { error } = await supabase.auth.signInWithOAuth({
                     provider: 'google',
                     options: {
@@ -75,6 +86,7 @@ export const LoginPage = () => {
                     }
                 });
                 if (error) throw error;
+                // Redirect happens automatically
             }
         } catch (err: any) {
             console.error(err);
@@ -136,7 +148,7 @@ export const LoginPage = () => {
                         disabled={loading}
                         className="w-full bg-primary hover:bg-primary/90 text-text-primary font-bold py-3 rounded-xl transition-all shadow-lg shadow-primary/20 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed mt-2"
                     >
-                        {loading ? 'Processing...' : (mode === 'login' ? 'Sign In' : 'Create Account')}
+                        {loading ? 'Processing & Syncing...' : (mode === 'login' ? 'Sign In' : 'Create Account')}
                     </button>
                 </form>
 
@@ -185,14 +197,12 @@ export const LoginPage = () => {
                     <p>Secured by Supabase Auth</p>
                     <button
                         onClick={() => {
-                            if (window.confirm('Switch to Local Mode? You will access your local data instead of the cloud.')) {
-                                localStorage.setItem('arcnote_storage_preference', 'local');
-                                window.location.reload();
-                            }
+                            // Offline/Guest access strictly means "Don't login"
+                            navigate('/');
                         }}
                         className="text-text-neutral hover:text-primary transition-colors underline decoration-dotted"
                     >
-                        Use Offline Mode
+                        Continue as Guest (Offline)
                     </button>
                 </div>
             </div>

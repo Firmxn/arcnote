@@ -2,17 +2,23 @@ import { useEffect } from 'react';
 import { Routes, Route, useNavigate, useSearchParams } from 'react-router-dom';
 import { MainLayout } from './components/layout/MainLayout';
 import { HomePage } from './components/pages/HomePage';
+import { ArchivePage } from './components/pages/ArchivePage';
 import { PagesListPage } from './components/pages/PagesListPage';
 import { SettingsPage } from './components/pages/SettingsPage';
 import { SchedulePage } from './components/pages/SchedulePage';
-import { FinanceListPage } from './components/pages/FinanceListPage';
-import { FinanceDetailRoute } from './components/pages/FinanceDetailRoute';
+import { DashboardPage } from './components/pages/finance/DashboardPage';
+import { WalletsPage } from './components/pages/finance/WalletsPage';
+import { WalletDetailRoute } from './components/pages/finance/WalletDetailRoute';
+import BudgetsPage from './components/pages/finance/BudgetsPage';
+import BudgetDetailPage from './components/pages/finance/BudgetDetailPage';
 import { EditorRoute } from './components/pages/EditorRoute';
+import { LoginPage } from './components/pages/LoginPage';
 import { usePagesStore } from './state/pages.store';
 import { useSchedulesStore } from './state/schedules.store';
 import { useFinanceStore } from './state/finance.store';
+import { useAuthStore } from './state/auth.store';
 
-// --- Route Wrappers to Adapts Props to Router ---
+// --- Route Wrappers to Adapt Props to Router ---
 
 const HomeWithNav = () => {
   const navigate = useNavigate();
@@ -37,6 +43,7 @@ const HomeWithNav = () => {
       onEventSelect={(id) => navigate(`/schedule?eventId=${id}`)}
       onFinanceClick={(id) => navigate(`/finance/${id}`)}
       onNewPageClick={handleCreate}
+      onViewArchive={() => navigate('/archive')}
     />
   );
 };
@@ -56,12 +63,6 @@ const ScheduleWithNav = () => {
   return <SchedulePage initialEventId={eventId} />;
 };
 
-
-import { LoginPage } from './components/pages/LoginPage';
-import { useAuthStore } from './state/auth.store';
-
-// ... (existing helper components HomeWithNav etc)
-
 function App() {
   // Auth State
   const { user, initialize: initAuth, isLoading: isAuthLoading } = useAuthStore();
@@ -69,7 +70,7 @@ function App() {
   // Data State
   const { loadPages } = usePagesStore();
   const { loadEvents } = useSchedulesStore();
-  const { loadAccounts } = useFinanceStore();
+  const { loadWallets } = useFinanceStore();
 
   const isBackend = localStorage.getItem('arcnote_storage_preference') === 'backend';
 
@@ -86,9 +87,9 @@ function App() {
     if (canLoad) {
       loadPages();
       loadEvents();
-      loadAccounts();
+      loadWallets();
     }
-  }, [loadPages, loadEvents, loadAccounts, user, isBackend]);
+  }, [loadPages, loadEvents, loadWallets, user, isBackend]);
 
   // Auth Guard for Backend Mode
   if (isBackend) {
@@ -110,10 +111,16 @@ function App() {
         <Route path="/" element={<HomeWithNav />} />
         <Route path="/pages" element={<PagesListWithNav />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/archive" element={<ArchivePage />} />
 
         {/* Finance Routes */}
-        <Route path="/finance" element={<FinanceListPage />} />
-        <Route path="/finance/:accountId" element={<FinanceDetailRoute />} />
+        <Route path="/finance">
+          <Route index element={<DashboardPage />} />
+          <Route path="wallets" element={<WalletsPage />} />
+          <Route path="budgets" element={<BudgetsPage />} />
+          <Route path="budgets/:id" element={<BudgetDetailPage />} />
+          <Route path=":walletId" element={<WalletDetailRoute />} />
+        </Route>
 
         <Route path="/schedule" element={<ScheduleWithNav />} />
         <Route path="/page/:pageId" element={<EditorRoute />} />

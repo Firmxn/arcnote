@@ -1,6 +1,10 @@
 /**
- * Blocks Repository
- * Data access layer untuk Blocks
+ * Blocks Repository (Unified Local-First)
+ *
+ * Architecture:
+ * - Reads: Always from Local DB (Dexie)
+ * - Writes: Update Local DB + Set Sync Flag
+ * - Deletes: Delete Local DB + Add to Sync Queue
  */
 
 import { db } from './db';
@@ -35,6 +39,7 @@ export const blocksRepository = {
             ...input,
             createdAt: now,
             updatedAt: now,
+            syncStatus: 'created'
         };
 
         await db.blocks.add(block);
@@ -52,6 +57,7 @@ export const blocksRepository = {
             ...block,
             ...input,
             updatedAt: new Date(),
+            syncStatus: block.syncStatus === 'created' ? 'created' : 'updated'
         };
 
         await db.blocks.update(id, updated);
@@ -62,13 +68,42 @@ export const blocksRepository = {
      * Hapus block
      */
     async delete(id: string): Promise<void> {
-        await db.blocks.delete(id);
+        return db.transaction('rw', db.blocks, db.syncQueue, async () => {
+            // Queue Deletion
+            await db.syncQueue.add({
+                id,
+                table: 'blocks',
+                action: 'delete',
+                createdAt: new Date()
+            });
+
+            await db.blocks.delete(id);
+        });
     },
 
     /**
      * Hapus semua blocks untuk page tertentu
+     * Note: Biasanya dipanggil saat delete Page. 
+     * Jika Delete Page sudah di-queue, ini hanya cleanup lokal.
+     * Jika dipanggil independen, kita harus queue semua block IDs?
+     * Asumsi: Method ini jarang dipanggil langsung oleh UI kecuali "Clear Content".
+     * Jika Clear Content, maka Loop delete queue.
      */
     async deleteByPageId(pageId: string): Promise<void> {
-        await db.blocks.where('pageId').equals(pageId).delete();
+        const blocks = await db.blocks.where('pageId').equals(pageId).toArray();
+        if (blocks.length === 0) return;
+
+        return db.transaction('rw', db.blocks, db.syncQueue, async () => {
+            // Queue Deletions for all blocks
+            const queueItems = blocks.map(b => ({
+                id: b.id,
+                table: 'blocks',
+                action: 'delete' as const,
+                createdAt: new Date()
+            }));
+            await db.syncQueue.bulkAdd(queueItems);
+
+            await db.blocks.where('pageId').equals(pageId).delete();
+        });
     },
 };

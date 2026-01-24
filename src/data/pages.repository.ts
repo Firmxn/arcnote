@@ -1,13 +1,15 @@
 /**
- * Pages Repository
- * Data access layer untuk Pages
- * Supports switching between Local (IndexedDB) and Backend (Supabase)
+ * Pages Repository (Unified Local-First)
+ *
+ * Architecture:
+ * - Reads: Always from Local DB (Dexie)
+ * - Writes: Update Local DB + Set Sync Flag
+ * - Deletes: Delete Local DB + Add to Sync Queue
  */
 
 import { db } from './db';
 import type { Page, CreatePageInput, UpdatePageInput } from '../types/page';
 import { nanoid } from 'nanoid';
-import { supabase } from './supabase';
 
 /**
  * Interface Repository
@@ -21,13 +23,7 @@ interface PagesRepo {
     markAsVisited(id: string): Promise<void>;
 }
 
-/**
- * Local Implementation (IndexedDB via Dexie)
- */
-/**
- * Local Implementation (IndexedDB via Dexie)
- */
-export const localPagesRepository = {
+export const pagesRepository: PagesRepo = {
     async getAll(): Promise<Page[]> {
         return await db.pages.orderBy('updatedAt').reverse().toArray();
     },
@@ -43,6 +39,7 @@ export const localPagesRepository = {
             ...input,
             createdAt: now,
             updatedAt: now,
+            syncStatus: 'created'
         };
 
         await db.pages.add(page);
@@ -57,6 +54,7 @@ export const localPagesRepository = {
             ...page,
             ...input,
             updatedAt: new Date(),
+            syncStatus: page.syncStatus === 'created' ? 'created' : 'updated'
         };
 
         await db.pages.update(id, updated);
@@ -64,161 +62,25 @@ export const localPagesRepository = {
     },
 
     async delete(id: string): Promise<void> {
-        await db.pages.delete(id);
+        return db.transaction('rw', db.pages, db.blocks, db.syncQueue, async () => {
+            // Queue Page Deletion
+            await db.syncQueue.add({
+                id,
+                table: 'pages',
+                action: 'delete',
+                createdAt: new Date()
+            });
+
+            // Delete blocks locally (Manual Cleanup)
+            await db.blocks.where('pageId').equals(id).delete();
+            // Delete page
+            await db.pages.delete(id);
+        });
     },
 
     async markAsVisited(id: string): Promise<void> {
         await db.pages.update(id, {
             lastVisitedAt: new Date(),
         });
-    },
-
-    async sync(page: Page): Promise<void> {
-        // Upsert to local Dexie
-        await db.pages.put(page);
     }
-};
-
-/**
- * Backend Implementation (Supabase)
- */
-/**
- * Backend Implementation (Supabase)
- */
-export const backendPagesRepository = {
-    async getAll(): Promise<Page[]> {
-        const { data, error } = await supabase
-            .from('pages')
-            .select('*')
-            .order('updatedAt', { ascending: false });
-
-        if (error) {
-            console.error('Supabase Error:', error);
-            return [];
-        }
-
-        return data.map(p => ({
-            ...p,
-            createdAt: new Date(p.createdAt),
-            updatedAt: new Date(p.updatedAt),
-            lastVisitedAt: p.lastVisitedAt ? new Date(p.lastVisitedAt) : undefined
-        }));
-    },
-
-    async getById(id: string): Promise<Page | undefined> {
-        const { data, error } = await supabase
-            .from('pages')
-            .select('*')
-            .eq('id', id)
-            .single();
-
-        if (error) return undefined;
-
-        return {
-            ...data,
-            createdAt: new Date(data.createdAt),
-            updatedAt: new Date(data.updatedAt),
-            lastVisitedAt: data.lastVisitedAt ? new Date(data.lastVisitedAt) : undefined
-        };
-    },
-
-    async create(input: CreatePageInput): Promise<Page> {
-        const now = new Date();
-        const newPage = {
-            id: nanoid(),
-            ...input,
-            createdAt: now.toISOString(),
-            updatedAt: now.toISOString(),
-        };
-
-        const { data, error } = await supabase
-            .from('pages')
-            .insert(newPage)
-            .select()
-            .single();
-
-        if (error) throw error;
-
-        return {
-            ...data,
-            createdAt: new Date(data.createdAt),
-            updatedAt: new Date(data.updatedAt)
-        };
-    },
-
-    async update(id: string, input: UpdatePageInput): Promise<Page | undefined> {
-        const updateData = {
-            ...input,
-            updatedAt: new Date().toISOString()
-        };
-
-        const { data, error } = await supabase
-            .from('pages')
-            .update(updateData)
-            .eq('id', id)
-            .select()
-            .single();
-
-        if (error) throw error;
-
-        return {
-            ...data,
-            createdAt: new Date(data.createdAt),
-            updatedAt: new Date(data.updatedAt),
-            lastVisitedAt: data.lastVisitedAt ? new Date(data.lastVisitedAt) : undefined
-        };
-    },
-
-    async delete(id: string): Promise<void> {
-        const { error } = await supabase
-            .from('pages')
-            .delete()
-            .eq('id', id);
-
-        if (error) throw error;
-    },
-
-    async markAsVisited(id: string): Promise<void> {
-        await supabase
-            .from('pages')
-            .update({ lastVisitedAt: new Date().toISOString() })
-            .eq('id', id);
-    },
-
-    // Custom method for Syncing Local -> Cloud
-    async sync(page: Page): Promise<void> {
-        const payload = {
-            ...page,
-            createdAt: page.createdAt.toISOString(),
-            updatedAt: page.updatedAt.toISOString(),
-            lastVisitedAt: page.lastVisitedAt?.toISOString()
-        };
-
-        // Upsert allows inserting with existing ID
-        const { error } = await supabase
-            .from('pages')
-            .upsert(payload);
-
-        if (error) throw error;
-    }
-};
-
-/**
- * Factory to choose implementation
- */
-const getRepo = (): PagesRepo => {
-    const pref = localStorage.getItem('arcnote_storage_preference');
-    return pref === 'backend' ? backendPagesRepository : localPagesRepository;
-};
-
-/**
- * Exported Facade
- */
-export const pagesRepository: PagesRepo = {
-    getAll: () => getRepo().getAll(),
-    getById: (id) => getRepo().getById(id),
-    create: (input) => getRepo().create(input),
-    update: (id, input) => getRepo().update(id, input),
-    delete: (id) => getRepo().delete(id),
-    markAsVisited: (id) => getRepo().markAsVisited(id),
 };

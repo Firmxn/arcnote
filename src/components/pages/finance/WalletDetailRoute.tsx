@@ -1,20 +1,20 @@
 import React, { useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useFinanceStore } from '../../state/finance.store';
-import { FinancePage } from './FinancePage';
+import { useFinanceStore } from '../../../state/finance.store';
+import { WalletDetailPage } from './WalletDetailPage';
 
-export const FinanceDetailRoute: React.FC = () => {
-    const { accountId } = useParams<{ accountId: string }>();
-    const { currentAccount, accounts, selectAccount, markAccountAsVisited, isLoading, error } = useFinanceStore();
+export const WalletDetailRoute: React.FC = () => {
+    const { walletId } = useParams<{ walletId: string }>();
+    const { currentWallet, wallets, selectWallet, markWalletAsVisited, isLoading, error } = useFinanceStore();
     const navigate = useNavigate();
     const hasLoadedRef = useRef(false);
 
     useEffect(() => {
-        if (accountId && !hasLoadedRef.current) {
-            // Check if account exists
-            const accountExists = accounts.find(acc => acc.id === accountId);
-            if (!accountExists && accounts.length > 0) {
-                // Account not found (deleted), redirect to list
+        if (walletId && !hasLoadedRef.current) {
+            // Check if wallet exists
+            const walletExists = wallets.find(w => w.id === walletId);
+            if (!walletExists && wallets.length > 0) {
+                // Wallet not found (deleted), redirect to list
                 navigate('/finance', { replace: true });
                 return;
             }
@@ -22,19 +22,19 @@ export const FinanceDetailRoute: React.FC = () => {
             // Mark as loaded to prevent re-running
             hasLoadedRef.current = true;
 
-            selectAccount(accountId);
-            markAccountAsVisited(accountId);
+            selectWallet(walletId);
+            markWalletAsVisited(walletId);
         }
-    }, [accountId, accounts, selectAccount, markAccountAsVisited, navigate]);
+    }, [walletId, wallets, selectWallet, markWalletAsVisited, navigate]);
 
-    // Reset ref when accountId changes
+    // Reset ref when walletId changes
     useEffect(() => {
         hasLoadedRef.current = false;
-    }, [accountId]);
+    }, [walletId]);
 
     // Handle Loading State or Error
-    // While loading account, maybe show loading spinner
-    if (isLoading && !currentAccount) {
+    // While loading wallet, maybe show loading spinner
+    if (isLoading && !currentWallet) {
         return (
             <div className="h-screen w-full flex items-center justify-center bg-white dark:bg-gray-950 text-text-neutral dark:text-text-secondary">
                 Loading tracker...
@@ -53,10 +53,10 @@ export const FinanceDetailRoute: React.FC = () => {
     }
 
     // If loaded but ID mismatch (should rarely happen due to effect), wait or show 404
-    if (!currentAccount || currentAccount.id !== accountId) {
+    if (!currentWallet || currentWallet.id !== walletId) {
         // Fallback for initial render before effect runs
         return null;
     }
 
-    return <FinancePage />;
+    return <WalletDetailPage />;
 };

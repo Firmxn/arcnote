@@ -3,7 +3,7 @@ import { usePagesStore } from '../../state/pages.store';
 import { Card } from '../ui/Card';
 import { ActionGroup, ActionButton } from '../ui/ActionGroup';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
-import { ContextMenu } from '../ui/ContextMenu';
+
 import type { Page } from '../../types/page';
 import dayjs from 'dayjs';
 import { SearchBar } from '../ui/SearchBar';
@@ -15,15 +15,14 @@ interface PagesListPageProps {
 }
 
 export const PagesListPage: React.FC<PagesListPageProps> = ({ onPageSelect }) => {
-    const { pages, setCurrentPage, syncToCloud, syncToLocal, deletePage } = usePagesStore();
-    const isBackendMode = localStorage.getItem('arcnote_storage_preference') === 'backend';
+    const { pages, setCurrentPage, deletePage, archivePage } = usePagesStore();
     const [expandedPages, setExpandedPages] = useState<Set<string>>(new Set());
-    const [contextMenu, setContextMenu] = useState<{ x: number; y: number; pageId: string } | null>(null);
+
     const [pageToDelete, setPageToDelete] = useState<Page | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
 
     // Filter root pages (pages without parentId)
-    const rootPages = pages.filter(p => !p.parentId);
+    const rootPages = pages.filter(p => !p.parentId && !p.isArchived);
 
     // Helper function to get sub pages
     const getSubPages = (parentId: string): Page[] => {
@@ -158,10 +157,7 @@ export const PagesListPage: React.FC<PagesListPageProps> = ({ onPageSelect }) =>
                         description={page.description || 'No description'}
                         type="page"
                         onClick={() => handlePageClick(page)}
-                        onContextMenu={(e) => {
-                            e.preventDefault();
-                            setContextMenu({ x: e.pageX, y: e.pageY, pageId: page.id });
-                        }}
+
                         updatedAt={dayjs(page.updatedAt || page.createdAt).format('MMM D, YYYY')}
                         createdAt={dayjs(page.createdAt).format('MMM D, YYYY')}
                     />
@@ -172,7 +168,7 @@ export const PagesListPage: React.FC<PagesListPageProps> = ({ onPageSelect }) =>
                             <ActionButton
                                 icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>}
                                 variant="primary"
-                                onClick={(e) => { e.stopPropagation(); /* Archive Feature */ }}
+                                onClick={(e) => { e.stopPropagation(); archivePage(page.id); }}
                                 title="Archive"
                             />
                             <ActionButton
@@ -220,7 +216,7 @@ export const PagesListPage: React.FC<PagesListPageProps> = ({ onPageSelect }) =>
                 </div>
 
                 {/* Pages List */}
-                <div className="flex-1 overflow-y-auto min-h-0 pb-[100px]">
+                <div className="flex-1 overflow-y-auto min-h-0 pb-[100px] [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
                     {filteredRootPages.length === 0 ? (
                         <div className="max-w-7xl w-full mx-auto px-4 flex flex-col items-center justify-center text-center py-20">
                             <div className="text-6xl mb-4">{searchQuery.trim() ? '🔍' : '📝'}</div>
@@ -295,45 +291,7 @@ export const PagesListPage: React.FC<PagesListPageProps> = ({ onPageSelect }) =>
                 onCancel={() => setPageToDelete(null)}
             />
 
-            {contextMenu && (
-                <ContextMenu
-                    x={contextMenu.x}
-                    y={contextMenu.y}
-                    onClose={() => setContextMenu(null)}
-                    items={[
-                        {
-                            label: isBackendMode ? 'Save to Local' : 'Sync to Cloud',
-                            onClick: async () => {
-                                const action = isBackendMode ? 'Save to Local' : 'Upload to Cloud';
-                                const msg = isBackendMode
-                                    ? 'Save this page to Local Storage? This will overwrite the local copy with the current cloud version.'
-                                    : 'Upload this page to Cloud Storage? Current content will overwrite cloud version.';
 
-                                if (window.confirm(msg)) {
-                                    try {
-                                        if (isBackendMode) {
-                                            await syncToLocal(contextMenu.pageId);
-                                        } else {
-                                            await syncToCloud(contextMenu.pageId);
-                                        }
-                                        alert(`${action} successful!`);
-                                    } catch (e: any) {
-                                        alert(`${action} failed: ` + e.message);
-                                    }
-                                }
-                            },
-                            icon: (
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={isBackendMode
-                                        ? "M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" // Download icon
-                                        : "M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" // Cloud Upload icon
-                                    } />
-                                </svg>
-                            )
-                        }
-                    ]}
-                />
-            )}
         </div>
     );
 };

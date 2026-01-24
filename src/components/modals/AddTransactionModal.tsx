@@ -4,7 +4,7 @@ import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { DatePicker } from '../ui/DatePicker';
 import { Dropdown } from '../ui/Dropdown';
-import type { TransactionType, TransactionCategory, FinanceTransaction } from '../../types/finance';
+import type { TransactionType, TransactionCategory, FinanceTransaction, Wallet } from '../../types/finance';
 
 interface AddTransactionModalProps {
     isOpen: boolean;
@@ -15,10 +15,13 @@ interface AddTransactionModalProps {
         category: TransactionCategory;
         description?: string;
         date: Date;
+        walletId?: string;
     }) => Promise<void>;
     initialData?: FinanceTransaction;
     mode?: 'create' | 'edit';
     onDelete?: () => Promise<void>;
+    wallets?: Wallet[];
+    defaultWalletId?: string;
 }
 
 const INCOME_CATEGORIES: TransactionCategory[] = [
@@ -46,32 +49,40 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
     onSubmit,
     initialData,
     mode = 'create',
-    onDelete
+    onDelete,
+    wallets = [],
+    defaultWalletId
 }) => {
     const [type, setType] = useState<TransactionType>('expense');
     const [amount, setAmount] = useState('');
     const [category, setCategory] = useState<TransactionCategory>('Food & Dining');
     const [description, setDescription] = useState('');
     const [date, setDate] = useState(new Date());
+    const [walletId, setWalletId] = useState<string>(defaultWalletId || '');
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [isCategoryOpen, setIsCategoryOpen] = useState(false);
+    const [isWalletOpen, setIsWalletOpen] = useState(false);
     const [error, setError] = useState('');
     const bottomRef = React.useRef<HTMLDivElement>(null);
 
     // Auto-scroll logic
     useEffect(() => {
-        if ((showDatePicker || isCategoryOpen) && bottomRef.current) {
+        if ((showDatePicker || isCategoryOpen || isWalletOpen) && bottomRef.current) {
             setTimeout(() => {
                 bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             }, 300);
         }
-    }, [showDatePicker, isCategoryOpen]);
+    }, [showDatePicker, isCategoryOpen, isWalletOpen]);
 
     // Initialize State based on Mode
+    const prevIsOpen = React.useRef(isOpen);
+
+    // Initialize State based on Mode - Only on OPEN
     useEffect(() => {
-        if (isOpen) {
+        // Only run logic when isOpen transitions from false -> true
+        if (isOpen && !prevIsOpen.current) {
             setError('');
             if (mode === 'edit' && initialData) {
                 setType(initialData.type);
@@ -86,24 +97,24 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                 setCategory('Food & Dining');
                 setDescription('');
                 setDate(new Date());
+                setWalletId(defaultWalletId || (wallets.length > 0 ? wallets[0].id : ''));
             }
         }
-    }, [isOpen, initialData, mode]);
+        prevIsOpen.current = isOpen;
+    }, [isOpen, initialData, mode, defaultWalletId, wallets]);
 
     const categories = type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
 
-    // Update category saat type berubah
-    useEffect(() => {
-        if (!isOpen) return;
+    // Handle Type Change synchronously to prevent layout shift (jedag jedug)
+    const handleTypeChange = (newType: TransactionType) => {
+        if (type === newType) return;
 
-        const isCurrentCategoryValid = type === 'income'
-            ? INCOME_CATEGORIES.includes(category)
-            : EXPENSE_CATEGORIES.includes(category);
-
-        if (!isCurrentCategoryValid) {
-            setCategory(type === 'income' ? 'Salary' : 'Food & Dining');
-        }
-    }, [type, isOpen]);
+        setType(newType);
+        // Reset category immediately to valid default
+        // This ensures no intermediate render with invalid category (e.g. Income + Food & Dining)
+        // which could cause height changes/wrapping issues on mobile.
+        setCategory(newType === 'income' ? 'Salary' : 'Food & Dining');
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -128,6 +139,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                 category,
                 description: description.trim() || undefined,
                 date,
+                walletId: wallets.length > 0 ? walletId : undefined
             });
             onClose();
         } catch (err) {
@@ -208,6 +220,19 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                         </div>
                     )}
 
+                    {/* Wallet Selection (If wallets provided and > 1 or forced) */}
+                    {wallets.length > 0 && mode === 'create' && (
+                        <Dropdown
+                            label="Wallet"
+                            options={wallets.map(w => ({ value: w.id, label: w.title }))}
+                            value={walletId}
+                            onChange={(val) => setWalletId(val)}
+                            open={isWalletOpen}
+                            onOpenChange={setIsWalletOpen}
+                            placeholder="Select Wallet"
+                        />
+                    )}
+
                     {/* Type Selection - Segmented Control */}
                     <div>
                         <label className="block text-sm font-medium text-text-neutral dark:text-text-primary mb-2">
@@ -216,9 +241,9 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                         <div className="inline-flex bg-gray-100 dark:bg-primary/10 rounded-lg p-1 w-full">
                             <button
                                 type="button"
-                                onClick={() => setType('income')}
+                                onClick={() => handleTypeChange('income')}
                                 className={`
-                                flex-1 py-2 px-4 rounded-md font-medium transition-all text-sm
+                                flex-1 py-2 px-4 rounded-md font-medium transition-colors text-sm
                                 ${type === 'income'
                                         ? 'bg-white dark:bg-secondary shadow-sm text-text-neutral dark:text-text-primary'
                                         : 'text-text-neutral/60 dark:text-text-secondary hover:text-text-neutral dark:hover:text-text-primary'
@@ -234,9 +259,9 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                             </button>
                             <button
                                 type="button"
-                                onClick={() => setType('expense')}
+                                onClick={() => handleTypeChange('expense')}
                                 className={`
-                                flex-1 py-2 px-4 rounded-md font-medium transition-all text-sm
+                                flex-1 py-2 px-4 rounded-md font-medium transition-colors text-sm
                                 ${type === 'expense'
                                         ? 'bg-white dark:bg-secondary shadow-sm text-text-neutral dark:text-text-primary'
                                         : 'text-text-neutral/60 dark:text-text-secondary hover:text-text-neutral dark:hover:text-text-primary'
