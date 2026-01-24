@@ -172,8 +172,11 @@ class SyncManager {
             // Safe approach: Inject if not present.
             // Note: Dexie schema might not have userId.
             // We check key existence or just inject?
-            // Checking specific tables is safer.
-            if (['budgets', 'budgetAssignments'].includes(dexieTable as string)) {
+            // Inject User ID if missing and assumed needed
+            // Updated: All user-data tables generally need userId for ownership in Supabase
+            const tablesNeedingUserId = ['wallets', 'finance', 'budgets', 'budgetAssignments', 'schedules', 'pages', 'blocks'];
+
+            if (tablesNeedingUserId.includes(dexieTable as string)) {
                 if (!payload.userId) payload.userId = userId;
             }
 

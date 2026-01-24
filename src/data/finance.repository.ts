@@ -41,6 +41,7 @@ interface FinanceRepo {
     // --- TRANSACTIONS ---
     getAll(walletId?: string): Promise<FinanceTransaction[]>;
     getById(id: string): Promise<FinanceTransaction | undefined>;
+    getTransactionsByIds(ids: string[]): Promise<FinanceTransaction[]>;
     create(input: CreateTransactionInput): Promise<FinanceTransaction>;
     update(id: string, input: UpdateTransactionInput): Promise<FinanceTransaction | undefined>;
     delete(id: string): Promise<void>;
@@ -138,6 +139,11 @@ export const financeRepository: FinanceRepo = {
 
     async getById(id: string): Promise<FinanceTransaction | undefined> {
         return await db.finance.get(id);
+    },
+
+    async getTransactionsByIds(ids: string[]): Promise<FinanceTransaction[]> {
+        const transactions = await db.finance.bulkGet(ids);
+        return transactions.filter((t): t is FinanceTransaction => !!t);
     },
 
     async create(input: CreateTransactionInput): Promise<FinanceTransaction> {

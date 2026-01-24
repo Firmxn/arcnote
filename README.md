@@ -2,12 +2,12 @@
 
 **ArcNote** adalah aplikasi produktivitas personal yang menggabungkan catatan berbasis blok (**block-based**), manajemen jadwal, dan pelacak keuangan dalam satu platform yang ringan, cepat, dan mengutamakan privasi.
 
-Aplikasi ini menggunakan pendekatan **Hybrid Storage**: Anda dapat menggunakan ArcNote secara penuh secara **offline** di penyimpanan lokal browser, atau mengaktifkan **Cloud Sync** untuk sinkronisasi antar perangkat yang aman.
+Aplikasi ini menggunakan pendekatan **Local-First Architecture**: Semua data tersimpan di perangkat Anda (IndexedDB) dan bekerja 100% offline. Sinkronisasi ke Cloud (Supabase) berjalan otomatis di latar belakang saat online.
 
 ---
 
 ## 🚀 Vision
-> *"A privacy-first, hybrid-storage productivity hub that empowers personal organization without compromising data ownership."*
+> *"A privacy-first, local-first productivity hub that empowers personal organization with seamless cloud synchronization."*
 
 ---
 
@@ -28,16 +28,17 @@ Aplikasi ini menggunakan pendekatan **Hybrid Storage**: Anda dapat menggunakan A
 -   **Transaction Tracking**: Catat pemasukan dan pengeluaran dengan kategori dan label.
 -   **Balance Overview**: Pantau total saldo Anda secara real-time.
 
-### 4. 🔄 Hybrid Storage & Sync
--   **Offline-first**: Semua data secara default disimpan di IndexedDB (Local Storage) perangkat Anda.
--   **Cloud Mode**: Integrasi opsional dengan **Supabase** untuk sinkronisasi data antar perangkat.
--   **Google Authentication**: Masuk dengan mudah dan aman menggunakan akun Google.
--   **Bidirectional Sync**: 
-    -   **Sync to Cloud**: Unggah data lokal Anda ke cloud saat online.
-    -   **Save to Local**: Unduh dan simpan data cloud Anda ke penyimpanan lokal untuk akses offline.
--   **Android & PWA Ready**: 
-    -   **Native Android App**: Build native APK via Capacitor.
-    -   **PWA**: Installable on any device, fully offline capable.
+### 4. 🔄 Local-First & Auto Sync
+-   **Offline by Default**: Data tersimpan aman di **Dexie.js (IndexedDB)**. Aplikasi instan dan responsif tanpa loading jaringan.
+-   **Background Sync**: **Sync Engine** otomatis menyinkronkan perubahan lokal ke **Supabase** saat koneksi tersedia.
+-   **Conflict Resolution**: Menangani perubahan offline dengan cerdas menggunakan sistem antrian (Sync Queue).
+-   **Google Authentication**: Login aman untuk mengaktifkan fitur sinkronisasi cloud.
+-   **Cross-Platform**: Data tersinkronisasi realtime antara Desktop, Web, dan Mobile.
+
+### 5. 📱 Android & PWA Ready
+-   **Native Android App**: Build native APK via **Capacitor v6**.
+-   **Live Reload**: Debugging Android real-time dengan hot-reload via PC.
+-   **PWA**: Installable on any device, fully offline capable.
 
 ---
 
@@ -46,7 +47,7 @@ Aplikasi ini menggunakan pendekatan **Hybrid Storage**: Anda dapat menggunakan A
 | Komponen | Teknologi |
 | :--- | :--- |
 | **Frontend** | React 18, Vite 7, TypeScript |
-| **Mobile** | Capacitor v8 (Native Android), PWA |
+| **Mobile** | Capacitor v6 (Native Android), PWA |
 | **Styling** | Tailwind CSS v4 |
 | **Editor** | Tiptap v3 (Prosemirror-based) |
 | **Local DB** | Dexie.js (IndexedDB) |
@@ -92,6 +93,27 @@ Aplikasi ini menggunakan pendekatan **Hybrid Storage**: Anda dapat menggunakan A
     ```bash
     npm run dev
     ```
+
+### Mobile Development (Android Live Reload)
+1.  Pastikan PC dan HP dalam satu jaringan Wifi.
+2.  Jalankan dev server dengan host ip:
+    ```bash
+    npm run dev -- --host
+    ```
+3.  Cek IP PC Anda (misal: `192.168.1.5`).
+4.  Update `capacitor.config.ts`:
+    ```ts
+    server: {
+        url: 'http://192.168.1.5:5173', // Ganti dengan IP PC Anda
+        cleartext: true
+    }
+    ```
+5.  Sync & Build:
+    ```bash
+    npx cap sync
+    npx cap open android
+    ```
+    *(Atau run langsung dari Android Studio)*
 
 ---
 

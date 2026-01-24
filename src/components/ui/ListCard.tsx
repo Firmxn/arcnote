@@ -96,10 +96,12 @@ export const ListCard: React.FC<ListCardProps> = ({
         >
             {/* Left: Icon + Text */}
             <div className="flex items-center gap-3 flex-1 min-w-0">
-                {/* Icon */}
-                <div className={`w-10 h-10 flex items-center justify-center shrink-0 ${containerStyle}`}>
-                    {icon}
-                </div>
+                {/* Icon - Only render if icon prop exists */}
+                {icon && (
+                    <div className={`w-10 h-10 flex items-center justify-center shrink-0 ${containerStyle}`}>
+                        {icon}
+                    </div>
+                )}
 
                 {/* Text Content */}
                 <div className="flex-1 min-w-0">

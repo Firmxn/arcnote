@@ -5,6 +5,7 @@ import dayjs from 'dayjs';
 import type { ScheduleEvent } from '../../types/schedule';
 import { EventCard } from '../ui/EventCard';
 import { SwipeableItem } from '../ui/SwipeableItem';
+import { EmptyState } from '../ui/EmptyState';
 
 interface ScheduleMobileViewProps {
     selectedDate: dayjs.Dayjs;
@@ -180,16 +181,13 @@ export const ScheduleMobileView: React.FC<ScheduleMobileViewProps> = ({
                 onScroll={handleScroll}
             >
                 {dayEvents.length === 0 ? (
-                    <div className="flex-1 flex flex-col items-center justify-center text-center pb-20">
-                        <div className="text-6xl mb-4">
-                            🗓️
-                        </div>
-                        <h3 className="text-xl font-semibold text-text-neutral dark:text-text-primary mb-2">
-                            No events for this day
-                        </h3>
-                        <p className="text-text-neutral/60 dark:text-text-secondary cursor-pointer" onClick={() => onDateClick(selectedDate)}>
-                            Tap + to add an event
-                        </p>
+                    <div className="flex-1 flex flex-col items-center justify-center pb-20">
+                        <EmptyState
+                            icon="🗓️"
+                            iconSize="lg"
+                            title="No events for this day"
+                            description="Tap + to add an event"
+                        />
                     </div>
                 ) : (
                     <div className="space-y-6">

@@ -64,46 +64,25 @@ const ScheduleWithNav = () => {
 };
 
 function App() {
-  // Auth State
-  const { user, initialize: initAuth, isLoading: isAuthLoading } = useAuthStore();
+  // Auth State (for cloud sync only)
+  const { initialize: initAuth } = useAuthStore();
 
   // Data State
   const { loadPages } = usePagesStore();
   const { loadEvents } = useSchedulesStore();
   const { loadWallets } = useFinanceStore();
 
-  const isBackend = localStorage.getItem('arcnote_storage_preference') === 'backend';
-
-  // Initialize Auth
+  // Initialize Auth (for cloud sync)
   useEffect(() => {
     initAuth();
   }, [initAuth]);
 
-  // Load Data only when ready
+  // Load Data - Always load from local (local-first architecture)
   useEffect(() => {
-    // If backend, wait for user. If local, load immediately.
-    const canLoad = !isBackend || (isBackend && user);
-
-    if (canLoad) {
-      loadPages();
-      loadEvents();
-      loadWallets();
-    }
-  }, [loadPages, loadEvents, loadWallets, user, isBackend]);
-
-  // Auth Guard for Backend Mode
-  if (isBackend) {
-    if (isAuthLoading) {
-      return (
-        <div className="h-screen w-full flex items-center justify-center bg-primary text-white">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-brand"></div>
-        </div>
-      );
-    }
-    if (!user) {
-      return <LoginPage />;
-    }
-  }
+    loadPages();
+    loadEvents();
+    loadWallets();
+  }, [loadPages, loadEvents, loadWallets]);
 
   return (
     <Routes>
@@ -126,6 +105,9 @@ function App() {
         <Route path="/page/:pageId" element={<EditorRoute />} />
         <Route path="*" element={<div className="p-10 dark:text-white">404 Not Found</div>} />
       </Route>
+
+      {/* Login Route (outside MainLayout) */}
+      <Route path="/login" element={<LoginPage />} />
     </Routes>
   );
 }

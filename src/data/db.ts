@@ -138,6 +138,11 @@ export class ArcNoteDatabase extends Dexie {
                 });
             }
         });
+
+        // Version 11: Add compound index for budgetAssignments unique check
+        this.version(11).stores({
+            budgetAssignments: 'id, budgetId, transactionId, [budgetId+transactionId], syncStatus, createdAt'
+        });
     }
 }
 
