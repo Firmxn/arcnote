@@ -10,6 +10,7 @@ import type { FinanceTransaction } from '../../../types/finance';
 import { formatCurrency, formatCurrencyCompact } from '../../../utils/currency';
 import { FAB } from '../../ui/FAB';
 import { MiniFAB } from '../../ui/MiniFAB';
+import { PageHeader } from '../../ui/PageHeader';
 import { ListCard } from '../../ui/ListCard';
 
 export const WalletDetailPage: React.FC = () => {
@@ -22,6 +23,7 @@ export const WalletDetailPage: React.FC = () => {
         deleteTransaction,
         wallets,
         balances,
+        loadBalances,
         transferBetweenWallets,
         isLoading
     } = useFinanceStore();
@@ -92,38 +94,35 @@ export const WalletDetailPage: React.FC = () => {
         >
             <div className="max-w-7xl mx-auto px-4 md:px-8 py-6 md:py-12 pb-[100px] md:pb-12">
                 {/* Header with Back Button */}
-                <div className="flex items-center gap-3 md:gap-4 mb-6 md:mb-8">
-                    <button
-                        onClick={() => navigate('/finance')}
-                        className="p-2 -ml-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-text-neutral dark:text-text-secondary transition-colors"
-                        title="Back to wallets"
-                    >
-                        <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                        </svg>
-                    </button>
-                    <div>
-                        <h1 className="text-2xl md:text-3xl font-bold text-text-neutral dark:text-text-primary mb-1">
-                            {currentWallet?.title || 'Finance Tracker'}
-                        </h1>
-                        <p className="text-sm md:text-base text-text-neutral/60 dark:text-text-secondary">
-                            {currentWallet?.description || 'Track your income and expenses'}
-                        </p>
-                    </div>
-
-                    {/* Transfer Button */}
-                    {wallets.filter(w => !w.isArchived).length > 1 && (
+                <PageHeader
+                    title={currentWallet?.title || 'Finance Tracker'}
+                    description={currentWallet?.description || 'Track your income and expenses'}
+                    className="md:mb-8"
+                    leading={
                         <button
-                            onClick={() => setIsTransferModalOpen(true)}
-                            className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-text-neutral dark:text-text-secondary transition-colors"
-                            title="Transfer ke wallet lain"
+                            onClick={() => navigate('/finance')}
+                            className="p-2 -ml-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-text-neutral dark:text-text-secondary transition-colors"
+                            title="Back to wallets"
                         >
                             <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                             </svg>
                         </button>
-                    )}
-                </div>
+                    }
+                    trailing={
+                        wallets.filter(w => !w.isArchived).length > 1 && (
+                            <button
+                                onClick={() => setIsTransferModalOpen(true)}
+                                className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-text-neutral dark:text-text-secondary transition-colors"
+                                title="Transfer ke wallet lain"
+                            >
+                                <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                                </svg>
+                            </button>
+                        )
+                    }
+                />
 
                 {/* Combined Balance & Summary Card */}
                 {summary && (
@@ -361,12 +360,14 @@ export const WalletDetailPage: React.FC = () => {
                     onNavigateToWallet={(walletId) => {
                         navigate(`/finance/${walletId}`);
                     }}
-                    onDelete={async () => {
+                    onCancel={async () => {
                         // Delete kedua transaksi (current dan linked)
                         await deleteTransaction(selectedTransaction.id);
                         if (selectedTransaction.linkedTransactionId) {
                             await deleteTransaction(selectedTransaction.linkedTransactionId);
                         }
+                        // PENTING: Reload balances untuk mengembalikan saldo
+                        await loadBalances();
                     }}
                 />
             )}

@@ -3,11 +3,15 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { BottomNav } from './BottomNav';
 import { usePagesStore } from '../../state/pages.store';
+import { useSync } from '../../hooks/useSync';
 
 export const MainLayout: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { createPage, setCurrentPage } = usePagesStore();
+
+    // Initialize Global Sync
+    useSync();
 
     // Mapping URL path to ViewState for navigation highlighting
     const getCurrentView = () => {

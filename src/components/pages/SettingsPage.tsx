@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../hooks/useTheme';
+import { supabase } from '../../data/supabase';
+import { PageHeader } from '../ui/PageHeader';
 
 export const SettingsPage: React.FC = () => {
     // State untuk storage mode (nanti bisa dipindah ke global store/context)
@@ -26,14 +28,12 @@ export const SettingsPage: React.FC = () => {
         <div className="h-full w-full overflow-y-auto bg-neutral dark:bg-primary flex flex-col [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
             <div className="max-w-7xl w-full mx-auto px-4 md:px-8 py-6 md:py-12 flex-1 flex flex-col">
                 {/* Header */}
-                <div className="mb-6 md:mb-8 shrink-0">
-                    <h1 className="text-2xl md:text-3xl font-bold text-text-neutral dark:text-text-primary mb-2">
-                        Settings
-                    </h1>
-                    <p className="text-sm md:text-base text-text-neutral/60 dark:text-text-secondary">
-                        Manage your application preferences
-                    </p>
-                </div>
+                {/* Header */}
+                <PageHeader
+                    title="Settings"
+                    description="Manage your application preferences"
+                    className="md:mb-8 shrink-0"
+                />
 
                 {/* Content */}
                 <div className="max-w-3xl space-y-4">
@@ -131,6 +131,29 @@ export const SettingsPage: React.FC = () => {
                                 : "Your data is stored only on this device (Browser Storage)."}
                         </p>
                     </div>
+
+                    {/* Account Section */}
+                    {useBackend && (
+                        <div className="bg-white dark:bg-primary/5 rounded-lg border border-secondary/20 p-6 shadow-sm">
+                            <h2 className="text-lg font-semibold text-text-neutral dark:text-text-primary mb-4">Account</h2>
+
+                            <button
+                                onClick={async () => {
+                                    if (confirm('Are you sure you want to logout?')) {
+                                        await supabase.auth.signOut();
+                                        localStorage.setItem('arcnote_storage_preference', 'local');
+                                        window.location.reload();
+                                    }
+                                }}
+                                className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-red-500 hover:bg-red-600 text-white font-medium rounded-lg transition-colors"
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                                </svg>
+                                Logout
+                            </button>
+                        </div>
+                    )}
 
                     {/* Info Section */}
                     <div className="p-4 bg-accent/10 rounded-lg border border-accent/20">

@@ -9,6 +9,8 @@ import { SchedulePage } from './components/pages/SchedulePage';
 import { DashboardPage } from './components/pages/finance/DashboardPage';
 import { WalletsPage } from './components/pages/finance/WalletsPage';
 import { WalletDetailRoute } from './components/pages/finance/WalletDetailRoute';
+import BudgetsPage from './components/pages/finance/BudgetsPage';
+import BudgetDetailPage from './components/pages/finance/BudgetDetailPage';
 import { EditorRoute } from './components/pages/EditorRoute';
 import { LoginPage } from './components/pages/LoginPage';
 import { usePagesStore } from './state/pages.store';
@@ -115,6 +117,8 @@ function App() {
         <Route path="/finance">
           <Route index element={<DashboardPage />} />
           <Route path="wallets" element={<WalletsPage />} />
+          <Route path="budgets" element={<BudgetsPage />} />
+          <Route path="budgets/:id" element={<BudgetDetailPage />} />
           <Route path=":walletId" element={<WalletDetailRoute />} />
         </Route>
 
