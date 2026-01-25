@@ -255,13 +255,40 @@ export const financeRepository: FinanceRepo = {
             transactions = await db.finance.toArray();
         }
 
+        // Hitung total dengan logika berbeda untuk Global vs Per-Wallet
+        const isGlobal = !walletId;
+
         const totalIncome = transactions
             .filter(t => t.type === 'income')
+            // Jika global summary, jangan hitung Transfer In sbg Income stat
+            .filter(t => isGlobal ? t.category !== 'Transfer In' : true)
             .reduce((sum, t) => sum + t.amount, 0);
 
         const totalExpense = transactions
             .filter(t => t.type === 'expense')
+            // Jika global summary, jangan hitung Transfer Out sbg Expense stat
+            .filter(t => isGlobal ? t.category !== 'Transfer Out' : true)
             .reduce((sum, t) => sum + t.amount, 0);
+
+        // Untuk Balance Real: KITA HARUS MENGHITUNG TRANSFER
+        // Karena saldo fisik di dompet bertambah/berkurang karena transfer.
+        // Tapi... tunggu. Untuk Global Balance:
+        // Income Real - Expense Real = Net Change Real.
+        // Transfer In (X) - Transfer Out (X) = 0.
+        // Jadi Balance tidak terpengaruh jika kita exclude keduanya.
+        // Kecuali... ada transfer antar user (belum support) atau transfer ke 'Other' yang tak terlacak.
+        // Asumsi current system: Transfer selalu in-pair didalam system.
+
+        // Tapi untuk amannya, Balance sebaiknya dihitung dari (IncomeAll - ExpenseAll) 
+        // ATAU... Balance adalah penjumlahan saldo semua wallet.
+
+        // Mari kita stick dengan definisi:
+        // Summary.totalIncome -> Statistik Pemasukan Murni
+        // Summary.totalExpense -> Statistik Pengeluaran Murni
+        // Summary.balance -> Sisa uang (Net Worth)
+
+        // Jika kita exclude transfer dari kedua sisi, Balance (Income-Expense) tetap VALID
+        // karena +X dan -X dihilangkan.
 
         return {
             totalIncome,
