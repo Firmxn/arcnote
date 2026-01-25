@@ -14,7 +14,7 @@ interface SchedulesState {
     markEventAsVisited: (id: string) => Promise<void>;
     archiveEvent: (id: string) => Promise<void>;
     restoreEvent: (id: string) => Promise<void>;
-
+    resetState: () => void;
 }
 
 export const useSchedulesStore = create<SchedulesState>((set, get) => ({
@@ -90,4 +90,11 @@ export const useSchedulesStore = create<SchedulesState>((set, get) => ({
     },
 
 
+    resetState: () => {
+        set({
+            events: [],
+            isLoading: false,
+            error: null
+        });
+    }
 }));

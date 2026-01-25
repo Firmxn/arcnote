@@ -22,6 +22,7 @@ interface PagesState {
     markPageAsVisited: (id: string) => Promise<void>;
     archivePage: (id: string) => Promise<void>;
     restorePage: (id: string) => Promise<void>;
+    resetState: () => void;
 
 }
 
@@ -127,4 +128,12 @@ export const usePagesStore = create<PagesState>((set, get) => ({
     },
 
 
+    resetState: () => {
+        set({
+            pages: [],
+            currentPage: null,
+            isLoading: false,
+            error: null
+        });
+    }
 }));

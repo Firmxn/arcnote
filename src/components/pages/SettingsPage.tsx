@@ -7,13 +7,13 @@ import { useNavigate } from 'react-router-dom';
 
 export const SettingsPage: React.FC = () => {
     const { theme, toggleTheme } = useTheme();
-    const { user } = useAuthStore();
+    const { user, signOut } = useAuthStore();
     const navigate = useNavigate();
 
     const handleLogout = async () => {
         if (confirm('Are you sure you want to logout?')) {
-            await supabase.auth.signOut();
-            // Data tetap tersimpan di local, hanya sync yang dimatikan
+            await signOut();
+            navigate('/');
         }
     };
 
