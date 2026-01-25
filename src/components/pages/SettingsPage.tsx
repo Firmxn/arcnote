@@ -2,6 +2,7 @@ import React from 'react';
 import { useTheme } from '../../hooks/useTheme';
 
 import { PageHeader } from '../ui/PageHeader';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { useAuthStore } from '../../state/auth.store';
 import { useNavigate } from 'react-router-dom';
 
@@ -10,11 +11,16 @@ export const SettingsPage: React.FC = () => {
     const { user, signOut } = useAuthStore();
     const navigate = useNavigate();
 
-    const handleLogout = async () => {
-        if (confirm('Are you sure you want to logout?')) {
-            await signOut();
-            navigate('/');
-        }
+    const [isLogoutDialogOpen, setIsLogoutDialogOpen] = React.useState(false);
+
+    const handleLogout = () => {
+        setIsLogoutDialogOpen(true);
+    };
+
+    const confirmLogout = async () => {
+        setIsLogoutDialogOpen(false);
+        await signOut();
+        navigate('/');
     };
 
     return (
@@ -30,6 +36,7 @@ export const SettingsPage: React.FC = () => {
                 {/* Content */}
                 <div className="space-y-4">
                     {/* Theme Section */}
+                    {/* ... (Theme UI remains same) ... */}
                     <div className="bg-white dark:bg-primary/5 rounded-lg border border-secondary/20 p-6 shadow-sm">
                         <h2 className="text-lg font-semibold text-text-neutral dark:text-text-primary mb-4">Appearance</h2>
 
@@ -155,6 +162,17 @@ export const SettingsPage: React.FC = () => {
                         </div>
                     </div>
                 </div>
+
+                {/* Logout Confirmation Dialog */}
+                <ConfirmDialog
+                    isOpen={isLogoutDialogOpen}
+                    title="Confirm Logout"
+                    message="Are you sure you want to logout? Any unsynced changes might be lost if you haven't synced recently."
+                    confirmText="Logout"
+                    type="danger"
+                    onConfirm={confirmLogout}
+                    onCancel={() => setIsLogoutDialogOpen(false)}
+                />
             </div>
         </div>
     );
