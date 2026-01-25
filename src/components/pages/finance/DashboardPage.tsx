@@ -17,6 +17,7 @@ import { ConfirmDialog } from '../../ui/ConfirmDialog';
 import { Modal } from '../../ui/Modal';
 import { Input } from '../../ui/Input';
 import BudgetModal from '../../modals/BudgetModal';
+import { EmptyStateAction } from '../../ui/EmptyStateAction'; // New Import
 import type { Wallet } from '../../../types/finance';
 
 dayjs.extend(relativeTime);
@@ -359,10 +360,7 @@ export const DashboardPage: React.FC = () => {
                                 const spent = summary?.totalSpent || 0;
                                 const remaining = summary?.remainingAmount || budget.targetAmount;
 
-                                // Load summary jika belum ada
-                                if (!summary) {
-                                    loadBudgetSummary(budget.id);
-                                }
+                                if (!summary) loadBudgetSummary(budget.id);
 
                                 const getProgressColor = () => {
                                     if (percentage >= 100) return 'bg-red-500';
@@ -396,12 +394,10 @@ export const DashboardPage: React.FC = () => {
                                                 />
                                             </div>
                                             <div className="flex justify-between items-center">
-                                                <p className={`text-xs font-medium ${percentage >= 100 ? 'text-red-600 dark:text-red-400' : 'text-text-neutral/60 dark:text-text-secondary'
-                                                    }`}>
+                                                <p className={`text-xs font-medium ${percentage >= 100 ? 'text-red-600 dark:text-red-400' : 'text-text-neutral/60 dark:text-text-secondary'}`}>
                                                     {percentage.toFixed(1)}%
                                                 </p>
-                                                <p className={`text-xs font-medium ${remaining < 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'
-                                                    }`}>
+                                                <p className={`text-xs font-medium ${remaining < 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
                                                     Sisa: {formatCurrencyCompact(remaining)}
                                                 </p>
                                             </div>
@@ -411,14 +407,11 @@ export const DashboardPage: React.FC = () => {
                             })}
                     </div>
                 ) : (
-                    <div className="text-center py-8 text-text-neutral/60 dark:text-text-secondary mb-6">
-                        <button
-                            onClick={() => setIsBudgetModalOpen(true)}
-                            className="mt-2 text-sm text-accent hover:underline"
-                        >
-                            Buat budget pertama
-                        </button>
-                    </div>
+                    <EmptyStateAction
+                        label="Buat budget pertama"
+                        onClick={() => setIsBudgetModalOpen(true)}
+                        className="mb-6"
+                    />
                 )}
 
                 {/* Recent Transactions */}
@@ -466,9 +459,10 @@ export const DashboardPage: React.FC = () => {
                         })}
                     </div>
                 ) : (
-                    <div className="text-center py-8 text-text-neutral/60 dark:text-text-secondary">
-                        <p>Belum ada transaksi</p>
-                    </div>
+                    <EmptyStateAction
+                        label="Buat transaksi pertama"
+                        onClick={() => setIsTransactionModalOpen(true)}
+                    />
                 )}
 
                 {/* Loading Overlay */}
