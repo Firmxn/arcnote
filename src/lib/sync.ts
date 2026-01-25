@@ -23,6 +23,68 @@ const TABLE_MAP: Record<string, string> = {
     blocks: 'blocks',
 };
 
+/**
+ * Field Mapping Utilities
+ * Transform field names antara Dexie (camelCase) dan Supabase (mixed case)
+ * 
+ * Supabase schema inkonsisten:
+ * - wallets, finance_transactions, pages, schedules: user_id (snake_case)
+ * - budgets, budget_assignments: userId (camelCase)
+ * - wallets: themeColor (Supabase) vs theme (Dexie)
+ */
+
+// Per-field mapping: Dexie -> Supabase (untuk Push)
+const DEXIE_TO_SUPABASE: Record<string, Record<string, string>> = {
+    wallets: { userId: 'user_id', theme: 'themeColor' },
+    finance: { userId: 'user_id' },
+    pages: { userId: 'user_id' },
+    schedules: { userId: 'user_id' },
+    blocks: { userId: 'user_id' },
+    // budgets dan budgetAssignments sudah camelCase di Supabase, tidak perlu transform
+};
+
+// Per-field mapping: Supabase -> Dexie (untuk Pull)
+const SUPABASE_TO_DEXIE: Record<string, Record<string, string>> = {
+    wallets: { user_id: 'userId', themeColor: 'theme' },
+    finance: { user_id: 'userId' },
+    pages: { user_id: 'userId' },
+    schedules: { user_id: 'userId' },
+    blocks: { user_id: 'userId' },
+    // budgets dan budgetAssignments sudah camelCase di Supabase, tidak perlu transform
+};
+
+/**
+ * Transform object keys dari Dexie format ke Supabase format
+ * @param obj - Object dari Dexie
+ * @param dexieTable - Nama table Dexie (untuk lookup mapping yang tepat)
+ */
+function toSupabasePayload(obj: Record<string, any>, dexieTable: string): Record<string, any> {
+    const mapping = DEXIE_TO_SUPABASE[dexieTable] || {};
+    const result: Record<string, any> = {};
+
+    for (const key in obj) {
+        const newKey = mapping[key] || key;
+        result[newKey] = obj[key];
+    }
+    return result;
+}
+
+/**
+ * Transform object keys dari Supabase format ke Dexie format
+ * @param obj - Object dari Supabase
+ * @param dexieTable - Nama table Dexie (untuk lookup mapping yang tepat)
+ */
+function toDexieRecord(obj: Record<string, any>, dexieTable: string): Record<string, any> {
+    const mapping = SUPABASE_TO_DEXIE[dexieTable] || {};
+    const result: Record<string, any> = {};
+
+    for (const key in obj) {
+        const newKey = mapping[key] || key;
+        result[newKey] = obj[key];
+    }
+    return result;
+}
+
 class SyncManager {
     private isSyncing = false;
 
@@ -46,18 +108,52 @@ class SyncManager {
             }
             const userId = user.id;
 
-            // 2. Push Local Changes (Upload data kotor)
+            // 2. Check User Context - Clear data jika user berbeda atau first-time login
+            const lastUserId = localStorage.getItem('arcnote_user_id');
+            if (!lastUserId || lastUserId !== userId) {
+                // First-time login atau user switch - clear data lama dan pull fresh
+                console.log(`🔄 ${!lastUserId ? 'First login' : 'User changed'}. Clearing local data...`);
+                await this.clearAllLocalData();
+                localStorage.removeItem('arcnote_last_pull'); // Reset pull timestamp
+            }
+            localStorage.setItem('arcnote_user_id', userId);
+
+            // 3. Push Local Changes (Upload data kotor)
             await this.pushChanges(userId);
 
-            // 3. Pull Cloud Changes (Download data baru)
+            // 4. Pull Cloud Changes (Download data baru)
             await this.pullChanges();
 
             console.log('✅ Sync Completed.');
+            window.dispatchEvent(new Event('arcnote:sync-completed'));
         } catch (error) {
             console.error('❌ Sync Failed:', error);
         } finally {
             this.isSyncing = false;
         }
+    }
+
+    /**
+     * Clear semua data lokal saat user switch
+     */
+    private async clearAllLocalData() {
+        const tables = ['wallets', 'finance', 'budgets', 'budgetAssignments', 'schedules', 'pages', 'blocks'];
+
+        await db.transaction('rw',
+            [db.wallets, db.finance, db.budgets, db.budgetAssignments,
+            db.schedules, db.pages, db.blocks, db.syncQueue],
+            async () => {
+                for (const tableName of tables) {
+                    const table = (db as any)[tableName];
+                    await table.clear();
+                }
+                // Clear sync queue juga
+                await db.syncQueue.clear();
+            }
+        );
+
+        console.log('✅ Local data cleared for user switch.');
+        window.dispatchEvent(new Event('arcnote:data-cleared'));
     }
 
     /**
@@ -140,11 +236,17 @@ class SyncManager {
         const table = db[dexieTable] as any; // Dynamic access
 
         // Find 'created' or 'updated' records
-        const dirtyRecords = await table
+        let dirtyRecords = await table
             .filter((r: Syncable) => r.syncStatus === 'created' || r.syncStatus === 'updated')
             .toArray();
 
         if (dirtyRecords.length === 0) return;
+
+        // Sort pages: parent pages (parentId = null) dipush terlebih dahulu
+        // Ini mencegah FK constraint violation saat child dipush sebelum parent
+        if (dexieTable === 'pages') {
+            dirtyRecords = this.sortPagesByHierarchy(dirtyRecords);
+        }
 
         const supabaseTableName = TABLE_MAP[dexieTable as string];
         if (!supabaseTableName) return;
@@ -166,37 +268,36 @@ class SyncManager {
                 }
             }
 
-            // Inject User ID if missing and assumed needed (e.g. Budget)
-            // Note: Wallets/Budgets/Pages usually need userId for RLS insertion
-            // If the table has userId column, we should inject it.
-            // Safe approach: Inject if not present.
-            // Note: Dexie schema might not have userId.
-            // We check key existence or just inject?
-            // Inject User ID if missing and assumed needed
-            // Updated: All user-data tables generally need userId for ownership in Supabase
+            // Inject User ID jika dibutuhkan (sebelum transform field names)
             const tablesNeedingUserId = ['wallets', 'finance', 'budgets', 'budgetAssignments', 'schedules', 'pages', 'blocks'];
-
             if (tablesNeedingUserId.includes(dexieTable as string)) {
                 if (!payload.userId) payload.userId = userId;
             }
 
-            // Wallets? Usually 'user_id' in supabase 'wallets' table?
-            // Let's assume RLS handles it via default? No, usually `auth.uid()`.
-            // But usually we set `user_id = auth.uid()` in trigger or we send it.
-            // Let's assume we need to send it if column exists.
-            // Supabase allows inserting payload even if column doesn't match? No.
-            // We'll assume the implementation plan: "Merge Guest Data" will handle initial ownership.
-            // Here we assume new data created by User.
-
-            return payload;
+            // Transform field names dari Dexie (camelCase) ke Supabase (snake_case)
+            return toSupabasePayload(payload, dexieTable as string);
         });
 
-        // Batch Upsert
-        const { error } = await supabase.from(supabaseTableName).upsert(payloads);
-
-        if (error) {
-            console.error(`Failed to push ${dexieTable}:`, error);
-            throw error;
+        // Untuk pages: push sequential setelah topological sort untuk menghindari FK error
+        // Untuk table lain: batch upsert
+        if (dexieTable === 'pages') {
+            // Sequential push untuk pages
+            for (const payload of payloads) {
+                const { error } = await supabase.from(supabaseTableName).upsert(payload);
+                if (error) {
+                    console.error(`Failed to push page ${payload.id}:`, error);
+                    // Skip error untuk page individual, lanjut ke page berikutnya
+                    // Ini memungkinkan parent yang sudah ada untuk ter-push dulu
+                    continue;
+                }
+            }
+        } else {
+            // Batch Upsert untuk table lain
+            const { error } = await supabase.from(supabaseTableName).upsert(payloads);
+            if (error) {
+                console.error(`Failed to push ${dexieTable}:`, error);
+                throw error;
+            }
         }
 
         // On Success: Mark as Synced
@@ -214,6 +315,44 @@ class SyncManager {
                 await table.update(r.id, { syncStatus: 'synced' });
             }
         });
+    }
+
+    /**
+     * Sort pages agar parent dipush sebelum child
+     * Mencegah FK constraint violation pada parentId
+     */
+    private sortPagesByHierarchy(pages: any[]): any[] {
+        // Topological sort: parent (parentId = null/undefined) dulu, baru child
+        const sorted: any[] = [];
+        const remaining = [...pages];
+        const pushedIds = new Set<string>();
+
+        // Loop sampai semua pages ter-sort
+        while (remaining.length > 0) {
+            let progressMade = false;
+
+            for (let i = remaining.length - 1; i >= 0; i--) {
+                const page = remaining[i];
+                const parentId = page.parentId;
+
+                // Push jika: tidak ada parent, atau parent sudah di-push/sudah ada di Supabase
+                if (!parentId || pushedIds.has(parentId)) {
+                    sorted.push(page);
+                    pushedIds.add(page.id);
+                    remaining.splice(i, 1);
+                    progressMade = true;
+                }
+            }
+
+            // Jika tidak ada progress (circular dependency atau missing parent), push sisanya
+            if (!progressMade) {
+                console.warn('Pages hierarchy: some pages have missing parents, pushing anyway');
+                sorted.push(...remaining);
+                break;
+            }
+        }
+
+        return sorted;
     }
 
     /**
@@ -243,10 +382,14 @@ class SyncManager {
 
         const table = (db as any)[dexieTable];
 
+        // Tables yang tidak punya updatedAt column, gunakan createdAt
+        const tablesWithoutUpdatedAt = ['budgetAssignments'];
+        const timestampColumn = tablesWithoutUpdatedAt.includes(dexieTable) ? 'createdAt' : 'updatedAt';
+
         const { data, error } = await supabase
             .from(supabaseTable)
             .select('*')
-            .gt('updatedAt', since); // Assuming all tables have updatedAt
+            .gt(timestampColumn, since);
 
         if (error) {
             console.error(`Failed to pull ${supabaseTable}:`, error);
@@ -259,24 +402,89 @@ class SyncManager {
 
         await db.transaction('rw', table, async () => {
             for (const row of data) {
+                // Transform field names dari Supabase ke Dexie
+                const mappedRow = toDexieRecord(row, dexieTable);
+
                 // Parse Dates
-                const localRow = { ...row };
-                if (localRow.createdAt) localRow.createdAt = new Date(localRow.createdAt);
-                if (localRow.updatedAt) localRow.updatedAt = new Date(localRow.updatedAt);
-                if (localRow.date) localRow.date = new Date(localRow.date);
-                if (localRow.endDate) localRow.endDate = new Date(localRow.endDate);
-                if (localRow.lastVisitedAt) localRow.lastVisitedAt = new Date(localRow.lastVisitedAt);
+                if (mappedRow.createdAt) mappedRow.createdAt = new Date(mappedRow.createdAt);
+                if (mappedRow.updatedAt) mappedRow.updatedAt = new Date(mappedRow.updatedAt);
+                if (mappedRow.date) mappedRow.date = new Date(mappedRow.date);
+                if (mappedRow.endDate) mappedRow.endDate = new Date(mappedRow.endDate);
+                if (mappedRow.lastVisitedAt) mappedRow.lastVisitedAt = new Date(mappedRow.lastVisitedAt);
 
                 // Set status = synced
-                localRow.syncStatus = 'synced';
+                mappedRow.syncStatus = 'synced';
 
-                // Map back generic fields if needed? 
-                // Dexie schema matches Supabase schema mostly.
-                // Just Put (Overwrite local)
-                await table.put(localRow);
+                // Put (Overwrite local)
+                await table.put(mappedRow);
             }
         });
     }
 }
 
 export const syncManager = new SyncManager();
+
+/**
+ * Helper: Clear local data untuk user switch
+ * Dipanggil dari auth store saat onAuthStateChange detect user berbeda
+ */
+export async function clearUserData(newUserId: string) {
+    const lastUserId = localStorage.getItem('arcnote_user_id');
+
+    // Jika user berbeda atau first-time login, clear data
+    if (!lastUserId || lastUserId !== newUserId) {
+        console.log(`🔄 User switch detected (${lastUserId || 'none'} → ${newUserId}). Clearing data...`);
+
+        const tables = ['wallets', 'finance', 'budgets', 'budgetAssignments', 'schedules', 'pages', 'blocks'];
+
+        await db.transaction('rw',
+            [db.wallets, db.finance, db.budgets, db.budgetAssignments,
+            db.schedules, db.pages, db.blocks, db.syncQueue],
+            async () => {
+                for (const tableName of tables) {
+                    const table = (db as any)[tableName];
+                    await table.clear();
+                }
+                await db.syncQueue.clear();
+            }
+        );
+
+        localStorage.setItem('arcnote_user_id', newUserId);
+        localStorage.removeItem('arcnote_last_pull');
+
+        console.log('✅ Local data cleared immediately.');
+        window.dispatchEvent(new Event('arcnote:data-cleared'));
+        return true; // Data was cleared
+    }
+
+    return false; // No clear needed
+}
+
+/**
+ * Helper: Clear ALL local data (untuk logout)
+ * Tidak perlu check user ID, langsung clear semua
+ */
+export async function clearAllData() {
+    console.log('��� Clearing all local data (logout)...');
+
+    const tables = ['wallets', 'finance', 'budgets', 'budgetAssignments', 'schedules', 'pages', 'blocks'];
+
+    await db.transaction('rw',
+        [db.wallets, db.finance, db.budgets, db.budgetAssignments,
+        db.schedules, db.pages, db.blocks, db.syncQueue],
+        async () => {
+            for (const tableName of tables) {
+                const table = (db as any)[tableName];
+                await table.clear();
+            }
+            await db.syncQueue.clear();
+        }
+    );
+
+    // Clear localStorage juga
+    localStorage.removeItem('arcnote_user_id');
+    localStorage.removeItem('arcnote_last_pull');
+
+    console.log('✅ All local data cleared.');
+    window.dispatchEvent(new Event('arcnote:data-cleared'));
+}

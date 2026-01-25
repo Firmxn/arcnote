@@ -10,7 +10,7 @@ import dayjs from 'dayjs';
 export const ArchivePage: React.FC = () => {
     const { pages, restorePage, deletePage, loadPages } = usePagesStore();
     const { events, restoreEvent, deleteEvent, loadEvents } = useSchedulesStore();
-    const { wallets, restoreWallet, deleteWallet, loadWallets } = useFinanceStore();
+    const { wallets, restoreWallet, permanentDeleteWallet, loadWallets } = useFinanceStore();
 
     const [activeTab, setActiveTab] = useState<'pages' | 'schedules' | 'finance'>('pages');
 
@@ -46,7 +46,7 @@ export const ArchivePage: React.FC = () => {
 
         if (itemToDelete.type === 'pages') await deletePage(itemToDelete.id);
         else if (itemToDelete.type === 'schedules') await deleteEvent(itemToDelete.id);
-        else if (itemToDelete.type === 'finance') await deleteWallet(itemToDelete.id);
+        else if (itemToDelete.type === 'finance') await permanentDeleteWallet(itemToDelete.id);
 
         setItemToDelete(null);
     };

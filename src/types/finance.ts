@@ -32,6 +32,7 @@ export interface Wallet extends Syncable {
     description?: string;
     currency: string;
     theme?: string; // Menyimpan warna hex/class
+    isMain?: boolean; // Menandai wallet utama, hanya 1 per user
     createdAt: Date;
     updatedAt: Date;
     lastVisitedAt?: Date;

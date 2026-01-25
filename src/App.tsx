@@ -13,6 +13,7 @@ import BudgetsPage from './components/pages/finance/BudgetsPage';
 import BudgetDetailPage from './components/pages/finance/BudgetDetailPage';
 import { EditorRoute } from './components/pages/EditorRoute';
 import { LoginPage } from './components/pages/LoginPage';
+import { UpdatePasswordPage } from './components/pages/UpdatePasswordPage';
 import { usePagesStore } from './state/pages.store';
 import { useSchedulesStore } from './state/schedules.store';
 import { useFinanceStore } from './state/finance.store';
@@ -70,7 +71,16 @@ function App() {
   // Data State
   const { loadPages } = usePagesStore();
   const { loadEvents } = useSchedulesStore();
-  const { loadWallets } = useFinanceStore();
+  const {
+    loadWallets,
+    loadBudgets,
+    loadTransactions,
+    loadBalances,
+    loadSummary,
+    loadGlobalSummary,
+    loadMonthlySummary,
+    loadRecentTransactions
+  } = useFinanceStore();
 
   // Initialize Auth (for cloud sync)
   useEffect(() => {
@@ -82,7 +92,45 @@ function App() {
     loadPages();
     loadEvents();
     loadWallets();
-  }, [loadPages, loadEvents, loadWallets]);
+    loadBudgets();
+  }, [loadPages, loadEvents, loadWallets, loadBudgets]);
+
+  // Listen for Sync/Clear Events
+  useEffect(() => {
+    const handleSyncCompleted = () => {
+      console.log('🔄 Reloading data from stores...');
+      loadPages();
+      loadEvents();
+      loadWallets();
+      loadBudgets();
+      loadBalances();
+
+      // Reload active view data if applicable
+      loadTransactions();
+      loadSummary();
+      loadGlobalSummary();
+      loadMonthlySummary();
+      loadRecentTransactions();
+    };
+
+    const handleDataCleared = () => {
+      console.log('🗑️ Clearing UI state...');
+      usePagesStore.getState().resetState();
+      useSchedulesStore.getState().resetState();
+      useFinanceStore.getState().resetState();
+    };
+
+    window.addEventListener('arcnote:sync-completed', handleSyncCompleted);
+    window.addEventListener('arcnote:data-cleared', handleDataCleared);
+
+    return () => {
+      window.removeEventListener('arcnote:sync-completed', handleSyncCompleted);
+      window.removeEventListener('arcnote:data-cleared', handleDataCleared);
+    };
+  }, [
+    loadPages, loadEvents, loadWallets, loadBudgets, loadBalances,
+    loadTransactions, loadSummary, loadGlobalSummary, loadMonthlySummary, loadRecentTransactions
+  ]);
 
   return (
     <Routes>
@@ -108,6 +156,7 @@ function App() {
 
       {/* Login Route (outside MainLayout) */}
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/update-password" element={<UpdatePasswordPage />} />
     </Routes>
   );
 }

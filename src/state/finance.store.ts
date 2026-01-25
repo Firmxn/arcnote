@@ -52,6 +52,7 @@ interface FinanceState {
     updateWallet: (id: string, input: UpdateWalletInput) => Promise<void>;
     selectWallet: (walletId: string) => Promise<void>;
     deleteWallet: (id: string) => Promise<void>;
+    permanentDeleteWallet: (id: string) => Promise<void>; // Delete permanent dari DB
     markWalletAsVisited: (id: string) => Promise<void>;
     archiveWallet: (id: string) => Promise<void>;
     restoreWallet: (id: string) => Promise<void>;
@@ -87,6 +88,9 @@ interface FinanceState {
     unassignTransactionFromBudget: (transactionId: string, budgetId: string) => Promise<void>;
     loadAssignmentsForBudget: (budgetId: string) => Promise<BudgetAssignment[]>;
     getAssignmentsForTransaction: (transactionId: string) => Promise<BudgetAssignment[]>;
+
+    // Reset State
+    resetState: () => void;
 }
 
 export const useFinanceStore = create<FinanceState>((set, get) => ({
@@ -123,18 +127,46 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
         try {
             let wallets = await financeRepository.getAllWallets();
 
-            // Auto-generate Main Wallet if no wallets exist (New User / Empty State)
+            // Auto-generate Main Wallet jika tidak ada wallet sama sekali
             if (wallets.length === 0) {
-                try {
-                    const mainWallet = await financeRepository.createWallet({
-                        title: 'Main Wallet',
-                        description: 'Default Wallet',
-                        currency: 'IDR'
-                    });
-                    wallets = [mainWallet];
-                } catch (createError) {
-                    console.error('Failed to auto-create main wallet', createError);
-                    // Continue with empty list if creation fails, don't block entirely
+                // Cek konteks user untuk menentukan apakah boleh buat Main Wallet
+                const lastPull = localStorage.getItem('arcnote_last_pull');
+                const userId = localStorage.getItem('arcnote_user_id');
+
+                /**
+                 * Hanya buat Main Wallet jika:
+                 * 1. User belum login (mode offline) - userId belum ada
+                 * 2. Sync sudah pernah berjalan (lastPull ada) - artinya data cloud sudah di-pull
+                 *    dan memang kosong, jadi aman untuk buat Main Wallet baru
+                 * 
+                 * Jika userId ada tapi lastPull belum ada, berarti:
+                 * - User baru login tapi sync belum selesai
+                 * - Jangan buat Main Wallet dulu, tunggu sync selesai
+                 * - Data mungkin ada di cloud dan akan di-pull
+                 */
+                const isOfflineMode = !userId;
+                const isSyncCompleted = !!lastPull;
+
+                if (isOfflineMode || isSyncCompleted) {
+                    // Cek lagi apakah sudah ada Main Wallet (double-check setelah sync)
+                    const existingMain = await financeRepository.getMainWallet();
+                    if (!existingMain) {
+                        try {
+                            const mainWallet = await financeRepository.createWallet({
+                                title: 'Main Wallet',
+                                description: 'Default Wallet',
+                                currency: 'IDR',
+                                isMain: true // Tandai sebagai main wallet
+                            });
+                            wallets = [mainWallet];
+                            console.log('✅ Auto-created Main Wallet');
+                        } catch (createError) {
+                            console.error('Failed to auto-create main wallet', createError);
+                        }
+                    }
+                } else {
+                    // User login tapi sync belum selesai - tunggu sync
+                    console.log('⏳ Waiting for sync to complete before creating Main Wallet...');
                 }
             }
 
@@ -232,9 +264,15 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
         }
     },
 
+    /**
+     * Soft Delete Wallet
+     * Wallet hanya di-archive, transaksi tetap ada untuk riwayat
+     * Gunakan permanentDeleteWallet() jika benar-benar ingin hapus
+     */
     deleteWallet: async (id: string) => {
         try {
-            await financeRepository.deleteWallet(id);
+            // Soft delete: hanya set isArchived = true
+            await financeRepository.updateWallet(id, { isArchived: true });
             const wallets = await financeRepository.getAllWallets();
             set({ wallets });
             if (get().currentWallet?.id === id) {
@@ -242,6 +280,25 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
             }
         } catch (error) {
             set({ error: 'Failed to delete wallet' });
+        }
+    },
+
+    /**
+     * Permanent Delete (Hard Delete)
+     * Menghapus wallet dan semua data terkait dari DB selamanya
+     * Hanya digunakan di Archive Page
+     */
+    permanentDeleteWallet: async (id: string) => {
+        try {
+            await financeRepository.deleteWallet(id);
+            const wallets = await financeRepository.getAllWallets();
+            set({ wallets });
+            // Jika kebetulan sedang view wallet ini (sangat jarang terjadi jika dari archive)
+            if (get().currentWallet?.id === id) {
+                set({ currentWallet: null });
+            }
+        } catch (error) {
+            set({ error: 'Failed to permanently delete wallet' });
         }
     },
 
@@ -751,7 +808,6 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
             return [];
         }
     },
-
     getAssignmentsForTransaction: async (transactionId: string) => {
         try {
             return await financeRepository.getAssignmentsForTransaction(transactionId);
@@ -759,5 +815,29 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
             console.error('Failed to load transaction assignments', error);
             return [];
         }
+    },
+
+    resetState: () => {
+        set({
+            wallets: [],
+            currentWallet: null,
+            transactions: [],
+            summary: {
+                totalIncome: 0,
+                totalExpense: 0,
+                balance: 0,
+                transactionCount: 0,
+            },
+            balances: {},
+            globalSummary: null,
+            monthlySummary: null,
+            recentTransactions: [],
+            isLoading: false,
+            error: null,
+            budgets: [],
+            budgetAssignments: [],
+            currentBudget: null,
+            budgetSummaries: {},
+        });
     },
 }));
