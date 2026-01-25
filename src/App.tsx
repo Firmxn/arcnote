@@ -13,6 +13,7 @@ import BudgetsPage from './components/pages/finance/BudgetsPage';
 import BudgetDetailPage from './components/pages/finance/BudgetDetailPage';
 import { EditorRoute } from './components/pages/EditorRoute';
 import { LoginPage } from './components/pages/LoginPage';
+import { UpdatePasswordPage } from './components/pages/UpdatePasswordPage';
 import { usePagesStore } from './state/pages.store';
 import { useSchedulesStore } from './state/schedules.store';
 import { useFinanceStore } from './state/finance.store';
@@ -155,6 +156,7 @@ function App() {
 
       {/* Login Route (outside MainLayout) */}
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/update-password" element={<UpdatePasswordPage />} />
     </Routes>
   );
 }
