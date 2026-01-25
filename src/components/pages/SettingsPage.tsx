@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTheme } from '../../hooks/useTheme';
-import { supabase } from '../../data/supabase';
+
 import { PageHeader } from '../ui/PageHeader';
 import { useAuthStore } from '../../state/auth.store';
 import { useNavigate } from 'react-router-dom';

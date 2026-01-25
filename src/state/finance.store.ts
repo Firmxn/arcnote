@@ -52,6 +52,7 @@ interface FinanceState {
     updateWallet: (id: string, input: UpdateWalletInput) => Promise<void>;
     selectWallet: (walletId: string) => Promise<void>;
     deleteWallet: (id: string) => Promise<void>;
+    permanentDeleteWallet: (id: string) => Promise<void>; // Delete permanent dari DB
     markWalletAsVisited: (id: string) => Promise<void>;
     archiveWallet: (id: string) => Promise<void>;
     restoreWallet: (id: string) => Promise<void>;
@@ -263,9 +264,15 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
         }
     },
 
+    /**
+     * Soft Delete Wallet
+     * Wallet hanya di-archive, transaksi tetap ada untuk riwayat
+     * Gunakan permanentDeleteWallet() jika benar-benar ingin hapus
+     */
     deleteWallet: async (id: string) => {
         try {
-            await financeRepository.deleteWallet(id);
+            // Soft delete: hanya set isArchived = true
+            await financeRepository.updateWallet(id, { isArchived: true });
             const wallets = await financeRepository.getAllWallets();
             set({ wallets });
             if (get().currentWallet?.id === id) {
@@ -273,6 +280,25 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
             }
         } catch (error) {
             set({ error: 'Failed to delete wallet' });
+        }
+    },
+
+    /**
+     * Permanent Delete (Hard Delete)
+     * Menghapus wallet dan semua data terkait dari DB selamanya
+     * Hanya digunakan di Archive Page
+     */
+    permanentDeleteWallet: async (id: string) => {
+        try {
+            await financeRepository.deleteWallet(id);
+            const wallets = await financeRepository.getAllWallets();
+            set({ wallets });
+            // Jika kebetulan sedang view wallet ini (sangat jarang terjadi jika dari archive)
+            if (get().currentWallet?.id === id) {
+                set({ currentWallet: null });
+            }
+        } catch (error) {
+            set({ error: 'Failed to permanently delete wallet' });
         }
     },
 
