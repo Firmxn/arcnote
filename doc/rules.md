@@ -21,6 +21,8 @@
 - Jangan pernah mengubah struktur direktori yang tidak diperintah.
 - terapkan konsep DRY
 - terapkan best practice struktur direktori
+- selalu menerapkan kode yang bekerja optimal dan bertahan jangka panjang daripada kode simpel
+- konsistensi gaya penulisan kode atau mekanisme yang digunakan, misalnya pada halaman A menggunakan gaya A namun halaman B menggunakan gaya B maka harus diubah menjadi gaya yang sama, karena sebenarnya halaman A dan B secara garis besar membutuhkan mekanisme yang sama
 
 ## Penerapan prompting
 - Jangan langsung implementasi setelah planning jika belum saya perintahkan

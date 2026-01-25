@@ -143,6 +143,11 @@ export class ArcNoteDatabase extends Dexie {
         this.version(11).stores({
             budgetAssignments: 'id, budgetId, transactionId, [budgetId+transactionId], syncStatus, createdAt'
         });
+
+        // Version 12: Add isMain index untuk main wallet lookup (mencegah duplikat)
+        this.version(12).stores({
+            wallets: 'id, title, isMain, isArchived, syncStatus, createdAt, updatedAt'
+        });
     }
 }
 

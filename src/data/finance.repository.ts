@@ -33,6 +33,7 @@ interface FinanceRepo {
     // --- WALLETS ---
     getAllWallets(): Promise<Wallet[]>;
     getWalletById(id: string): Promise<Wallet | undefined>;
+    getMainWallet(): Promise<Wallet | undefined>;
     createWallet(input: CreateWalletInput): Promise<Wallet>;
     updateWallet(id: string, input: UpdateWalletInput): Promise<Wallet | undefined>;
     deleteWallet(id: string): Promise<void>;
@@ -74,6 +75,22 @@ export const financeRepository: FinanceRepo = {
 
     async getWalletById(id: string): Promise<Wallet | undefined> {
         return await db.wallets.get(id);
+    },
+
+    /**
+     * Mencari Main Wallet berdasarkan flag isMain atau fallback ke title
+     * Backward compatible dengan wallet lama yang belum punya isMain
+     */
+    async getMainWallet(): Promise<Wallet | undefined> {
+        // Cari berdasarkan isMain flag (metode baru)
+        const byFlag = await db.wallets.filter(w => w.isMain === true).first();
+        if (byFlag) return byFlag;
+
+        // Fallback: cari berdasarkan title "Main Wallet" (backward compat)
+        const byTitle = await db.wallets
+            .filter(w => w.title === 'Main Wallet')
+            .first();
+        return byTitle;
     },
 
     async createWallet(input: CreateWalletInput): Promise<Wallet> {
