@@ -278,7 +278,7 @@ export const DashboardPage: React.FC = () => {
                         </svg>
                     }
                 />
-                <div className="flex gap-3 overflow-x-auto pb-4 mb-6 -mx-4 px-4 scrollbar-hide snap-x">
+                <div className="flex gap-3 overflow-x-auto pb-4 mb-6 -mx-4 px-4 scrollbar-hide snap-x scroll-px-4">
                     {/* Add Wallet Button - Landscape */}
                     <button
                         onClick={() => setIsCreateWalletModalOpen(true)}
@@ -426,7 +426,7 @@ export const DashboardPage: React.FC = () => {
                 />
                 {recentTransactions.length > 0 ? (
                     <div className="space-y-2">
-                        {recentTransactions.map(tx => {
+                        {recentTransactions.slice(0, 5).map(tx => {
                             const wallet = wallets.find(w => w.id === tx.walletId);
                             return (
                                 <ListCard

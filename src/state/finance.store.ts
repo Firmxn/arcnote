@@ -88,6 +88,7 @@ interface FinanceState {
     unassignTransactionFromBudget: (transactionId: string, budgetId: string) => Promise<void>;
     loadAssignmentsForBudget: (budgetId: string) => Promise<BudgetAssignment[]>;
     getAssignmentsForTransaction: (transactionId: string) => Promise<BudgetAssignment[]>;
+    clearBudgetAssignments: () => void;
 
     // Reset State
     resetState: () => void;
@@ -816,6 +817,9 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
             console.error('Failed to load transaction assignments', error);
             return [];
         }
+    },
+    clearBudgetAssignments: () => {
+        set({ budgetAssignments: [] });
     },
 
     resetState: () => {
