@@ -54,10 +54,23 @@ export default function AssignTransactionModal({ isOpen, onClose, budgetId }: As
                 // Filter expense transactions locally
                 const expenseTxs = txs.filter(tx => tx.type === 'expense');
 
-                // Sort by date desc
-                expenseTxs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                // Filter out transactions that are already assigned to THIS budget
+                const { getAssignmentsForTransaction } = useFinanceStore.getState();
+                const unassignedTxs: FinanceTransaction[] = [];
 
-                setLoadedTransactions(expenseTxs);
+                for (const tx of expenseTxs) {
+                    const assignments = await getAssignmentsForTransaction(tx.id);
+                    // Hanya tampilkan jika belum di-assign ke budget ini
+                    const isAssignedToThisBudget = assignments.some(a => a.budgetId === budgetId);
+                    if (!isAssignedToThisBudget) {
+                        unassignedTxs.push(tx);
+                    }
+                }
+
+                // Sort by date desc
+                unassignedTxs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+                setLoadedTransactions(unassignedTxs);
             } catch (error) {
                 console.error('Failed to load wallet transactions', error);
                 setLoadedTransactions([]);
@@ -67,7 +80,7 @@ export default function AssignTransactionModal({ isOpen, onClose, budgetId }: As
         };
 
         loadWalletTransactions();
-    }, [selectedWalletId]);
+    }, [selectedWalletId, budgetId]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();

@@ -12,6 +12,7 @@ import { FAB } from '../../ui/FAB';
 import { MiniFAB } from '../../ui/MiniFAB';
 import { PageHeader } from '../../ui/PageHeader';
 import { ListCard } from '../../ui/ListCard';
+import { EmptyStateAction } from '../../ui/EmptyStateAction';
 
 export const WalletDetailPage: React.FC = () => {
     const {
@@ -260,19 +261,11 @@ export const WalletDetailPage: React.FC = () => {
                             <p className="text-text-neutral/60 dark:text-text-secondary">Loading...</p>
                         </div>
                     ) : filteredTransactions.length === 0 ? (
-                        <div className="text-center py-20">
-                            <div className="text-6xl mb-4">💸</div>
-                            <h3 className="text-xl font-semibold text-text-neutral dark:text-text-primary mb-2">
-                                No transactions yet
-                            </h3>
-                            <p className="text-text-neutral/60 dark:text-text-secondary mb-4">
-                                Start tracking your finances by adding a transaction
-                            </p>
-                            {!isMobile && (
-                                <Button variant="accent" onClick={handleAddClick}>
-                                    Add Your First Transaction
-                                </Button>
-                            )}
+                        <div className="flex items-center justify-center min-h-[400px]">
+                            <EmptyStateAction
+                                label="Add Your First Transaction"
+                                onClick={handleAddClick}
+                            />
                         </div>
                     ) : (
                         filteredTransactions.map((transaction) => (
