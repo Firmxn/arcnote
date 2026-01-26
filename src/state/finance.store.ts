@@ -417,6 +417,7 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
             ]);
             set({ isLoading: false });
         } catch (error) {
+            console.error('Failed to update transaction:', error); // Log detail error
             set({ error: 'Failed to update transaction', isLoading: false });
             throw error;
         }

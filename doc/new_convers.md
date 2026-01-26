@@ -1,3 +1,5 @@
+analisis codebase!!!
+
 baca dengan teliti dan pahami poin penting pada direktori doc dan readme.md. kemudian pastikan Anda selalu menerapkan rules.md dalam conversation saat ini. 
 
 1. mobile-first

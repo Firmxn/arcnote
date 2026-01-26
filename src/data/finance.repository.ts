@@ -191,7 +191,9 @@ export const financeRepository: FinanceRepo = {
 
     async update(id: string, input: UpdateTransactionInput): Promise<FinanceTransaction | undefined> {
         const transaction = await db.finance.get(id);
-        if (!transaction) return undefined;
+        if (!transaction) {
+            throw new Error(`Transaction with id ${id} not found`);
+        }
 
         const now = new Date();
         const updated: FinanceTransaction = {
@@ -201,20 +203,27 @@ export const financeRepository: FinanceRepo = {
             syncStatus: transaction.syncStatus === 'created' ? 'created' : 'updated',
         };
 
-        return db.transaction('rw', db.finance, db.wallets, async () => {
-            await db.finance.put(updated);
+        try {
+            return await db.transaction('rw', db.finance, db.wallets, async () => {
+                await db.finance.put(updated);
 
-            // Update wallet's updatedAt
-            const wallet = await db.wallets.get(updated.walletId);
-            if (wallet) {
-                await db.wallets.update(updated.walletId, {
-                    updatedAt: now,
-                    syncStatus: wallet.syncStatus === 'created' ? 'created' : 'updated'
-                });
-            }
+                // Update wallet's updatedAt (only if walletId is valid)
+                if (updated.walletId) {
+                    const wallet = await db.wallets.get(updated.walletId);
+                    if (wallet) {
+                        await db.wallets.update(updated.walletId, {
+                            updatedAt: now,
+                            syncStatus: wallet.syncStatus === 'created' ? 'created' : 'updated'
+                        });
+                    }
+                }
 
-            return updated;
-        });
+                return updated;
+            });
+        } catch (error) {
+            console.error('Database error in update transaction:', error);
+            throw error;
+        }
     },
 
     async delete(id: string): Promise<void> {
