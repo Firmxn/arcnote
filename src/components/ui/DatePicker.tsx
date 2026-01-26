@@ -91,6 +91,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
             setPendingDate(date);
             setConfirmMessage(`You selected ${date.format('MMM D, YYYY')}, which is in the past. Do you want to continue?`);
             setShowConfirm(true);
+            handleOpenChange(false); // Tutup calendar saat confirm dialog muncul
         } else {
             onChange(date.toDate());
             handleOpenChange(false);
@@ -100,7 +101,6 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     const handleConfirm = () => {
         if (pendingDate) {
             onChange(pendingDate.toDate());
-            handleOpenChange(false);
         }
         setShowConfirm(false);
         setPendingDate(null);

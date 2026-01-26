@@ -30,6 +30,30 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
     // Determine type based on props
     const type: DialogType = typeProp || (danger ? 'danger' : 'warning');
 
+    // Hide parent modals when this dialog is open
+    React.useEffect(() => {
+        if (!isOpen) return;
+
+        // Find modal panels (z-[210] class dari Modal.tsx)
+        const modalPanels = document.querySelectorAll('.z-\\[210\\]:not(#confirm-dialog)');
+        const originalDisplay: Map<Element, string> = new Map();
+
+        modalPanels.forEach((panel) => {
+            const htmlElement = panel as HTMLElement;
+            originalDisplay.set(panel, htmlElement.style.display);
+            htmlElement.style.display = 'none'; // Instant hide
+        });
+
+        // Restore on cleanup
+        return () => {
+            modalPanels.forEach((panel) => {
+                const htmlElement = panel as HTMLElement;
+                const original = originalDisplay.get(panel);
+                htmlElement.style.display = original || '';
+            });
+        };
+    }, [isOpen]);
+
     // Don't render if not open
     if (!isOpen) return null;
 
@@ -85,11 +109,18 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             {/* Backdrop */}
             <div
                 className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[200] animate-in fade-in duration-200"
-                onClick={onCancel}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    onCancel();
+                }}
             />
 
             {/* Dialog */}
-            <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[210] animate-in fade-in zoom-in-95 duration-200">
+            <div
+                id="confirm-dialog"
+                role="alertdialog"
+                className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[210] animate-in fade-in zoom-in-95 duration-200"
+            >
                 <div className="bg-neutral rounded-lg shadow-2xl border border-secondary/20 p-6 w-[400px] max-w-[90vw]">
                     {/* Icon */}
                     <div className="flex justify-center mb-4">
