@@ -64,7 +64,12 @@ const ScheduleWithNav = () => {
   return <SchedulePage initialEventId={eventId} />;
 };
 
+import { useBackButton } from './hooks/useBackButton';
+
 function App() {
+  // Setup Back Button Handling
+  useBackButton();
+
   // Auth State (for cloud sync only)
   const { initialize: initAuth } = useAuthStore();
 
