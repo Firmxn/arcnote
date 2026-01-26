@@ -123,7 +123,20 @@ export const financeRepository: FinanceRepo = {
 
     async deleteWallet(id: string): Promise<void> {
         return db.transaction('rw', db.wallets, db.finance, db.syncQueue, async () => {
-            // Queue Deletion
+            // 1. Queue Transactions Deletion (Avoid FK Constraint in Supabase)
+            const transactions = await db.finance.where('walletId').equals(id).toArray();
+            const transactionQueueItems = transactions.map(t => ({
+                id: t.id,
+                table: 'finance', // Use Dexie table name for mapping
+                action: 'delete' as const,
+                createdAt: new Date()
+            }));
+
+            if (transactionQueueItems.length > 0) {
+                await db.syncQueue.bulkAdd(transactionQueueItems);
+            }
+
+            // 2. Queue Wallet Deletion
             await db.syncQueue.add({
                 id,
                 table: 'wallets',
@@ -131,8 +144,11 @@ export const financeRepository: FinanceRepo = {
                 createdAt: new Date()
             });
 
-            // Local Delete (Manual Cascade)
-            await db.finance.where('walletId').equals(id).delete();
+            // 3. Local Delete (Manual Cascade)
+            // Use bulkDelete for performance if many transactions
+            if (transactions.length > 0) {
+                await db.finance.bulkDelete(transactions.map(t => t.id));
+            }
             await db.wallets.delete(id);
         });
     },
@@ -233,7 +249,7 @@ export const financeRepository: FinanceRepo = {
                 // Queue Deletion
                 await db.syncQueue.add({
                     id,
-                    table: 'finance_transactions', // Note: Table name in Supabase
+                    table: 'finance', // Use Dexie table name
                     action: 'delete',
                     createdAt: new Date()
                 });

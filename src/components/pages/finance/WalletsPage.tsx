@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useFinanceStore } from '../../../state/finance.store';
 
-import { WalletCard } from '../../ui/WalletCard';
+import { WalletCard, WALLET_THEMES } from '../../ui/WalletCard';
 import { TransferModal } from '../../modals/TransferModal';
 import { Modal } from '../../ui/Modal';
 
@@ -47,11 +47,13 @@ export const WalletsPage: React.FC = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [newWalletTitle, setNewWalletTitle] = useState('');
     const [newWalletDesc, setNewWalletDesc] = useState('');
+    const [newWalletTheme, setNewWalletTheme] = useState('blue');
 
     // Edit State
     const [editingWallet, setEditingWallet] = useState<Wallet | null>(null);
     const [editTitle, setEditTitle] = useState('');
     const [editDesc, setEditDesc] = useState('');
+    const [editTheme, setEditTheme] = useState('blue');
     const [walletToDelete, setWalletToDelete] = useState<Wallet | null>(null);
 
     const [actionSheetWallet, setActionSheetWallet] = useState<Wallet | null>(null);
@@ -72,11 +74,14 @@ export const WalletsPage: React.FC = () => {
             await createWallet({
                 title: newWalletTitle,
                 description: newWalletDesc.trim() || undefined,
-                currency: 'IDR'
+                currency: 'IDR',
+                theme: newWalletTheme
             });
             setIsCreateModalOpen(false);
             setNewWalletTitle('');
             setNewWalletDesc('');
+            setNewWalletTheme('blue');
+            setNewWalletTheme('blue');
             // Balances will auto-refresh via wallets effect
         } catch (error) {
             console.error('Failed to create wallet:', error);
@@ -99,6 +104,7 @@ export const WalletsPage: React.FC = () => {
         setEditingWallet(wallet);
         setEditTitle(wallet.title);
         setEditDesc(wallet.description || '');
+        setEditTheme(wallet.theme || 'blue');
     };
 
     const handleEditSave = async () => {
@@ -106,7 +112,8 @@ export const WalletsPage: React.FC = () => {
         try {
             await updateWallet(editingWallet.id, {
                 title: editTitle,
-                description: editDesc.trim() || undefined
+                description: editDesc.trim() || undefined,
+                theme: editTheme
             });
             setEditingWallet(null);
             setEditTitle('');
@@ -336,6 +343,7 @@ export const WalletsPage: React.FC = () => {
                                                 currency={wallet.currency}
                                                 id={wallet.id}
                                                 variant={index === 0 ? 'primary' : 'accent'}
+                                                theme={wallet.theme}
                                                 className="w-full aspect-[1.586/1]"
                                                 onClick={() => navigate(`/finance/${wallet.id}`)}
                                                 onContextMenu={(e) => {
@@ -416,6 +424,24 @@ export const WalletsPage: React.FC = () => {
                                 }}
                             />
                         </div>
+                        <div>
+                            <label className="block text-sm font-medium text-text-neutral dark:text-text-secondary mb-2">
+                                Theme Color
+                            </label>
+                            <div className="flex flex-wrap gap-2">
+                                {Object.keys(WALLET_THEMES).map((theme) => {
+                                    if (theme === 'primary' || theme === 'accent') return null; // Skip system themes
+                                    return (
+                                        <button
+                                            key={theme}
+                                            onClick={() => setNewWalletTheme(theme)}
+                                            className={`w-8 h-8 rounded-full bg-linear-to-br ${WALLET_THEMES[theme]} transition-transform ${newWalletTheme === theme ? 'ring-2 ring-offset-2 ring-accent scale-110' : 'hover:scale-105'}`}
+                                            title={theme.charAt(0).toUpperCase() + theme.slice(1)}
+                                        />
+                                    );
+                                })}
+                            </div>
+                        </div>
                     </div>
                     <div className="flex justify-end gap-3 pt-6">
                         <button
@@ -465,6 +491,24 @@ export const WalletsPage: React.FC = () => {
                                 }}
                             />
                         </div>
+                        <div>
+                            <label className="block text-sm font-medium text-text-neutral dark:text-text-secondary mb-2">
+                                Theme Color
+                            </label>
+                            <div className="flex flex-wrap gap-2">
+                                {Object.keys(WALLET_THEMES).map((theme) => {
+                                    if (theme === 'primary' || theme === 'accent') return null; // Skip system themes
+                                    return (
+                                        <button
+                                            key={theme}
+                                            onClick={() => setEditTheme(theme)}
+                                            className={`w-8 h-8 rounded-full bg-linear-to-br ${WALLET_THEMES[theme]} transition-transform ${editTheme === theme ? 'ring-2 ring-offset-2 ring-accent scale-110' : 'hover:scale-105'}`}
+                                            title={theme.charAt(0).toUpperCase() + theme.slice(1)}
+                                        />
+                                    );
+                                })}
+                            </div>
+                        </div>
                     </div>
                     <div className="flex justify-end gap-3 pt-6">
                         <button
@@ -482,6 +526,7 @@ export const WalletsPage: React.FC = () => {
                     </div>
                 </div>
             </Modal>
+
             {/* Delete Wallet Confirmation */}
             <ConfirmDialog
                 isOpen={!!walletToDelete}
@@ -506,6 +551,7 @@ export const WalletsPage: React.FC = () => {
             {/* Floating Action Button - Mobile Only */}
             <FAB onClick={() => setIsCreateModalOpen(true)} title="New Wallet" hide={isFabHidden} />
             <MiniFAB onClick={scrollToTop} show={isFabHidden} />
+
             {/* Transfer Modal */}
             <TransferModal
                 isOpen={isTransferModalOpen}

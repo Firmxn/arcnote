@@ -13,11 +13,12 @@ import type { SyncQueueItem } from '../data/db';
 import type { Syncable } from '../types/sync';
 
 // Map Dexie Table Names to Supabase Table Names
+// Map Dexie Table Names to Supabase Table Names
 const TABLE_MAP: Record<string, string> = {
     wallets: 'wallets',
-    finance: 'finance_transactions', // Note mapping
+    finance: 'finance', // Renamed to match local
     budgets: 'budgets',
-    budgetAssignments: 'budget_assignments',
+    budgetAssignments: 'budgetAssignments', // Renamed to match local (camelCase)
     schedules: 'schedules',
     pages: 'pages',
     blocks: 'blocks',
@@ -35,22 +36,26 @@ const TABLE_MAP: Record<string, string> = {
 
 // Per-field mapping: Dexie -> Supabase (untuk Push)
 const DEXIE_TO_SUPABASE: Record<string, Record<string, string>> = {
-    wallets: { userId: 'user_id', theme: 'themeColor' },
-    finance: { userId: 'user_id' },
-    pages: { userId: 'user_id' },
-    schedules: { userId: 'user_id' },
-    blocks: { userId: 'user_id' },
-    // budgets dan budgetAssignments sudah camelCase di Supabase, tidak perlu transform
+    // Assuming Supabase columns are now camelCase to match local
+    wallets: {},
+    finance: {},
+    pages: {},
+    schedules: {},
+    blocks: {},
+    budgets: {},
+    budgetAssignments: {},
 };
 
 // Per-field mapping: Supabase -> Dexie (untuk Pull)
 const SUPABASE_TO_DEXIE: Record<string, Record<string, string>> = {
-    wallets: { user_id: 'userId', themeColor: 'theme' },
-    finance: { user_id: 'userId' },
-    pages: { user_id: 'userId' },
-    schedules: { user_id: 'userId' },
-    blocks: { user_id: 'userId' },
-    // budgets dan budgetAssignments sudah camelCase di Supabase, tidak perlu transform
+    // Assuming Supabase columns are now camelCase to match local
+    wallets: {},
+    finance: {},
+    pages: {},
+    schedules: {},
+    blocks: {},
+    budgets: {},
+    budgetAssignments: {},
 };
 
 /**

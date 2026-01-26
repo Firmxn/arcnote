@@ -10,7 +10,7 @@ import { CreateFinanceTrackerModal } from '../../modals/CreateFinanceTrackerModa
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { formatCurrency, formatCurrencyCompact } from '../../../utils/currency';
-import { WalletCard } from '../../ui/WalletCard';
+import { WalletCard, WALLET_THEMES } from '../../ui/WalletCard';
 import { ActionSheet, type ActionSheetItem } from '../../ui/ActionSheet';
 
 import { ConfirmDialog } from '../../ui/ConfirmDialog';
@@ -62,6 +62,7 @@ export const DashboardPage: React.FC = () => {
     const [editingWallet, setEditingWallet] = useState<Wallet | null>(null);
     const [editTitle, setEditTitle] = useState('');
     const [editDesc, setEditDesc] = useState('');
+    const [editTheme, setEditTheme] = useState('blue');
     const [walletToDelete, setWalletToDelete] = useState<Wallet | null>(null);
     const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
 
@@ -109,6 +110,7 @@ export const DashboardPage: React.FC = () => {
         setEditingWallet(wallet);
         setEditTitle(wallet.title);
         setEditDesc(wallet.description || '');
+        setEditTheme(wallet.theme || 'blue');
         setActionSheetWallet(null); // Close sheet if open
     };
 
@@ -117,7 +119,8 @@ export const DashboardPage: React.FC = () => {
         try {
             await updateWallet(editingWallet.id, {
                 title: editTitle,
-                description: editDesc.trim() || undefined
+                description: editDesc.trim() || undefined,
+                theme: editTheme
             });
             setEditingWallet(null);
             setEditTitle('');
@@ -282,7 +285,7 @@ export const DashboardPage: React.FC = () => {
                     {/* Add Wallet Button - Landscape */}
                     <button
                         onClick={() => setIsCreateWalletModalOpen(true)}
-                        className="snap-start select-none shrink-0 w-[42vw] md:w-[240px] aspect-[1.586/1] bg-accent/10 dark:bg-accent/20 rounded-xl border-2 border-dashed border-accent/30 dark:border-accent/40 flex flex-col items-center justify-center gap-2 hover:bg-accent/20 dark:hover:bg-accent/30 transition-colors"
+                        className="snap-start select-none shrink-0 w-[50vw] sm:w-[35vw] md:w-[220px] min-w-[160px] md:min-w-0 aspect-[1.586/1] bg-accent/10 dark:bg-accent/20 rounded-xl border-2 border-dashed border-accent/30 dark:border-accent/40 flex flex-col items-center justify-center gap-2 hover:bg-accent/20 dark:hover:bg-accent/30 transition-colors"
                     >
                         <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-accent flex items-center justify-center text-white">
                             <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -307,7 +310,8 @@ export const DashboardPage: React.FC = () => {
                                     id={wallet.id}
                                     onClick={() => navigate(`/finance/${wallet.id}`)}
                                     variant={isMainWallet ? 'primary' : 'accent'}
-                                    className="snap-start w-[42vw] md:w-[240px] aspect-[1.586/1]"
+                                    theme={wallet.theme}
+                                    className="snap-start w-[50vw] sm:w-[35vw] md:w-[220px] min-w-[160px] md:min-w-0 aspect-[1.586/1]"
                                     // Add Events for Action Sheet
 
                                     onTouchStart={(e) => {
@@ -518,6 +522,22 @@ export const DashboardPage: React.FC = () => {
                                 onChange={(e) => setEditDesc(e.target.value)}
                                 placeholder="e.g. For daily expenses"
                             />
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium text-text-neutral dark:text-text-primary mb-2 block">Theme Color</label>
+                            <div className="flex flex-wrap gap-2">
+                                {Object.keys(WALLET_THEMES).map((key) => {
+                                    if (key === 'primary' || key === 'accent') return null;
+                                    return (
+                                        <button
+                                            key={key}
+                                            onClick={() => setEditTheme(key)}
+                                            className={`w-8 h-8 rounded-full bg-linear-to-br ${WALLET_THEMES[key]} transition-transform ${editTheme === key ? 'ring-2 ring-offset-2 ring-accent scale-110' : 'hover:scale-105'}`}
+                                            title={key.charAt(0).toUpperCase() + key.slice(1)}
+                                        />
+                                    );
+                                })}
+                            </div>
                         </div>
                         <div className="flex justify-end gap-3 mt-6">
                             <button
