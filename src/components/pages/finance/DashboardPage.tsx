@@ -18,6 +18,7 @@ import { Modal } from '../../ui/Modal';
 import { Input } from '../../ui/Input';
 import BudgetModal from '../../modals/BudgetModal';
 import { EmptyStateAction } from '../../ui/EmptyStateAction'; // New Import
+import { MonthYearPicker } from '../../ui/MonthYearPicker';
 import type { Wallet } from '../../../types/finance';
 
 dayjs.extend(relativeTime);
@@ -46,8 +47,12 @@ export const DashboardPage: React.FC = () => {
         loadBudgetSummary,
         isLoading,
         isBalanceHidden,
-        toggleBalanceHidden
+        toggleBalanceHidden,
+        selectedDate,
+        setSelectedDate
     } = useFinanceStore();
+
+    const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
 
     const maskAmount = (amount: number, currency?: string) => {
         return isBalanceHidden ? '******' : formatCurrency(amount, currency);
@@ -113,7 +118,7 @@ export const DashboardPage: React.FC = () => {
         return [mainWallet, ...topOthers];
     }, [wallets]); // Re-calc when wallets change (activeWallets derived from wallets)
 
-    const currentMonth = dayjs().format('MMMM YYYY');
+
 
     // Handlers
     const handleEditStart = (wallet: Wallet) => {
@@ -197,9 +202,17 @@ export const DashboardPage: React.FC = () => {
                     <div className="mb-4">
                         <div className="flex justify-between items-center mb-2">
                             <p className="text-xs text-text-neutral/60 dark:text-text-secondary">Total Balance</p>
-                            <p className="text-xs text-text-neutral/50 dark:text-text-secondary/50">
-                                {currentMonth}
-                            </p>
+                            <button
+                                onClick={() => setIsDatePickerOpen(true)}
+                                className="px-2 py-1 rounded-md hover:bg-neutral-100 dark:hover:bg-white/10 transition-colors flex items-center gap-1 group -mr-2"
+                            >
+                                <span className="text-xs font-medium text-text-neutral/50 dark:text-text-secondary/50 group-hover:text-primary dark:group-hover:text-accent transition-colors">
+                                    {dayjs(selectedDate).format('MMMM YYYY')}
+                                </span>
+                                <svg className="w-3 h-3 text-text-neutral/30 group-hover:text-primary dark:group-hover:text-accent transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
                         </div>
 
                         <div className="flex justify-between items-center mb-1">
@@ -613,6 +626,13 @@ export const DashboardPage: React.FC = () => {
                 <BudgetModal
                     isOpen={isBudgetModalOpen}
                     onClose={() => setIsBudgetModalOpen(false)}
+                />
+
+                <MonthYearPicker
+                    isOpen={isDatePickerOpen}
+                    onClose={() => setIsDatePickerOpen(false)}
+                    selectedDate={selectedDate}
+                    onChange={setSelectedDate}
                 />
             </div>
         </div>

@@ -14,6 +14,8 @@ import { PageHeader } from '../../ui/PageHeader';
 import { ListCard } from '../../ui/ListCard';
 import { EmptyStateAction } from '../../ui/EmptyStateAction';
 
+import { MonthYearPicker } from '../../ui/MonthYearPicker';
+
 export const WalletDetailPage: React.FC = () => {
     const {
         currentWallet,
@@ -28,9 +30,12 @@ export const WalletDetailPage: React.FC = () => {
         transferBetweenWallets,
         isLoading,
         isBalanceHidden,
-        toggleBalanceHidden
+        toggleBalanceHidden,
+        selectedDate,
+        setSelectedDate
     } = useFinanceStore();
 
+    // ... existing mask functions ...
     const maskAmount = (amount: number, currency?: string) => {
         return isBalanceHidden ? '******' : formatCurrency(amount, currency);
     };
@@ -41,6 +46,7 @@ export const WalletDetailPage: React.FC = () => {
 
     const [filter, setFilter] = useState<'all' | 'income' | 'expense'>('all');
     const [showDetailView, setShowDetailView] = useState(false);
+    const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
     const [isTransferDetailOpen, setIsTransferDetailOpen] = useState(false);
@@ -142,9 +148,17 @@ export const WalletDetailPage: React.FC = () => {
                         <div className="mb-4">
                             <div className="flex items-center justify-between mb-2">
                                 <p className="text-xs text-text-neutral/60 dark:text-text-secondary">Current Balance</p>
-                                <p className="text-xs text-text-neutral/50 dark:text-text-secondary/50">
-                                    {dayjs().format('MMMM YYYY')}
-                                </p>
+                                <button
+                                    onClick={() => setIsDatePickerOpen(true)}
+                                    className="px-2 py-1 rounded-md hover:bg-neutral-100 dark:hover:bg-white/10 transition-colors flex items-center gap-1 group -mr-2"
+                                >
+                                    <span className="text-xs font-medium text-text-neutral/50 dark:text-text-secondary/50 group-hover:text-primary dark:group-hover:text-accent transition-colors">
+                                        {dayjs(selectedDate).format('MMMM YYYY')}
+                                    </span>
+                                    <svg className="w-3 h-3 text-text-neutral/30 group-hover:text-primary dark:group-hover:text-accent transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </button>
                             </div>
                             <div className="flex justify-between items-center mb-1">
                                 <p className="text-3xl md:text-4xl font-bold font-mono tracking-tight text-primary dark:text-accent">
@@ -168,6 +182,14 @@ export const WalletDetailPage: React.FC = () => {
                                 </button>
                             </div>
                         </div>
+
+                        {/* Date Picker Modal */}
+                        <MonthYearPicker
+                            isOpen={isDatePickerOpen}
+                            onClose={() => setIsDatePickerOpen(false)}
+                            selectedDate={selectedDate}
+                            onChange={setSelectedDate}
+                        />
 
                         {/* Monthly Summary - Tap untuk toggle detail */}
                         <div className="grid grid-cols-3 gap-2">

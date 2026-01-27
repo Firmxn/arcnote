@@ -38,6 +38,8 @@ interface FinanceState {
     // Global UI Settings
     isBalanceHidden: boolean;
     toggleBalanceHidden: () => void;
+    selectedDate: Date;
+    setSelectedDate: (date: Date) => void;
 
     // UI State
     isLoading: boolean;
@@ -116,12 +118,27 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
     recentTransactions: [],
 
     // Global UI Settings
+    // Global UI Settings
     isBalanceHidden: localStorage.getItem('arcnote_balance_hidden') === 'true',
     toggleBalanceHidden: () => {
         const current = get().isBalanceHidden;
         const newState = !current;
         localStorage.setItem('arcnote_balance_hidden', String(newState));
         set({ isBalanceHidden: newState });
+    },
+    selectedDate: new Date(),
+    setSelectedDate: (date: Date) => {
+        set({ selectedDate: date });
+        get().loadMonthlySummary();
+        get().loadRecentTransactions();
+        get().loadGlobalSummary(); // Reload global balance based on date
+
+        // If inside a wallet detail view, reload wallet specific data
+        const { currentWallet } = get();
+        if (currentWallet) {
+            get().loadTransactions();
+            get().loadSummary();
+        }
     },
 
     isLoading: false,
@@ -345,13 +362,23 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
     // --- Transaction Actions ---
 
     loadTransactions: async () => {
-        const { currentWallet } = get();
+        const { currentWallet, selectedDate } = get();
         if (!currentWallet) return;
 
         set({ isLoading: true, error: null });
         try {
-            const transactions = await financeRepository.getAll(currentWallet.id);
-            // Default sort: newest first (date desc, then createdAt desc)
+            const allTransactions = await financeRepository.getAll(currentWallet.id);
+
+            // Filter by selected month
+            const startOfMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+            const endOfMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0, 23, 59, 59);
+
+            const transactions = allTransactions.filter(t => {
+                const tDate = new Date(t.date);
+                return tDate >= startOfMonth && tDate <= endOfMonth;
+            });
+
+            // Sort: newer date first
             transactions.sort((a, b) => {
                 const dayA = new Date(a.date).setHours(0, 0, 0, 0);
                 const dayB = new Date(b.date).setHours(0, 0, 0, 0);
@@ -366,15 +393,51 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
     },
 
     loadSummary: async () => {
-        const { currentWallet } = get();
+        const { currentWallet, selectedDate } = get();
         if (!currentWallet) {
             set({ summary: null });
             return;
         }
 
         try {
-            const summary = await financeRepository.getSummary(currentWallet.id);
-            set({ summary });
+            // Calculate summary based on Date Filter
+            // Balance: Cumulative up to end of selected month
+            // Income/Expense: Only for selected month
+            const allTransactions = await financeRepository.getAll(currentWallet.id);
+
+            const startOfMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+            const endOfMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0, 23, 59, 59);
+
+            let totalIncome = 0;
+            let totalExpense = 0;
+            let balance = 0;
+            let transactionCount = 0;
+
+            allTransactions.forEach(t => {
+                const tDate = new Date(t.date);
+
+                // For Balance: Include all transactions up to end of selected month
+                if (tDate <= endOfMonth) {
+                    if (t.type === 'income') balance += t.amount;
+                    else balance -= t.amount;
+                }
+
+                // For Period Summary: Only selected month
+                if (tDate >= startOfMonth && tDate <= endOfMonth) {
+                    if (t.type === 'income') totalIncome += t.amount;
+                    else totalExpense += t.amount;
+                    transactionCount++;
+                }
+            });
+
+            set({
+                summary: {
+                    totalIncome,
+                    totalExpense,
+                    balance,
+                    transactionCount
+                }
+            });
         } catch (error) {
             console.error('Failed to load summary', error);
         }
@@ -566,8 +629,9 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
         const { wallets } = get();
 
         try {
-            // Get current month range
-            const now = new Date();
+            // Get current month range based on selectedDate
+            const { selectedDate } = get();
+            const now = selectedDate;
             const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
             const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
 
@@ -622,7 +686,15 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
             }));
 
             // Sort by date descending then createdAt descending
+            const { selectedDate } = get();
+            const startOfMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+            const endOfMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0, 23, 59, 59);
+
             const sorted = allTransactions
+                .filter(t => {
+                    const tDate = new Date(t.date);
+                    return tDate >= startOfMonth && tDate <= endOfMonth;
+                })
                 .sort((a, b) => {
                     const dayA = new Date(a.date).setHours(0, 0, 0, 0);
                     const dayB = new Date(b.date).setHours(0, 0, 0, 0);
