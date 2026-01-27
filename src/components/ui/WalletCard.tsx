@@ -9,6 +9,7 @@ interface WalletCardProps extends React.ButtonHTMLAttributes<HTMLButtonElement> 
     theme?: string;
     variant?: 'primary' | 'accent';
     className?: string; // Add explicit className to props
+    isHidden?: boolean;
 }
 
 export const WALLET_THEMES: Record<string, string> = {
@@ -41,6 +42,7 @@ export const WalletCard: React.FC<WalletCardProps> = ({
     variant = 'accent',
     theme,
     className = 'w-32 h-40',
+    isHidden = false,
     ...props
 }) => {
     const backgroundClass = useMemo(() => {
@@ -81,7 +83,7 @@ export const WalletCard: React.FC<WalletCardProps> = ({
             {/* Balance */}
             <div className="mt-auto relative z-10 w-full">
                 <p className="select-text text-sm font-bold font-mono truncate">
-                    {formatCurrency(balance, currency)}
+                    {isHidden ? '******' : formatCurrency(balance, currency)}
                 </p>
 
                 {/* Card number style decoration */}

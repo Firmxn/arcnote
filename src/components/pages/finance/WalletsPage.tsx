@@ -36,7 +36,8 @@ export const WalletsPage: React.FC = () => {
         isLoading,
         balances,
         loadBalances,
-        transferBetweenWallets
+        transferBetweenWallets,
+        isBalanceHidden
     } = useFinanceStore();
     const navigate = useNavigate();
 
@@ -345,6 +346,7 @@ export const WalletsPage: React.FC = () => {
                                                 variant={index === 0 ? 'primary' : 'accent'}
                                                 theme={wallet.theme}
                                                 className="w-full aspect-[1.586/1]"
+                                                isHidden={isBalanceHidden}
                                                 onClick={() => navigate(`/finance/${wallet.id}`)}
                                                 onContextMenu={(e) => {
                                                     e.preventDefault();

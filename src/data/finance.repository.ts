@@ -160,14 +160,25 @@ export const financeRepository: FinanceRepo = {
 
     // --- TRANSACTIONS ---
     async getAll(walletId?: string): Promise<FinanceTransaction[]> {
+        let transactions: FinanceTransaction[];
+
         if (walletId) {
-            return await db.finance
+            transactions = await db.finance
                 .where('walletId')
                 .equals(walletId)
-                .reverse()
-                .sortBy('date');
+                .toArray();
+        } else {
+            transactions = await db.finance.toArray();
         }
-        return await db.finance.orderBy('date').reverse().toArray();
+
+        // Sort: Date (Day) DESC, then CreatedAt DESC
+        return transactions.sort((a, b) => {
+            const dayA = new Date(a.date).setHours(0, 0, 0, 0);
+            const dayB = new Date(b.date).setHours(0, 0, 0, 0);
+            const dateDiff = dayB - dayA;
+            if (dateDiff !== 0) return dateDiff;
+            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        });
     },
 
     async getById(id: string): Promise<FinanceTransaction | undefined> {

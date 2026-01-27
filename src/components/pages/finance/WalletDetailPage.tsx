@@ -26,8 +26,18 @@ export const WalletDetailPage: React.FC = () => {
         balances,
         loadBalances,
         transferBetweenWallets,
-        isLoading
+        isLoading,
+        isBalanceHidden,
+        toggleBalanceHidden
     } = useFinanceStore();
+
+    const maskAmount = (amount: number, currency?: string) => {
+        return isBalanceHidden ? '******' : formatCurrency(amount, currency);
+    };
+
+    const maskAmountCompact = (amount: number) => {
+        return isBalanceHidden ? '******' : formatCurrencyCompact(amount);
+    };
 
     const [filter, setFilter] = useState<'all' | 'income' | 'expense'>('all');
     const [showDetailView, setShowDetailView] = useState(false);
@@ -136,9 +146,27 @@ export const WalletDetailPage: React.FC = () => {
                                     {dayjs().format('MMMM YYYY')}
                                 </p>
                             </div>
-                            <p className="text-3xl md:text-4xl font-bold font-mono tracking-tight text-primary dark:text-accent mb-1">
-                                {formatCurrency(summary.balance, currentWallet?.currency || 'IDR')}
-                            </p>
+                            <div className="flex justify-between items-center mb-1">
+                                <p className="text-3xl md:text-4xl font-bold font-mono tracking-tight text-primary dark:text-accent">
+                                    {maskAmount(summary.balance, currentWallet?.currency || 'IDR')}
+                                </p>
+                                <button
+                                    onClick={toggleBalanceHidden}
+                                    className="p-2 -mr-2 text-text-neutral/40 hover:text-text-neutral/80 dark:text-text-secondary/40 dark:hover:text-text-secondary transition-colors rounded-full hover:bg-neutral/10 dark:hover:bg-white/5"
+                                    aria-label={isBalanceHidden ? "Show Balance" : "Hide Balance"}
+                                >
+                                    {isBalanceHidden ? (
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                                        </svg>
+                                    ) : (
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        </svg>
+                                    )}
+                                </button>
+                            </div>
                         </div>
 
                         {/* Monthly Summary - Tap untuk toggle detail */}
@@ -156,8 +184,8 @@ export const WalletDetailPage: React.FC = () => {
                                 </p>
                                 <p className="select-text text-xs md:text-sm font-bold font-mono text-green-600 dark:text-green-400 wrap-break-word">
                                     {showDetailView
-                                        ? formatCurrency(summary.totalIncome || 0, currentWallet?.currency || 'IDR')
-                                        : formatCurrencyCompact(summary.totalIncome || 0)
+                                        ? maskAmount(summary.totalIncome || 0, currentWallet?.currency || 'IDR')
+                                        : maskAmountCompact(summary.totalIncome || 0)
                                     }
                                 </p>
                             </button>
@@ -175,8 +203,8 @@ export const WalletDetailPage: React.FC = () => {
                                 </p>
                                 <p className="select-text text-xs md:text-sm font-bold font-mono text-red-600 dark:text-red-400 wrap-break-word">
                                     {showDetailView
-                                        ? formatCurrency(summary.totalExpense || 0, currentWallet?.currency || 'IDR')
-                                        : formatCurrencyCompact(summary.totalExpense || 0)
+                                        ? maskAmount(summary.totalExpense || 0, currentWallet?.currency || 'IDR')
+                                        : maskAmountCompact(summary.totalExpense || 0)
                                     }
                                 </p>
                             </button>
@@ -203,8 +231,8 @@ export const WalletDetailPage: React.FC = () => {
                                     : 'text-red-600 dark:text-red-400'
                                     }`}>
                                     {showDetailView
-                                        ? formatCurrency(summary.balance || 0, currentWallet?.currency || 'IDR')
-                                        : formatCurrencyCompact(summary.balance || 0)
+                                        ? maskAmount(summary.balance || 0, currentWallet?.currency || 'IDR')
+                                        : maskAmountCompact(summary.balance || 0)
                                     }
                                 </p>
                             </button>
@@ -292,7 +320,7 @@ export const WalletDetailPage: React.FC = () => {
                                         ? 'text-green-600 dark:text-green-400'
                                         : 'text-red-600 dark:text-red-400'
                                         }`}>
-                                        {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount, currentWallet?.currency || 'IDR')}
+                                        {transaction.type === 'income' ? '+' : '-'}{maskAmount(transaction.amount, currentWallet?.currency || 'IDR')}
                                     </p>
                                 }
                             />

@@ -35,6 +35,10 @@ interface FinanceState {
     monthlySummary: FinanceSummary | null; // Summary untuk bulan ini
     recentTransactions: FinanceTransaction[];
 
+    // Global UI Settings
+    isBalanceHidden: boolean;
+    toggleBalanceHidden: () => void;
+
     // UI State
     isLoading: boolean;
     error: string | null;
@@ -110,6 +114,15 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
     globalSummary: null,
     monthlySummary: null,
     recentTransactions: [],
+
+    // Global UI Settings
+    isBalanceHidden: localStorage.getItem('arcnote_balance_hidden') === 'true',
+    toggleBalanceHidden: () => {
+        const current = get().isBalanceHidden;
+        const newState = !current;
+        localStorage.setItem('arcnote_balance_hidden', String(newState));
+        set({ isBalanceHidden: newState });
+    },
 
     isLoading: false,
     error: null,
@@ -338,8 +351,14 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
         set({ isLoading: true, error: null });
         try {
             const transactions = await financeRepository.getAll(currentWallet.id);
-            // Default sort: newest first
-            transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+            // Default sort: newest first (date desc, then createdAt desc)
+            transactions.sort((a, b) => {
+                const dayA = new Date(a.date).setHours(0, 0, 0, 0);
+                const dayB = new Date(b.date).setHours(0, 0, 0, 0);
+                const dateDiff = dayB - dayA;
+                if (dateDiff !== 0) return dateDiff;
+                return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+            });
             set({ transactions, isLoading: false });
         } catch (error) {
             set({ error: 'Failed to load transactions', isLoading: false });
@@ -602,9 +621,15 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
                 allTransactions.push(...transactions);
             }));
 
-            // Sort by date descending dan limit
+            // Sort by date descending then createdAt descending
             const sorted = allTransactions
-                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                .sort((a, b) => {
+                    const dayA = new Date(a.date).setHours(0, 0, 0, 0);
+                    const dayB = new Date(b.date).setHours(0, 0, 0, 0);
+                    const dateDiff = dayB - dayA;
+                    if (dateDiff !== 0) return dateDiff;
+                    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+                })
                 .slice(0, limit);
 
             set({ recentTransactions: sorted });
