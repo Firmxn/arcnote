@@ -98,6 +98,9 @@ interface FinanceState {
 
     // Reset State
     resetState: () => void;
+
+    // Sync Listener
+    listenToSyncEvents: () => () => void;
 }
 
 export const useFinanceStore = create<FinanceState>((set, get) => ({
@@ -929,5 +932,32 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
             currentBudget: null,
             budgetSummaries: {},
         });
+    },
+
+    // --- Listener Implementation ---
+    listenToSyncEvents: () => {
+        const handleSyncCompleted = () => {
+            console.log('🔄 Sync completed. Reloading finance data...');
+
+            // Reload global lists
+            get().loadWallets(); // Will check balances internally
+            get().loadMonthlySummary();
+            get().loadGlobalSummary();
+            get().loadRecentTransactions();
+
+            // Reload active view if inside a wallet/budget
+            const { currentWallet } = get();
+            if (currentWallet) {
+                get().loadTransactions();
+                get().loadSummary();
+            }
+        };
+
+        window.addEventListener('arcnote:sync-completed', handleSyncCompleted);
+
+        // Return cleanup function
+        return () => {
+            window.removeEventListener('arcnote:sync-completed', handleSyncCompleted);
+        };
     },
 }));

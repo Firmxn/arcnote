@@ -3,15 +3,33 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { BottomNav } from './BottomNav';
 import { usePagesStore } from '../../state/pages.store';
+import { useFinanceStore } from '../../state/finance.store';
+import { useSchedulesStore } from '../../state/schedules.store';
 import { useSync } from '../../hooks/useSync';
 
 export const MainLayout: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { createPage, setCurrentPage } = usePagesStore();
+    const listenToFinanceEvents = useFinanceStore(state => state.listenToSyncEvents);
+    const listenToPagesEvents = usePagesStore(state => state.listenToSyncEvents);
+    const listenToSchedulesEvents = useSchedulesStore(state => state.listenToSyncEvents);
 
     // Initialize Global Sync
     useSync();
+
+    // Initialize Sync Event Listener (Refresh UI after sync)
+    React.useEffect(() => {
+        const unsubFinance = listenToFinanceEvents();
+        const unsubPages = listenToPagesEvents();
+        const unsubSchedules = listenToSchedulesEvents();
+
+        return () => {
+            unsubFinance();
+            unsubPages();
+            unsubSchedules();
+        };
+    }, [listenToFinanceEvents, listenToPagesEvents, listenToSchedulesEvents]);
 
     // Mapping URL path to ViewState for navigation highlighting
     const getCurrentView = () => {
