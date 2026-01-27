@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { Modal } from '../ui/Modal';
 import { Input } from '../ui/Input';
+import { WALLET_THEMES } from '../ui/WalletCard';
 
 interface CreateFinanceTrackerModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSubmit: (data: { title: string; description: string; currency: string }) => Promise<void>;
+    onSubmit: (data: { title: string; description: string; currency: string; theme?: string }) => Promise<void>;
 }
 
 export const CreateFinanceTrackerModal: React.FC<CreateFinanceTrackerModalProps> = ({
@@ -15,6 +16,7 @@ export const CreateFinanceTrackerModal: React.FC<CreateFinanceTrackerModalProps>
 }) => {
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
+    const [theme, setTheme] = useState('blue');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -27,11 +29,13 @@ export const CreateFinanceTrackerModal: React.FC<CreateFinanceTrackerModalProps>
             await onSubmit({
                 title: title.trim(),
                 description: description.trim(),
-                currency: 'IDR'
+                currency: 'IDR',
+                theme: theme
             });
             // Reset form
             setTitle('');
             setDescription('');
+            setTheme('blue');
             setError(null);
             onClose();
         } catch (err: any) {
@@ -76,6 +80,24 @@ export const CreateFinanceTrackerModal: React.FC<CreateFinanceTrackerModalProps>
                                 if (e.key === 'Enter') handleSubmit();
                             }}
                         />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-text-neutral dark:text-text-secondary mb-2">
+                            Theme Color
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                            {Object.keys(WALLET_THEMES).map((key) => {
+                                if (key === 'primary' || key === 'accent') return null;
+                                return (
+                                    <button
+                                        key={key}
+                                        onClick={() => setTheme(key)}
+                                        className={`w-8 h-8 rounded-full bg-linear-to-br ${WALLET_THEMES[key]} transition-transform ${theme === key ? 'ring-2 ring-offset-2 ring-accent scale-110' : 'hover:scale-105'}`}
+                                        title={key.charAt(0).toUpperCase() + key.slice(1)}
+                                    />
+                                );
+                            })}
+                        </div>
                     </div>
                 </div>
 

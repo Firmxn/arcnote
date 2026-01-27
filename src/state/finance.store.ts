@@ -35,6 +35,12 @@ interface FinanceState {
     monthlySummary: FinanceSummary | null; // Summary untuk bulan ini
     recentTransactions: FinanceTransaction[];
 
+    // Global UI Settings
+    isBalanceHidden: boolean;
+    toggleBalanceHidden: () => void;
+    selectedDate: Date;
+    setSelectedDate: (date: Date) => void;
+
     // UI State
     isLoading: boolean;
     error: string | null;
@@ -88,6 +94,7 @@ interface FinanceState {
     unassignTransactionFromBudget: (transactionId: string, budgetId: string) => Promise<void>;
     loadAssignmentsForBudget: (budgetId: string) => Promise<BudgetAssignment[]>;
     getAssignmentsForTransaction: (transactionId: string) => Promise<BudgetAssignment[]>;
+    clearBudgetAssignments: () => void;
 
     // Reset State
     resetState: () => void;
@@ -109,6 +116,30 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
     globalSummary: null,
     monthlySummary: null,
     recentTransactions: [],
+
+    // Global UI Settings
+    // Global UI Settings
+    isBalanceHidden: localStorage.getItem('arcnote_balance_hidden') === 'true',
+    toggleBalanceHidden: () => {
+        const current = get().isBalanceHidden;
+        const newState = !current;
+        localStorage.setItem('arcnote_balance_hidden', String(newState));
+        set({ isBalanceHidden: newState });
+    },
+    selectedDate: new Date(),
+    setSelectedDate: (date: Date) => {
+        set({ selectedDate: date });
+        get().loadMonthlySummary();
+        get().loadRecentTransactions();
+        get().loadGlobalSummary(); // Reload global balance based on date
+
+        // If inside a wallet detail view, reload wallet specific data
+        const { currentWallet } = get();
+        if (currentWallet) {
+            get().loadTransactions();
+            get().loadSummary();
+        }
+    },
 
     isLoading: false,
     error: null,
@@ -331,14 +362,30 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
     // --- Transaction Actions ---
 
     loadTransactions: async () => {
-        const { currentWallet } = get();
+        const { currentWallet, selectedDate } = get();
         if (!currentWallet) return;
 
         set({ isLoading: true, error: null });
         try {
-            const transactions = await financeRepository.getAll(currentWallet.id);
-            // Default sort: newest first
-            transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+            const allTransactions = await financeRepository.getAll(currentWallet.id);
+
+            // Filter by selected month
+            const startOfMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+            const endOfMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0, 23, 59, 59);
+
+            const transactions = allTransactions.filter(t => {
+                const tDate = new Date(t.date);
+                return tDate >= startOfMonth && tDate <= endOfMonth;
+            });
+
+            // Sort: newer date first
+            transactions.sort((a, b) => {
+                const dayA = new Date(a.date).setHours(0, 0, 0, 0);
+                const dayB = new Date(b.date).setHours(0, 0, 0, 0);
+                const dateDiff = dayB - dayA;
+                if (dateDiff !== 0) return dateDiff;
+                return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+            });
             set({ transactions, isLoading: false });
         } catch (error) {
             set({ error: 'Failed to load transactions', isLoading: false });
@@ -346,15 +393,51 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
     },
 
     loadSummary: async () => {
-        const { currentWallet } = get();
+        const { currentWallet, selectedDate } = get();
         if (!currentWallet) {
             set({ summary: null });
             return;
         }
 
         try {
-            const summary = await financeRepository.getSummary(currentWallet.id);
-            set({ summary });
+            // Calculate summary based on Date Filter
+            // Balance: Cumulative up to end of selected month
+            // Income/Expense: Only for selected month
+            const allTransactions = await financeRepository.getAll(currentWallet.id);
+
+            const startOfMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+            const endOfMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0, 23, 59, 59);
+
+            let totalIncome = 0;
+            let totalExpense = 0;
+            let balance = 0;
+            let transactionCount = 0;
+
+            allTransactions.forEach(t => {
+                const tDate = new Date(t.date);
+
+                // For Balance: Include all transactions up to end of selected month
+                if (tDate <= endOfMonth) {
+                    if (t.type === 'income') balance += t.amount;
+                    else balance -= t.amount;
+                }
+
+                // For Period Summary: Only selected month
+                if (tDate >= startOfMonth && tDate <= endOfMonth) {
+                    if (t.type === 'income') totalIncome += t.amount;
+                    else totalExpense += t.amount;
+                    transactionCount++;
+                }
+            });
+
+            set({
+                summary: {
+                    totalIncome,
+                    totalExpense,
+                    balance,
+                    transactionCount
+                }
+            });
         } catch (error) {
             console.error('Failed to load summary', error);
         }
@@ -417,6 +500,7 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
             ]);
             set({ isLoading: false });
         } catch (error) {
+            console.error('Failed to update transaction:', error); // Log detail error
             set({ error: 'Failed to update transaction', isLoading: false });
             throw error;
         }
@@ -545,8 +629,9 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
         const { wallets } = get();
 
         try {
-            // Get current month range
-            const now = new Date();
+            // Get current month range based on selectedDate
+            const { selectedDate } = get();
+            const now = selectedDate;
             const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
             const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
 
@@ -600,9 +685,23 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
                 allTransactions.push(...transactions);
             }));
 
-            // Sort by date descending dan limit
+            // Sort by date descending then createdAt descending
+            const { selectedDate } = get();
+            const startOfMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+            const endOfMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0, 23, 59, 59);
+
             const sorted = allTransactions
-                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                .filter(t => {
+                    const tDate = new Date(t.date);
+                    return tDate >= startOfMonth && tDate <= endOfMonth;
+                })
+                .sort((a, b) => {
+                    const dayA = new Date(a.date).setHours(0, 0, 0, 0);
+                    const dayB = new Date(b.date).setHours(0, 0, 0, 0);
+                    const dateDiff = dayB - dayA;
+                    if (dateDiff !== 0) return dateDiff;
+                    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+                })
                 .slice(0, limit);
 
             set({ recentTransactions: sorted });
@@ -815,6 +914,9 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
             console.error('Failed to load transaction assignments', error);
             return [];
         }
+    },
+    clearBudgetAssignments: () => {
+        set({ budgetAssignments: [] });
     },
 
     resetState: () => {

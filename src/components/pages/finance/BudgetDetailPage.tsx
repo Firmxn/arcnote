@@ -49,6 +49,21 @@ export default function BudgetDetailPage() {
         }
     }, [id, selectBudget, loadAssignmentsForBudget]);
 
+    // Reset assigned transactions saat budget berubah untuk mencegah stale state
+    useEffect(() => {
+        setAssignedTransactions([]);
+    }, [id]);
+
+    // Cleanup saat component unmount (keluar dari BudgetDetailPage)
+    useEffect(() => {
+        return () => {
+            // Clear assigned transactions saat unmount
+            setAssignedTransactions([]);
+            // Clear assignments di store juga
+            useFinanceStore.getState().clearBudgetAssignments();
+        };
+    }, []);
+
     useEffect(() => {
         const fetchAssignedTransactions = async () => {
             if (budgetAssignments.length > 0) {

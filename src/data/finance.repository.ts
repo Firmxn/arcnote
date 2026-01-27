@@ -123,7 +123,20 @@ export const financeRepository: FinanceRepo = {
 
     async deleteWallet(id: string): Promise<void> {
         return db.transaction('rw', db.wallets, db.finance, db.syncQueue, async () => {
-            // Queue Deletion
+            // 1. Queue Transactions Deletion (Avoid FK Constraint in Supabase)
+            const transactions = await db.finance.where('walletId').equals(id).toArray();
+            const transactionQueueItems = transactions.map(t => ({
+                id: t.id,
+                table: 'finance', // Use Dexie table name for mapping
+                action: 'delete' as const,
+                createdAt: new Date()
+            }));
+
+            if (transactionQueueItems.length > 0) {
+                await db.syncQueue.bulkAdd(transactionQueueItems);
+            }
+
+            // 2. Queue Wallet Deletion
             await db.syncQueue.add({
                 id,
                 table: 'wallets',
@@ -131,8 +144,11 @@ export const financeRepository: FinanceRepo = {
                 createdAt: new Date()
             });
 
-            // Local Delete (Manual Cascade)
-            await db.finance.where('walletId').equals(id).delete();
+            // 3. Local Delete (Manual Cascade)
+            // Use bulkDelete for performance if many transactions
+            if (transactions.length > 0) {
+                await db.finance.bulkDelete(transactions.map(t => t.id));
+            }
             await db.wallets.delete(id);
         });
     },
@@ -144,14 +160,25 @@ export const financeRepository: FinanceRepo = {
 
     // --- TRANSACTIONS ---
     async getAll(walletId?: string): Promise<FinanceTransaction[]> {
+        let transactions: FinanceTransaction[];
+
         if (walletId) {
-            return await db.finance
+            transactions = await db.finance
                 .where('walletId')
                 .equals(walletId)
-                .reverse()
-                .sortBy('date');
+                .toArray();
+        } else {
+            transactions = await db.finance.toArray();
         }
-        return await db.finance.orderBy('date').reverse().toArray();
+
+        // Sort: Date (Day) DESC, then CreatedAt DESC
+        return transactions.sort((a, b) => {
+            const dayA = new Date(a.date).setHours(0, 0, 0, 0);
+            const dayB = new Date(b.date).setHours(0, 0, 0, 0);
+            const dateDiff = dayB - dayA;
+            if (dateDiff !== 0) return dateDiff;
+            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        });
     },
 
     async getById(id: string): Promise<FinanceTransaction | undefined> {
@@ -191,7 +218,9 @@ export const financeRepository: FinanceRepo = {
 
     async update(id: string, input: UpdateTransactionInput): Promise<FinanceTransaction | undefined> {
         const transaction = await db.finance.get(id);
-        if (!transaction) return undefined;
+        if (!transaction) {
+            throw new Error(`Transaction with id ${id} not found`);
+        }
 
         const now = new Date();
         const updated: FinanceTransaction = {
@@ -201,20 +230,27 @@ export const financeRepository: FinanceRepo = {
             syncStatus: transaction.syncStatus === 'created' ? 'created' : 'updated',
         };
 
-        return db.transaction('rw', db.finance, db.wallets, async () => {
-            await db.finance.put(updated);
+        try {
+            return await db.transaction('rw', db.finance, db.wallets, async () => {
+                await db.finance.put(updated);
 
-            // Update wallet's updatedAt
-            const wallet = await db.wallets.get(updated.walletId);
-            if (wallet) {
-                await db.wallets.update(updated.walletId, {
-                    updatedAt: now,
-                    syncStatus: wallet.syncStatus === 'created' ? 'created' : 'updated'
-                });
-            }
+                // Update wallet's updatedAt (only if walletId is valid)
+                if (updated.walletId) {
+                    const wallet = await db.wallets.get(updated.walletId);
+                    if (wallet) {
+                        await db.wallets.update(updated.walletId, {
+                            updatedAt: now,
+                            syncStatus: wallet.syncStatus === 'created' ? 'created' : 'updated'
+                        });
+                    }
+                }
 
-            return updated;
-        });
+                return updated;
+            });
+        } catch (error) {
+            console.error('Database error in update transaction:', error);
+            throw error;
+        }
     },
 
     async delete(id: string): Promise<void> {
@@ -224,7 +260,7 @@ export const financeRepository: FinanceRepo = {
                 // Queue Deletion
                 await db.syncQueue.add({
                     id,
-                    table: 'finance_transactions', // Note: Table name in Supabase
+                    table: 'finance', // Use Dexie table name
                     action: 'delete',
                     createdAt: new Date()
                 });

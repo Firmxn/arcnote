@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useFinanceStore } from '../../../state/finance.store';
 
-import { WalletCard } from '../../ui/WalletCard';
+import { WalletCard, WALLET_THEMES } from '../../ui/WalletCard';
 import { TransferModal } from '../../modals/TransferModal';
 import { Modal } from '../../ui/Modal';
 
@@ -36,7 +36,8 @@ export const WalletsPage: React.FC = () => {
         isLoading,
         balances,
         loadBalances,
-        transferBetweenWallets
+        transferBetweenWallets,
+        isBalanceHidden
     } = useFinanceStore();
     const navigate = useNavigate();
 
@@ -47,11 +48,13 @@ export const WalletsPage: React.FC = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [newWalletTitle, setNewWalletTitle] = useState('');
     const [newWalletDesc, setNewWalletDesc] = useState('');
+    const [newWalletTheme, setNewWalletTheme] = useState('blue');
 
     // Edit State
     const [editingWallet, setEditingWallet] = useState<Wallet | null>(null);
     const [editTitle, setEditTitle] = useState('');
     const [editDesc, setEditDesc] = useState('');
+    const [editTheme, setEditTheme] = useState('blue');
     const [walletToDelete, setWalletToDelete] = useState<Wallet | null>(null);
 
     const [actionSheetWallet, setActionSheetWallet] = useState<Wallet | null>(null);
@@ -72,11 +75,14 @@ export const WalletsPage: React.FC = () => {
             await createWallet({
                 title: newWalletTitle,
                 description: newWalletDesc.trim() || undefined,
-                currency: 'IDR'
+                currency: 'IDR',
+                theme: newWalletTheme
             });
             setIsCreateModalOpen(false);
             setNewWalletTitle('');
             setNewWalletDesc('');
+            setNewWalletTheme('blue');
+            setNewWalletTheme('blue');
             // Balances will auto-refresh via wallets effect
         } catch (error) {
             console.error('Failed to create wallet:', error);
@@ -99,6 +105,7 @@ export const WalletsPage: React.FC = () => {
         setEditingWallet(wallet);
         setEditTitle(wallet.title);
         setEditDesc(wallet.description || '');
+        setEditTheme(wallet.theme || 'blue');
     };
 
     const handleEditSave = async () => {
@@ -106,7 +113,8 @@ export const WalletsPage: React.FC = () => {
         try {
             await updateWallet(editingWallet.id, {
                 title: editTitle,
-                description: editDesc.trim() || undefined
+                description: editDesc.trim() || undefined,
+                theme: editTheme
             });
             setEditingWallet(null);
             setEditTitle('');
@@ -144,7 +152,7 @@ export const WalletsPage: React.FC = () => {
         id: wallet.id,
         title: wallet.title,
         description: wallet.description,
-        category: 'Finance Trackers',
+        category: 'Wallets',
         icon: (
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
@@ -239,7 +247,7 @@ export const WalletsPage: React.FC = () => {
                 {/* Header */}
                 <div className="max-w-7xl w-full mx-auto px-4 md:px-8 pt-6 md:pt-12 shrink-0">
                     <PageHeader
-                        title="Finance Trackers"
+                        title="My Wallets"
                         description="Manage your wallets and budgets"
                         className="mb-4 md:mb-8"
                         leading={
@@ -275,7 +283,7 @@ export const WalletsPage: React.FC = () => {
                             onSearch={setSearchQuery}
                             onSelectResult={handleSelectResult}
                             results={searchResults}
-                            placeholder="Search trackers..."
+                            placeholder="Search wallets..."
                             className="w-full sm:max-w-md"
                         />
                     </div>
@@ -288,7 +296,7 @@ export const WalletsPage: React.FC = () => {
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                         </svg>
-                        New Tracker
+                        New Wallet
                     </button>
                 </div>
 
@@ -304,19 +312,19 @@ export const WalletsPage: React.FC = () => {
                                 {searchQuery.trim() ? '🔍' : '💰'}
                             </div>
                             <h3 className="text-xl font-semibold text-text-neutral dark:text-text-primary mb-2">
-                                {searchQuery.trim() ? 'No trackers found' : 'No trackers yet'}
+                                {searchQuery.trim() ? 'No wallets found' : 'No wallets yet'}
                             </h3>
                             <p className="text-text-neutral/60 dark:text-text-secondary cursor-pointer" onClick={() => searchQuery.trim() ? setSearchQuery('') : setIsCreateModalOpen(true)}>
                                 {searchQuery.trim()
-                                    ? `No results for "${searchQuery}". Clear search to see all trackers.`
-                                    : 'Create your first finance tracker to get started'
+                                    ? `No results for "${searchQuery}". Clear search to see all wallets.`
+                                    : 'Create your first wallet to get started'
                                 }
                             </p>
                         </div>
                     ) : (
                         <div className="max-w-7xl mx-auto w-full px-4 md:px-8">
                             <SectionHeader
-                                title="Your Trackers"
+                                title="Your Wallets"
                                 icon={
                                     <svg className="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
@@ -336,7 +344,9 @@ export const WalletsPage: React.FC = () => {
                                                 currency={wallet.currency}
                                                 id={wallet.id}
                                                 variant={index === 0 ? 'primary' : 'accent'}
+                                                theme={wallet.theme}
                                                 className="w-full aspect-[1.586/1]"
+                                                isHidden={isBalanceHidden}
                                                 onClick={() => navigate(`/finance/${wallet.id}`)}
                                                 onContextMenu={(e) => {
                                                     e.preventDefault();
@@ -388,13 +398,13 @@ export const WalletsPage: React.FC = () => {
             <Modal
                 isOpen={isCreateModalOpen}
                 onClose={() => setIsCreateModalOpen(false)}
-                title="Create Finance Tracker"
+                title="Create Wallet"
             >
                 <div>
                     <div className="space-y-4">
                         <div>
                             <label className="block text-sm font-medium text-text-neutral dark:text-text-secondary mb-1">
-                                Tracker Title
+                                Wallet Name
                             </label>
                             <Input
                                 autoFocus
@@ -416,6 +426,24 @@ export const WalletsPage: React.FC = () => {
                                 }}
                             />
                         </div>
+                        <div>
+                            <label className="block text-sm font-medium text-text-neutral dark:text-text-secondary mb-2">
+                                Theme Color
+                            </label>
+                            <div className="flex flex-wrap gap-2">
+                                {Object.keys(WALLET_THEMES).map((theme) => {
+                                    if (theme === 'primary' || theme === 'accent') return null; // Skip system themes
+                                    return (
+                                        <button
+                                            key={theme}
+                                            onClick={() => setNewWalletTheme(theme)}
+                                            className={`w-8 h-8 rounded-full bg-linear-to-br ${WALLET_THEMES[theme]} transition-transform ${newWalletTheme === theme ? 'ring-2 ring-offset-2 ring-accent scale-110' : 'hover:scale-105'}`}
+                                            title={theme.charAt(0).toUpperCase() + theme.slice(1)}
+                                        />
+                                    );
+                                })}
+                            </div>
+                        </div>
                     </div>
                     <div className="flex justify-end gap-3 pt-6">
                         <button
@@ -428,7 +456,7 @@ export const WalletsPage: React.FC = () => {
                             onClick={handleCreate}
                             className="px-4 py-2 text-sm bg-accent hover:bg-accent-hover text-white rounded-md transition-colors font-medium"
                         >
-                            Create Tracker
+                            Create Wallet
                         </button>
                     </div>
                 </div>
@@ -438,13 +466,13 @@ export const WalletsPage: React.FC = () => {
             <Modal
                 isOpen={!!editingWallet}
                 onClose={() => setEditingWallet(null)}
-                title="Edit Tracker Info"
+                title="Edit Wallet Info"
             >
                 <div>
                     <div className="space-y-4">
                         <div>
                             <label className="block text-sm font-medium text-text-neutral dark:text-text-secondary mb-1">
-                                Tracker Title
+                                Wallet Name
                             </label>
                             <Input
                                 autoFocus
@@ -465,6 +493,24 @@ export const WalletsPage: React.FC = () => {
                                 }}
                             />
                         </div>
+                        <div>
+                            <label className="block text-sm font-medium text-text-neutral dark:text-text-secondary mb-2">
+                                Theme Color
+                            </label>
+                            <div className="flex flex-wrap gap-2">
+                                {Object.keys(WALLET_THEMES).map((theme) => {
+                                    if (theme === 'primary' || theme === 'accent') return null; // Skip system themes
+                                    return (
+                                        <button
+                                            key={theme}
+                                            onClick={() => setEditTheme(theme)}
+                                            className={`w-8 h-8 rounded-full bg-linear-to-br ${WALLET_THEMES[theme]} transition-transform ${editTheme === theme ? 'ring-2 ring-offset-2 ring-accent scale-110' : 'hover:scale-105'}`}
+                                            title={theme.charAt(0).toUpperCase() + theme.slice(1)}
+                                        />
+                                    );
+                                })}
+                            </div>
+                        </div>
                     </div>
                     <div className="flex justify-end gap-3 pt-6">
                         <button
@@ -482,12 +528,13 @@ export const WalletsPage: React.FC = () => {
                     </div>
                 </div>
             </Modal>
+
             {/* Delete Wallet Confirmation */}
             <ConfirmDialog
                 isOpen={!!walletToDelete}
-                title="Delete Finance Tracker"
-                message={`Are you sure you want to delete "${walletToDelete?.title}"? All transactions in this tracker will be lost forever.`}
-                confirmText="Delete Tracker"
+                title="Delete Wallet"
+                message={`Are you sure you want to delete "${walletToDelete?.title}"? All transactions in this wallet will be lost forever.`}
+                confirmText="Delete Wallet"
                 cancelText="Keep Rule"
                 type="danger"
                 onConfirm={confirmDelete}
@@ -504,8 +551,9 @@ export const WalletsPage: React.FC = () => {
             />
 
             {/* Floating Action Button - Mobile Only */}
-            <FAB onClick={() => setIsCreateModalOpen(true)} title="New Tracker" hide={isFabHidden} />
+            <FAB onClick={() => setIsCreateModalOpen(true)} title="New Wallet" hide={isFabHidden} />
             <MiniFAB onClick={scrollToTop} show={isFabHidden} />
+
             {/* Transfer Modal */}
             <TransferModal
                 isOpen={isTransferModalOpen}

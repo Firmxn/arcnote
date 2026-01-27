@@ -90,6 +90,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                 setCategory(initialData.category);
                 setDescription(initialData.description || '');
                 setDate(new Date(initialData.date));
+                setWalletId(initialData.walletId); // FIX: Initialize walletId from existing transaction
             } else {
                 // Reset for Create Mode
                 setType('expense');
@@ -131,16 +132,28 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
             return;
         }
 
+        // Validate walletId for multi-wallet scenarios
+        if (wallets.length > 0 && !walletId) {
+            setError('Please select a wallet');
+            return;
+        }
+
         setIsSubmitting(true);
         try {
-            await onSubmit({
+            const submitData = {
                 type,
                 amount: amountNum,
                 category,
                 description: description.trim() || undefined,
                 date,
-                walletId: wallets.length > 0 ? walletId : undefined
-            });
+                // Saat edit, gunakan walletId yang sudah ada
+                // Saat create, gunakan walletId jika wallets tersedia
+                walletId: mode === 'edit' ? walletId : (wallets.length > 0 ? walletId : undefined)
+            };
+
+            console.log('Submitting transaction:', { mode, submitData, initialData });
+
+            await onSubmit(submitData);
             onClose();
         } catch (err) {
             setError('Failed to save transaction');

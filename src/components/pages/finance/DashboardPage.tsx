@@ -10,7 +10,7 @@ import { CreateFinanceTrackerModal } from '../../modals/CreateFinanceTrackerModa
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { formatCurrency, formatCurrencyCompact } from '../../../utils/currency';
-import { WalletCard } from '../../ui/WalletCard';
+import { WalletCard, WALLET_THEMES } from '../../ui/WalletCard';
 import { ActionSheet, type ActionSheetItem } from '../../ui/ActionSheet';
 
 import { ConfirmDialog } from '../../ui/ConfirmDialog';
@@ -18,6 +18,7 @@ import { Modal } from '../../ui/Modal';
 import { Input } from '../../ui/Input';
 import BudgetModal from '../../modals/BudgetModal';
 import { EmptyStateAction } from '../../ui/EmptyStateAction'; // New Import
+import { MonthYearPicker } from '../../ui/MonthYearPicker';
 import type { Wallet } from '../../../types/finance';
 
 dayjs.extend(relativeTime);
@@ -44,8 +45,22 @@ export const DashboardPage: React.FC = () => {
         budgetSummaries,
         loadBudgets,
         loadBudgetSummary,
-        isLoading
+        isLoading,
+        isBalanceHidden,
+        toggleBalanceHidden,
+        selectedDate,
+        setSelectedDate
     } = useFinanceStore();
+
+    const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+
+    const maskAmount = (amount: number, currency?: string) => {
+        return isBalanceHidden ? '******' : formatCurrency(amount, currency);
+    };
+
+    const maskAmountCompact = (amount: number) => {
+        return isBalanceHidden ? '******' : formatCurrencyCompact(amount);
+    };
 
     // State untuk toggle compact/detail view
     const [showDetailView, setShowDetailView] = useState(false);
@@ -62,6 +77,7 @@ export const DashboardPage: React.FC = () => {
     const [editingWallet, setEditingWallet] = useState<Wallet | null>(null);
     const [editTitle, setEditTitle] = useState('');
     const [editDesc, setEditDesc] = useState('');
+    const [editTheme, setEditTheme] = useState('blue');
     const [walletToDelete, setWalletToDelete] = useState<Wallet | null>(null);
     const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
 
@@ -102,13 +118,14 @@ export const DashboardPage: React.FC = () => {
         return [mainWallet, ...topOthers];
     }, [wallets]); // Re-calc when wallets change (activeWallets derived from wallets)
 
-    const currentMonth = dayjs().format('MMMM YYYY');
+
 
     // Handlers
     const handleEditStart = (wallet: Wallet) => {
         setEditingWallet(wallet);
         setEditTitle(wallet.title);
         setEditDesc(wallet.description || '');
+        setEditTheme(wallet.theme || 'blue');
         setActionSheetWallet(null); // Close sheet if open
     };
 
@@ -117,7 +134,8 @@ export const DashboardPage: React.FC = () => {
         try {
             await updateWallet(editingWallet.id, {
                 title: editTitle,
-                description: editDesc.trim() || undefined
+                description: editDesc.trim() || undefined,
+                theme: editTheme
             });
             setEditingWallet(null);
             setEditTitle('');
@@ -179,18 +197,46 @@ export const DashboardPage: React.FC = () => {
                 />
 
                 {/* Combined Balance & Summary Card */}
-                <div className="bg-white dark:bg-secondary rounded-xl p-4 md:p-6 mb-6 border border-secondary/10 dark:border-white/5">
+                <div className=" bg-white dark:bg-secondary rounded-xl p-4 md:p-6 mb-6 border border-secondary/10 dark:border-white/5">
                     {/* Total Balance Section */}
                     <div className="mb-4">
-                        <div className="flex items-center justify-between mb-2">
+                        <div className="flex justify-between items-center mb-2">
                             <p className="text-xs text-text-neutral/60 dark:text-text-secondary">Total Balance</p>
-                            <p className="text-xs text-text-neutral/50 dark:text-text-secondary/50">
-                                {currentMonth}
-                            </p>
+                            <button
+                                onClick={() => setIsDatePickerOpen(true)}
+                                className="px-2 py-1 rounded-md hover:bg-neutral-100 dark:hover:bg-white/10 transition-colors flex items-center gap-1 group -mr-2"
+                            >
+                                <span className="text-xs font-medium text-text-neutral/50 dark:text-text-secondary/50 group-hover:text-primary dark:group-hover:text-accent transition-colors">
+                                    {dayjs(selectedDate).format('MMMM YYYY')}
+                                </span>
+                                <svg className="w-3 h-3 text-text-neutral/30 group-hover:text-primary dark:group-hover:text-accent transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
                         </div>
-                        <p className="text-3xl md:text-4xl font-bold font-mono tracking-tight text-primary dark:text-accent mb-1">
-                            {globalSummary ? formatCurrency(globalSummary.balance) : 'Rp 0'}
-                        </p>
+
+                        <div className="flex justify-between items-center mb-1">
+                            <p className="text-3xl md:text-4xl font-bold font-mono tracking-tight text-primary dark:text-accent">
+                                {globalSummary ? maskAmount(globalSummary.balance) : maskAmount(0)}
+                            </p>
+                            <button
+                                onClick={toggleBalanceHidden}
+                                className="p-2 -mr-2 text-text-neutral/40 hover:text-text-neutral/80 dark:text-text-secondary/40 dark:hover:text-text-secondary transition-colors rounded-full hover:bg-neutral/10 dark:hover:bg-white/5"
+                                aria-label={isBalanceHidden ? "Show Balance" : "Hide Balance"}
+                            >
+                                {isBalanceHidden ? (
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                                    </svg>
+                                ) : (
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                )}
+                            </button>
+                        </div>
+
                         <p className="text-xs text-text-neutral/50 dark:text-text-secondary/50">
                             {activeWallets.length} wallet aktif
                         </p>
@@ -211,8 +257,8 @@ export const DashboardPage: React.FC = () => {
                             </p>
                             <p className="select-text text-xs md:text-sm font-bold font-mono text-green-600 dark:text-green-400 wrap-break-word">
                                 {showDetailView
-                                    ? formatCurrency(monthlySummary?.totalIncome || 0)
-                                    : formatCurrencyCompact(monthlySummary?.totalIncome || 0)
+                                    ? maskAmount(monthlySummary?.totalIncome || 0)
+                                    : maskAmountCompact(monthlySummary?.totalIncome || 0)
                                 }
                             </p>
                         </button>
@@ -230,8 +276,8 @@ export const DashboardPage: React.FC = () => {
                             </p>
                             <p className="select-text text-xs md:text-sm font-bold font-mono text-red-600 dark:text-red-400 wrap-break-word">
                                 {showDetailView
-                                    ? formatCurrency(monthlySummary?.totalExpense || 0)
-                                    : formatCurrencyCompact(monthlySummary?.totalExpense || 0)
+                                    ? maskAmount(monthlySummary?.totalExpense || 0)
+                                    : maskAmountCompact(monthlySummary?.totalExpense || 0)
                                 }
                             </p>
                         </button>
@@ -258,8 +304,8 @@ export const DashboardPage: React.FC = () => {
                                 : 'text-red-600 dark:text-red-400'
                                 }`}>
                                 {showDetailView
-                                    ? formatCurrency(monthlySummary?.balance || 0)
-                                    : formatCurrencyCompact(monthlySummary?.balance || 0)
+                                    ? maskAmount(monthlySummary?.balance || 0)
+                                    : maskAmountCompact(monthlySummary?.balance || 0)
                                 }
                             </p>
                         </button>
@@ -278,11 +324,11 @@ export const DashboardPage: React.FC = () => {
                         </svg>
                     }
                 />
-                <div className="flex gap-3 overflow-x-auto pb-4 mb-6 -mx-4 px-4 scrollbar-hide snap-x">
+                <div className="flex gap-3 overflow-x-auto pb-4 mb-6 -mx-4 px-4 scrollbar-hide snap-x scroll-px-4">
                     {/* Add Wallet Button - Landscape */}
                     <button
                         onClick={() => setIsCreateWalletModalOpen(true)}
-                        className="snap-start select-none shrink-0 w-[42vw] md:w-[240px] aspect-[1.586/1] bg-accent/10 dark:bg-accent/20 rounded-xl border-2 border-dashed border-accent/30 dark:border-accent/40 flex flex-col items-center justify-center gap-2 hover:bg-accent/20 dark:hover:bg-accent/30 transition-colors"
+                        className="snap-start select-none shrink-0 w-[50vw] sm:w-[35vw] md:w-[220px] min-w-[160px] md:min-w-0 aspect-[1.586/1] bg-accent/10 dark:bg-accent/20 rounded-xl border-2 border-dashed border-accent/30 dark:border-accent/40 flex flex-col items-center justify-center gap-2 hover:bg-accent/20 dark:hover:bg-accent/30 transition-colors"
                     >
                         <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-accent flex items-center justify-center text-white">
                             <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -303,11 +349,13 @@ export const DashboardPage: React.FC = () => {
                                     key={wallet.id}
                                     title={wallet.title}
                                     balance={balance}
+                                    isHidden={isBalanceHidden}
                                     currency={wallet.currency}
                                     id={wallet.id}
                                     onClick={() => navigate(`/finance/${wallet.id}`)}
                                     variant={isMainWallet ? 'primary' : 'accent'}
-                                    className="snap-start w-[42vw] md:w-[240px] aspect-[1.586/1]"
+                                    theme={wallet.theme}
+                                    className="snap-start w-[50vw] sm:w-[35vw] md:w-[220px] min-w-[160px] md:min-w-0 aspect-[1.586/1]"
                                     // Add Events for Action Sheet
 
                                     onTouchStart={(e) => {
@@ -426,7 +474,7 @@ export const DashboardPage: React.FC = () => {
                 />
                 {recentTransactions.length > 0 ? (
                     <div className="space-y-2">
-                        {recentTransactions.map(tx => {
+                        {recentTransactions.slice(0, 5).map(tx => {
                             const wallet = wallets.find(w => w.id === tx.walletId);
                             return (
                                 <ListCard
@@ -451,7 +499,7 @@ export const DashboardPage: React.FC = () => {
                                             ? 'text-green-600 dark:text-green-400'
                                             : 'text-red-600 dark:text-red-400'
                                             }`}>
-                                            {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount, wallet?.currency)}
+                                            {tx.type === 'income' ? '+' : '-'}{maskAmount(tx.amount, wallet?.currency)}
                                         </p>
                                     }
                                 />
@@ -519,6 +567,22 @@ export const DashboardPage: React.FC = () => {
                                 placeholder="e.g. For daily expenses"
                             />
                         </div>
+                        <div>
+                            <label className="text-sm font-medium text-text-neutral dark:text-text-primary mb-2 block">Theme Color</label>
+                            <div className="flex flex-wrap gap-2">
+                                {Object.keys(WALLET_THEMES).map((key) => {
+                                    if (key === 'primary' || key === 'accent') return null;
+                                    return (
+                                        <button
+                                            key={key}
+                                            onClick={() => setEditTheme(key)}
+                                            className={`w-8 h-8 rounded-full bg-linear-to-br ${WALLET_THEMES[key]} transition-transform ${editTheme === key ? 'ring-2 ring-offset-2 ring-accent scale-110' : 'hover:scale-105'}`}
+                                            title={key.charAt(0).toUpperCase() + key.slice(1)}
+                                        />
+                                    );
+                                })}
+                            </div>
+                        </div>
                         <div className="flex justify-end gap-3 mt-6">
                             <button
                                 onClick={() => setEditingWallet(null)}
@@ -562,6 +626,13 @@ export const DashboardPage: React.FC = () => {
                 <BudgetModal
                     isOpen={isBudgetModalOpen}
                     onClose={() => setIsBudgetModalOpen(false)}
+                />
+
+                <MonthYearPicker
+                    isOpen={isDatePickerOpen}
+                    onClose={() => setIsDatePickerOpen(false)}
+                    selectedDate={selectedDate}
+                    onChange={setSelectedDate}
                 />
             </div>
         </div>

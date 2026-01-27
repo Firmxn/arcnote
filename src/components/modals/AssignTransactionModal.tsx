@@ -54,10 +54,23 @@ export default function AssignTransactionModal({ isOpen, onClose, budgetId }: As
                 // Filter expense transactions locally
                 const expenseTxs = txs.filter(tx => tx.type === 'expense');
 
-                // Sort by date desc
-                expenseTxs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                // Filter out transactions that are already assigned to THIS budget
+                const { getAssignmentsForTransaction } = useFinanceStore.getState();
+                const unassignedTxs: FinanceTransaction[] = [];
 
-                setLoadedTransactions(expenseTxs);
+                for (const tx of expenseTxs) {
+                    const assignments = await getAssignmentsForTransaction(tx.id);
+                    // Hanya tampilkan jika belum di-assign ke budget ini
+                    const isAssignedToThisBudget = assignments.some(a => a.budgetId === budgetId);
+                    if (!isAssignedToThisBudget) {
+                        unassignedTxs.push(tx);
+                    }
+                }
+
+                // Sort by date desc
+                unassignedTxs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+                setLoadedTransactions(unassignedTxs);
             } catch (error) {
                 console.error('Failed to load wallet transactions', error);
                 setLoadedTransactions([]);
@@ -67,7 +80,7 @@ export default function AssignTransactionModal({ isOpen, onClose, budgetId }: As
         };
 
         loadWalletTransactions();
-    }, [selectedWalletId]);
+    }, [selectedWalletId, budgetId]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -112,6 +125,7 @@ export default function AssignTransactionModal({ isOpen, onClose, budgetId }: As
             isOpen={isOpen}
             onClose={onClose}
             title="Assign Transaksi ke Budget"
+            className="[&_.overflow-y-auto]:[&::-webkit-scrollbar]:hidden [&_.overflow-y-auto]:[scrollbar-width:none] [&_.overflow-y-auto]:[-ms-overflow-style:none]"
             footer={
                 <div className="p-6 border-t border-secondary/10 flex gap-3 justify-end">
                     <button
@@ -124,10 +138,10 @@ export default function AssignTransactionModal({ isOpen, onClose, budgetId }: As
                     </button>
                     {/* BUTTON SEKARANG DILUAR FORM KARENA DI FOOTER MODAL - PERLU TRIGGER FORM ATAU CLICK HANDLER */}
                     <button
-                        type="button" // Changed to button to avoid form submission confusion since it's outside form
+                        type="button" // Diubah ke button untuk menghindari kebingungan submit form karena di luar form
                         className="px-4 py-2 rounded-lg bg-accent hover:bg-accent/90 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                         disabled={isSubmitting || !selectedTransactionId}
-                        onClick={(e) => handleSubmit(e as any)} // Explicit call
+                        onClick={(e) => handleSubmit(e as any)} // Panggilan explicit
                     >
                         {isSubmitting ? (
                             <>
@@ -141,7 +155,7 @@ export default function AssignTransactionModal({ isOpen, onClose, budgetId }: As
                 </div>
             }
         >
-            <div className="space-y-4"> {/* Changed from form to div since button is outside */}
+            <div className="space-y-4"> {/* Diubah dari form ke div karena tombol submit di luar */}
                 {/* Step 1: Pilih Wallet */}
                 <div className="space-y-2">
                     <label className="block text-sm font-medium text-text-neutral dark:text-text-primary">
@@ -207,7 +221,7 @@ export default function AssignTransactionModal({ isOpen, onClose, budgetId }: As
                                 description="Belum ada transaksi pengeluaran di wallet ini"
                             />
                         ) : (
-                            <div className="space-y-2 max-h-80 overflow-y-auto">
+                            <div className="space-y-2 max-h-80 overflow-y-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none] [-ms-overflow-style:none]">
                                 {loadedTransactions.map((transaction) => (
                                     <label
                                         key={transaction.id}

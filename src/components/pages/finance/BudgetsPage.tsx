@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFinanceStore } from '../../../state/finance.store';
 import { PageHeader } from '../../ui/PageHeader';
+import { FAB } from '../../ui/FAB';
 import BudgetModal from '../../modals/BudgetModal';
 import { BudgetCard } from '../../ui/BudgetCard';
 
@@ -113,22 +114,22 @@ export default function BudgetsPage() {
             </div>
 
             {/* Floating Action Button - Mobile Only */}
-            <button
+            <FAB
                 onClick={handleCreateBudget}
-                className="md:hidden fixed bottom-20 right-4 w-14 h-14 bg-accent hover:bg-accent-hover text-white rounded-full shadow-lg flex items-center justify-center transition-colors z-50"
                 aria-label="Create Budget"
-            >
-                <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth={2}
-                    stroke="currentColor"
-                    className="w-6 h-6"
-                >
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                </svg>
-            </button>
+                icon={
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={2}
+                        stroke="currentColor"
+                        className="w-6 h-6"
+                    >
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                    </svg>
+                }
+            />
 
             {/* Budget Modal */}
             <BudgetModal
