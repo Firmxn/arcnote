@@ -18,6 +18,7 @@ import { SearchBar } from '../../ui/SearchBar';
 import type { SearchResult } from '../../ui/SearchBar';
 import { ActionGroup, ActionButton } from '../../ui/ActionGroup';
 import { SectionHeader } from '../../ui/SectionHeader';
+import { useDebounce } from '../../../hooks/useDebounce';
 import { PageHeader } from '../../ui/PageHeader';
 import { ActionSheet, type ActionSheetItem } from '../../ui/ActionSheet';
 
@@ -138,13 +139,16 @@ export const WalletsPage: React.FC = () => {
         }
     };
 
+    // Debounce search query untuk performance
+    const debouncedSearchQuery = useDebounce(searchQuery, 300);
+
     // Filter wallets berdasarkan search query
     const filteredWallets = wallets
         .filter(wallet => !wallet.isArchived) // Exclude archived
         .filter(wallet =>
-            !searchQuery.trim() ||
-            wallet.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (wallet.description?.toLowerCase().includes(searchQuery.toLowerCase()))
+            !debouncedSearchQuery.trim() ||
+            wallet.title.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+            (wallet.description?.toLowerCase().includes(debouncedSearchQuery.toLowerCase()))
         );
 
     // Convert filtered wallets to SearchResult format

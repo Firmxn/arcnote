@@ -84,9 +84,9 @@ Untuk project baru, lebih masuk akal langsung pakai **Tiptap v3** (bukan v2 lagi
 | Package             | Versi     | Keterangan                                                   |
 | ------------------- | --------- | ------------------------------------------------------------ |
 | **vite-plugin-pwa** | **1.0.0** | Versi terbaru, support Vite 5–7 dan Workbox 7.([GitHub][10]) |
-| **@capacitor/core** | **8.0.0** | Native bridge core.                                          |
-| **@capacitor/android**| **8.0.0**| Android platform specific runtime.                          |
-| **@capacitor/cli**  | **8.0.0** | CLI tools untuk build native apps.                           |
+| **@capacitor/core** | **6.0.0** | Native bridge core.                                          |
+| **@capacitor/android**| **6.0.0**| Android platform specific runtime.                          |
+| **@capacitor/cli**  | **6.0.0** | CLI tools untuk build native apps.                           |
 
 ---
 

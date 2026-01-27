@@ -140,7 +140,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
                         transition-all
                         bg-white dark:bg-secondary/20 shadow-sm
                         text-text-neutral dark:text-text-primary
-                        !outline-none !ring-0
+                        outline-none! ring-0!
                         ${showConfirm ? 'z-0' : ''} 
                         ${isOpen ? 'ring-2 ring-accent' : ''}
                         ${disabled ? 'opacity-50 cursor-not-allowed' : ''}

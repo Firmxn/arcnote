@@ -119,7 +119,7 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
 
     // Global UI Settings
     // Global UI Settings
-    isBalanceHidden: localStorage.getItem('arcnote_balance_hidden') === 'true',
+    isBalanceHidden: localStorage.getItem('arcnote_balance_hidden') !== 'false',
     toggleBalanceHidden: () => {
         const current = get().isBalanceHidden;
         const newState = !current;
@@ -367,25 +367,17 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
 
         set({ isLoading: true, error: null });
         try {
-            const allTransactions = await financeRepository.getAll(currentWallet.id);
-
             // Filter by selected month
             const startOfMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
             const endOfMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0, 23, 59, 59);
 
-            const transactions = allTransactions.filter(t => {
-                const tDate = new Date(t.date);
-                return tDate >= startOfMonth && tDate <= endOfMonth;
-            });
+            // Use optimized query
+            const transactions = await financeRepository.getTransactionsByDateRange(
+                currentWallet.id,
+                startOfMonth,
+                endOfMonth
+            );
 
-            // Sort: newer date first
-            transactions.sort((a, b) => {
-                const dayA = new Date(a.date).setHours(0, 0, 0, 0);
-                const dayB = new Date(b.date).setHours(0, 0, 0, 0);
-                const dateDiff = dayB - dayA;
-                if (dateDiff !== 0) return dateDiff;
-                return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-            });
             set({ transactions, isLoading: false });
         } catch (error) {
             set({ error: 'Failed to load transactions', isLoading: false });
@@ -639,24 +631,20 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
             let totalExpense = 0;
             let transactionCount = 0;
 
-            // Fetch all transactions dan filter by bulan ini
+            // Aggregate summary dari semua wallet yang tidak di-archive
             const activeWallets = wallets.filter(w => !w.isArchived);
 
             await Promise.all(activeWallets.map(async (wallet) => {
-                const allTransactions = await financeRepository.getAll(wallet.id);
-                const monthlyTransactions = allTransactions.filter(t => {
-                    const txDate = new Date(t.date);
-                    return txDate >= startOfMonth && txDate <= endOfMonth;
-                });
+                // Use optimized summary query
+                const summary = await financeRepository.getSummaryByDateRange(
+                    wallet.id,
+                    startOfMonth,
+                    endOfMonth
+                );
 
-                monthlyTransactions.forEach(t => {
-                    if (t.type === 'income') {
-                        totalIncome += t.amount;
-                    } else {
-                        totalExpense += t.amount;
-                    }
-                    transactionCount++;
-                });
+                totalIncome += summary.totalIncome;
+                totalExpense += summary.totalExpense;
+                transactionCount += summary.transactionCount;
             }));
 
             set({
