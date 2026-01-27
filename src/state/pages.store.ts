@@ -23,7 +23,7 @@ interface PagesState {
     archivePage: (id: string) => Promise<void>;
     restorePage: (id: string) => Promise<void>;
     resetState: () => void;
-
+    listenToSyncEvents: () => () => void;
 }
 
 export const usePagesStore = create<PagesState>((set, get) => ({
@@ -135,5 +135,19 @@ export const usePagesStore = create<PagesState>((set, get) => ({
             isLoading: false,
             error: null
         });
+    },
+
+    // --- Listener Implementation ---
+    listenToSyncEvents: () => {
+        const handleSyncCompleted = () => {
+            console.log('🔄 Sync completed. Reloading pages data...');
+            get().loadPages();
+        };
+
+        window.addEventListener('arcnote:sync-completed', handleSyncCompleted);
+
+        return () => {
+            window.removeEventListener('arcnote:sync-completed', handleSyncCompleted);
+        };
     }
 }));

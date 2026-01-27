@@ -15,6 +15,7 @@ interface SchedulesState {
     archiveEvent: (id: string) => Promise<void>;
     restoreEvent: (id: string) => Promise<void>;
     resetState: () => void;
+    listenToSyncEvents: () => () => void;
 }
 
 export const useSchedulesStore = create<SchedulesState>((set, get) => ({
@@ -96,5 +97,19 @@ export const useSchedulesStore = create<SchedulesState>((set, get) => ({
             isLoading: false,
             error: null
         });
+    },
+
+    // --- Listener Implementation ---
+    listenToSyncEvents: () => {
+        const handleSyncCompleted = () => {
+            console.log('🔄 Sync completed. Reloading schedules data...');
+            get().loadEvents();
+        };
+
+        window.addEventListener('arcnote:sync-completed', handleSyncCompleted);
+
+        return () => {
+            window.removeEventListener('arcnote:sync-completed', handleSyncCompleted);
+        };
     }
 }));
