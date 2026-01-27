@@ -11,32 +11,25 @@ import { supabase } from '../data/supabase';
 import { db } from '../data/db'; // Dexie instance
 import type { SyncQueueItem } from '../data/db';
 import type { Syncable } from '../types/sync';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
-// Map Dexie Table Names to Supabase Table Names
+// ... (existing helper maps and functions)
+
 // Map Dexie Table Names to Supabase Table Names
 const TABLE_MAP: Record<string, string> = {
     wallets: 'wallets',
-    finance: 'finance', // Renamed to match local
+    finance: 'finance',
     budgets: 'budgets',
-    budgetAssignments: 'budgetAssignments', // Renamed to match local (camelCase)
+    budgetAssignments: 'budgetAssignments',
     schedules: 'schedules',
     pages: 'pages',
     blocks: 'blocks',
 };
 
-/**
- * Field Mapping Utilities
- * Transform field names antara Dexie (camelCase) dan Supabase (mixed case)
- * 
- * Supabase schema inkonsisten:
- * - wallets, finance_transactions, pages, schedules: user_id (snake_case)
- * - budgets, budget_assignments: userId (camelCase)
- * - wallets: themeColor (Supabase) vs theme (Dexie)
- */
+// ... (helpers)
 
 // Per-field mapping: Dexie -> Supabase (untuk Push)
 const DEXIE_TO_SUPABASE: Record<string, Record<string, string>> = {
-    // Assuming Supabase columns are now camelCase to match local
     wallets: {},
     finance: {},
     pages: {},
@@ -48,7 +41,6 @@ const DEXIE_TO_SUPABASE: Record<string, Record<string, string>> = {
 
 // Per-field mapping: Supabase -> Dexie (untuk Pull)
 const SUPABASE_TO_DEXIE: Record<string, Record<string, string>> = {
-    // Assuming Supabase columns are now camelCase to match local
     wallets: {},
     finance: {},
     pages: {},
@@ -60,8 +52,6 @@ const SUPABASE_TO_DEXIE: Record<string, Record<string, string>> = {
 
 /**
  * Transform object keys dari Dexie format ke Supabase format
- * @param obj - Object dari Dexie
- * @param dexieTable - Nama table Dexie (untuk lookup mapping yang tepat)
  */
 function toSupabasePayload(obj: Record<string, any>, dexieTable: string): Record<string, any> {
     const mapping = DEXIE_TO_SUPABASE[dexieTable] || {};
@@ -74,11 +64,6 @@ function toSupabasePayload(obj: Record<string, any>, dexieTable: string): Record
     return result;
 }
 
-/**
- * Transform object keys dari Supabase format ke Dexie format
- * @param obj - Object dari Supabase
- * @param dexieTable - Nama table Dexie (untuk lookup mapping yang tepat)
- */
 function toDexieRecord(obj: Record<string, any>, dexieTable: string): Record<string, any> {
     const mapping = SUPABASE_TO_DEXIE[dexieTable] || {};
     const result: Record<string, any> = {};
@@ -92,10 +77,70 @@ function toDexieRecord(obj: Record<string, any>, dexieTable: string): Record<str
 
 class SyncManager {
     private isSyncing = false;
+    private realtimeChannel: RealtimeChannel | null = null;
+    private syncDebounceTimer: any = null;
+
+    /**
+     * Trigger Sync with Debounce
+     */
+    private triggerDebouncedSync() {
+        if (this.syncDebounceTimer) clearTimeout(this.syncDebounceTimer);
+
+        console.log('⚡ Realtime change detected. Scheduling sync...');
+        this.syncDebounceTimer = setTimeout(() => {
+            console.log('⚡ Executing debounced sync now.');
+            this.sync();
+        }, 2000); // 2s debounce
+    }
+
+    /**
+     * Initialize Realtime Subscription
+     */
+    initializeRealtime() {
+        if (this.realtimeChannel) return;
+
+        console.log('📡 Initializing Realtime Subscription...');
+        const channel = supabase.channel('db-changes');
+
+        // Listen to changes on all mapped tables
+        const tables = Object.values(TABLE_MAP);
+
+        tables.forEach(tableName => {
+            channel.on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: tableName },
+                () => {
+                    this.triggerDebouncedSync();
+                }
+            );
+        });
+
+        channel.subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+                console.log('✅ Realtime Connected.');
+            }
+        });
+
+        this.realtimeChannel = channel;
+    }
+
+    /**
+     * Cleanup Realtime Subscription
+     */
+    cleanupRealtime() {
+        if (this.realtimeChannel) {
+            console.log('🔌 Disconnecting Realtime...');
+            supabase.removeChannel(this.realtimeChannel);
+            this.realtimeChannel = null;
+        }
+        if (this.syncDebounceTimer) {
+            clearTimeout(this.syncDebounceTimer);
+            this.syncDebounceTimer = null;
+        }
+    }
 
     /**
      * Main Sync Function
-     * Triggered by: Interval, Online Event, or User Action
      */
     async sync() {
         if (this.isSyncing) return;
@@ -211,34 +256,21 @@ class SyncManager {
             const { error } = await supabase.from(table).delete().in('id', ids);
             if (error) {
                 console.error(`Failed to delete from ${table}:`, error);
-                // We keep them in queue to retry? Or clear to avoid stuck?
-                // For now log error but don't clear queue for those IDs?
-                // Simplicity: If error, we strictly shouldn't clear queue.
-                // But let's clear ONLY successfully processed ones?
-                // Implementing reliable queue processing is hard.
-                // MVP: If error is RLS or network, we retry later.
                 throw error;
             }
         }
 
         // Cleanup local queue
-        const queueIds = queueItems.map((i: SyncQueueItem) => i.id); // Note: Queue ID is item ID? 
-        // Wait, db.syncQueue.add stores { id, table ... }. Dexie generates key or we use autoIncrement?
-        // db.ts: `syncQueue: 'id, table, action, createdAt'` -> first item 'id' is key?
-        // No, 'id' is the ID of the deleted object. It *might* be duplicate if we delete same object twice? (Not possible locally).
-        // Safest is bulkDelete by Keys. 
-        // But `syncQueue` schema uses `id` as primary key.
-        // If I delete Item A from Table X, queue has {id: 'A'}.
-        // If I create Item A again and delete it, queue overwrites or fails?
-        // Since deletes are final, overwriting is fine.
+        const queueIds = queueItems.map((i: SyncQueueItem) => i.id);
         await db.syncQueue.bulkDelete(queueIds);
     }
 
     /**
-     * Generic Push Table
+     * Generic Push Table with Batching
      */
     private async pushTable(dexieTable: keyof typeof db, userId: string) {
         const table = db[dexieTable] as any; // Dynamic access
+        const CHUNK_SIZE = 50; // Batch size to prevent payload too large
 
         // Find 'created' or 'updated' records
         let dirtyRecords = await table
@@ -248,7 +280,6 @@ class SyncManager {
         if (dirtyRecords.length === 0) return;
 
         // Sort pages: parent pages (parentId = null) dipush terlebih dahulu
-        // Ini mencegah FK constraint violation saat child dipush sebelum parent
         if (dexieTable === 'pages') {
             dirtyRecords = this.sortPagesByHierarchy(dirtyRecords);
         }
@@ -259,7 +290,7 @@ class SyncManager {
         console.log(`Pushing ${dirtyRecords.length} records to ${supabaseTableName}...`);
 
         // Prepare Payloads
-        const payloads = dirtyRecords.map((r: any) => {
+        const allPayloads = dirtyRecords.map((r: any) => {
             // Clone & Clean
             const payload = { ...r };
 
@@ -273,48 +304,53 @@ class SyncManager {
                 }
             }
 
-            // Inject User ID jika dibutuhkan (sebelum transform field names)
+            // Inject User ID jika dibutuhkan
             const tablesNeedingUserId = ['wallets', 'finance', 'budgets', 'budgetAssignments', 'schedules', 'pages', 'blocks'];
             if (tablesNeedingUserId.includes(dexieTable as string)) {
                 if (!payload.userId) payload.userId = userId;
             }
 
-            // Transform field names dari Dexie (camelCase) ke Supabase (snake_case)
+            // Transform field names
             return toSupabasePayload(payload, dexieTable as string);
         });
 
-        // Untuk pages: push sequential setelah topological sort untuk menghindari FK error
-        // Untuk table lain: batch upsert
-        if (dexieTable === 'pages') {
-            // Sequential push untuk pages
-            for (const payload of payloads) {
-                const { error } = await supabase.from(supabaseTableName).upsert(payload);
+        // Loop per Chunk
+        for (let i = 0; i < allPayloads.length; i += CHUNK_SIZE) {
+            const chunk = allPayloads.slice(i, i + CHUNK_SIZE);
+            console.log(`Uploading chunk ${Math.floor(i / CHUNK_SIZE) + 1}/${Math.ceil(allPayloads.length / CHUNK_SIZE)} for ${dexieTable}`);
+
+            if (dexieTable === 'pages') {
+                // Sequential push upsert untuk pages (karena hierarchy)
+                // Batch upsert might fail if parent is in same batch but processed after child?
+                // Supabase upsert is atomic per row or per batch? 
+                // It's safer to do sequential for pages generally, OR carefully sorted batch.
+                // Since we sorted topologically, batch upsert SHOULD be fine if Postgres processes sequentially.
+                // But to be 100% safe for Pages: sequential or small batches.
+                // Let's stick to batch upsert for all, assuming topological sort helps.
+                // If deep nesting exists > CHUNK_SIZE, we might split parent and child into different chunks.
+                // Correct. Since we loop chunks sequentially, Parent (chk 1) will be saved before Child (chk 2).
+
+                const { error } = await supabase.from(supabaseTableName).upsert(chunk);
                 if (error) {
-                    console.error(`Failed to push page ${payload.id}:`, error);
-                    // Skip error untuk page individual, lanjut ke page berikutnya
-                    // Ini memungkinkan parent yang sudah ada untuk ter-push dulu
-                    continue;
+                    console.error(`Failed to push pages batch ${i}:`, error);
+                    // For pages, we might want to continue best effort? Or stop?
+                    // Stop preserves consistency.
+                    throw error;
                 }
-            }
-        } else {
-            // Batch Upsert untuk table lain
-            const { error } = await supabase.from(supabaseTableName).upsert(payloads);
-            if (error) {
-                console.error(`Failed to push ${dexieTable}:`, error);
-                throw error;
+            } else {
+                // Batch Upsert for others
+                const { error } = await supabase.from(supabaseTableName).upsert(chunk);
+                if (error) {
+                    console.error(`Failed to push ${dexieTable} batch ${i}:`, error);
+                    throw error;
+                }
             }
         }
 
         // On Success: Mark as Synced
-        const ids = dirtyRecords.map((r: any) => r.id);
-        await table.bulkUpdate(ids.map((id: string) => ({
-            key: id,
-            changes: { syncStatus: 'synced' as const }
-        })));
-
-        // Fix: bulkUpdate signature in Dexie is varying?
-        // Actually table.update(id, changes).
-        // Bulk update loop:
+        // We mark ALL as synced only if all chunks succeed.
+        // Optimized: Mark synced per chunk? No, complexity.
+        // Simple: Mark all synced at end.
         await db.transaction('rw', table, async () => {
             for (const r of dirtyRecords) {
                 await table.update(r.id, { syncStatus: 'synced' });
@@ -362,22 +398,44 @@ class SyncManager {
 
     /**
      * PULL: Download changes from Supabase
+     * Updated: Granular Checkpoints (Per-table timestamp)
      */
     private async pullChanges() {
-        // This is a simplified "Pull Everything" approach for MVP.
-        // Ideally we track `lastPulledAt` per table.
-        // For now, let's pull all tables. Since local data > 0, we can use `updated_at` filter?
-        // Let's try to pull records updated > locally known max update?
-        // Risk: If I edit on device A, then device B pulls... conflict?
-        // Strategy: Pull ALL from Server > last_known_pull_time?
-        // We need to store global sync state.
-
-        const lastPullTime = localStorage.getItem('arcnote_last_pull');
-        const since = lastPullTime ? new Date(lastPullTime).toISOString() : new Date(0).toISOString();
+        const lastGlobalPull = localStorage.getItem('arcnote_last_pull');
         const now = new Date().toISOString();
 
-        await Promise.all(Object.keys(TABLE_MAP).map(t => this.pullTable(t, since)));
+        // Define pull order priority: Parents -> Children
+        const tablesOrdered = [
+            'wallets',
+            'budgets',
+            'pages',
+            'finance',
+            'budgetAssignments',
+            'blocks',
+            'schedules'
+        ];
 
+        for (const dexieTable of tablesOrdered) {
+            // Get per-table timestamp or fallback to global/epoch
+            const storageKey = `arcnote_last_pull_${dexieTable}`;
+            const lastTablePull = localStorage.getItem(storageKey);
+
+            // Prioritize table-specific tick, then global tick, then 0
+            const sinceValues = [lastTablePull, lastGlobalPull, new Date(0).toISOString()];
+            // Valid valid is non-null.
+            const since = sinceValues.find(v => v !== null) as string;
+
+            try {
+                await this.pullTable(dexieTable, since);
+                // On success, update timestamp for THIS table
+                localStorage.setItem(storageKey, now);
+            } catch (error) {
+                console.error(`Partial sync failed for ${dexieTable}. Continuing others...`, error);
+                // Continue loop to try other tables = Partial Recovery
+            }
+        }
+
+        // Update global pull time just as a reference, though less used now
         localStorage.setItem('arcnote_last_pull', now);
     }
 
@@ -397,8 +455,7 @@ class SyncManager {
             .gt(timestampColumn, since);
 
         if (error) {
-            console.error(`Failed to pull ${supabaseTable}:`, error);
-            return;
+            throw error; // Let parent catch it
         }
 
         if (!data || data.length === 0) return;

@@ -108,7 +108,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         <>
             {/* Backdrop */}
             <div
-                className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[200] animate-in fade-in duration-200"
+                className="fixed inset-0 bg-black/50 backdrop-blur-sm z-200 animate-in fade-in duration-200"
                 onClick={(e) => {
                     e.stopPropagation();
                     onCancel();
@@ -119,7 +119,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             <div
                 id="confirm-dialog"
                 role="alertdialog"
-                className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[210] animate-in fade-in zoom-in-95 duration-200"
+                className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-210 animate-in fade-in zoom-in-95 duration-200"
             >
                 <div className="bg-neutral rounded-lg shadow-2xl border border-secondary/20 p-6 w-[400px] max-w-[90vw]">
                     {/* Icon */}

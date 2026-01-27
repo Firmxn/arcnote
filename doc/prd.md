@@ -38,12 +38,17 @@ Google Login, Email/Password.
 ### ✔ Sinkronisasi Cloud (Supabase)
 Sinkronisasi data antar perangkat.
 
+### ✔ Finance (Completed)
+- Multi-wallet & Transfers
+- Budgeting Feature
+- Transaction History & Reports
+
 ### ❌ Tidak ada kolaborasi
 ### ❌ Tidak ada file upload
 
 Goal MVP:
 
-> User dapat membuat page, menambah block, mengedit block, dan menyimpan semuanya secara offline secara persisten, serta mengaksesnya via Android App.
+> User dapat membuat page, menambah block, mengedit block, mengelola keuangan dan jadwal, serta menyimpan semuanya secara offline secara persisten.
 
 ---
 

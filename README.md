@@ -19,14 +19,17 @@ Aplikasi ini menggunakan pendekatan **Local-First Architecture**: Semua data ter
 -   **Slash Command**: Akses cepat komponen editor hanya dengan mengetik `/`.
 
 ### 2. 📅 Schedules (Calendar & Events)
--   **Visual Calendar**: Pantau jadwal Anda dalam tampilan bulanan yang bersih.
+-   **Visual Calendar**: Pantau jadwal Anda dalam tampilan bulanan (Desktop) atau harian (Mobile).
 -   **Event Management**: Kelola pertemuan (Meeting), tugas (Task), dan tenggat waktu (Deadlines).
+-   **Draft Mode**: Buat draft event sebelum menyimpan untuk UX yang lebih fluid.
 -   **Quick Preview**: Lihat detail aktivitas tanpa meninggalkan halaman kalender.
 
 ### 3. 💰 Finance (Expense Tracker)
--   **Accounts Management**: Kelola beberapa "wallet" atau akun keuangan secara terpisah.
+-   **Accounts Management**: Kelola beberapa "wallet" atau akun keuangan secara terpisah dengan tema warna custom.
 -   **Transaction Tracking**: Catat pemasukan dan pengeluaran dengan kategori dan label.
--   **Balance Overview**: Pantau total saldo Anda secara real-time.
+-   **Budgeting System**: Tetapkan dan pantau budget mingguan/bulanan dengan visual progress bar.
+-   **Wallet Transfer**: Fitur transfer saldo antar wallet dengan pencatatan otomatis.
+-   **Balance Overview**: Pantau total saldo Anda secara real-time dengan opsi "Privacy Mode".
 
 ### 4. 🔄 Local-First & Auto Sync
 -   **Offline by Default**: Data tersimpan aman di **Dexie.js (IndexedDB)**. Aplikasi instan dan responsif tanpa loading jaringan.

@@ -43,11 +43,14 @@ interface FinanceRepo {
     getAll(walletId?: string): Promise<FinanceTransaction[]>;
     getById(id: string): Promise<FinanceTransaction | undefined>;
     getTransactionsByIds(ids: string[]): Promise<FinanceTransaction[]>;
+    // Optimized range queries
+    getTransactionsByDateRange(walletId: string, start: Date, end: Date): Promise<FinanceTransaction[]>;
     create(input: CreateTransactionInput): Promise<FinanceTransaction>;
     update(id: string, input: UpdateTransactionInput): Promise<FinanceTransaction | undefined>;
     delete(id: string): Promise<void>;
     markAsVisited(id: string): Promise<void>;
     getSummary(walletId?: string): Promise<FinanceSummary>;
+    getSummaryByDateRange(walletId: string, start: Date, end: Date): Promise<FinanceSummary>;
 
     // --- TRANSFER ---
     transferBetweenWallets(fromWalletId: string, toWalletId: string, amount: number, description?: string, date?: Date): Promise<{ outTransaction: FinanceTransaction; inTransaction: FinanceTransaction }>;
@@ -188,6 +191,53 @@ export const financeRepository: FinanceRepo = {
     async getTransactionsByIds(ids: string[]): Promise<FinanceTransaction[]> {
         const transactions = await db.finance.bulkGet(ids);
         return transactions.filter((t): t is FinanceTransaction => !!t);
+    },
+
+    /**
+     * Optimized Query: Get transactions by wallet and date range using Index/Filter
+     * Much faster than getAll() + filter in memory
+     */
+    async getTransactionsByDateRange(walletId: string, start: Date, end: Date): Promise<FinanceTransaction[]> {
+        // Use Dexie's where().filter() which is efficient
+        // Ideally we would have a compound index [walletId+date], but walletId index + range check is good enough
+        const transactions = await db.finance
+            .where('walletId').equals(walletId)
+            .filter(t => {
+                const d = new Date(t.date);
+                return d >= start && d <= end;
+            })
+            .toArray();
+
+        // Sort: Date (Day) DESC, then CreatedAt DESC
+        return transactions.sort((a, b) => {
+            const dayA = new Date(a.date).setHours(0, 0, 0, 0);
+            const dayB = new Date(b.date).setHours(0, 0, 0, 0);
+            const dateDiff = dayB - dayA;
+            if (dateDiff !== 0) return dateDiff;
+            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        });
+    },
+
+    /**
+     * Optimized Summary: Calculate summary directly from ranged query
+     */
+    async getSummaryByDateRange(walletId: string, start: Date, end: Date): Promise<FinanceSummary> {
+        const transactions = await this.getTransactionsByDateRange(walletId, start, end);
+
+        let totalIncome = 0;
+        let totalExpense = 0;
+
+        transactions.forEach(t => {
+            if (t.type === 'income') totalIncome += t.amount;
+            else totalExpense += t.amount;
+        });
+
+        return {
+            totalIncome,
+            totalExpense,
+            balance: totalIncome - totalExpense,
+            transactionCount: transactions.length
+        };
     },
 
     async create(input: CreateTransactionInput): Promise<FinanceTransaction> {

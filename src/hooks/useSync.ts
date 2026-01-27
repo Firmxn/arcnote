@@ -16,19 +16,25 @@ export function useSync() {
     }, []);
 
     useEffect(() => {
+        // Initial Sync and Realtime Setup on Mount (if online)
+        if (navigator.onLine) {
+            triggerSync();
+            syncManager.initializeRealtime();
+        }
+
         const handleOnline = () => {
             setIsOnline(true);
             triggerSync();
+            syncManager.initializeRealtime();
         };
-        const handleOffline = () => setIsOnline(false);
+
+        const handleOffline = () => {
+            setIsOnline(false);
+            syncManager.cleanupRealtime();
+        };
 
         window.addEventListener('online', handleOnline);
         window.addEventListener('offline', handleOffline);
-
-        // Intitial Sync on Mount (if online)
-        if (navigator.onLine) {
-            triggerSync();
-        }
 
         // Interval Sync (e.g. every 2 minutes)
         const interval = setInterval(() => {
@@ -39,6 +45,7 @@ export function useSync() {
             window.removeEventListener('online', handleOnline);
             window.removeEventListener('offline', handleOffline);
             clearInterval(interval);
+            syncManager.cleanupRealtime();
         };
     }, [triggerSync]);
 
