@@ -240,8 +240,9 @@ export const SchedulePage: React.FC<SchedulePageProps> = ({ initialEventId }) =>
                                 </Button>
                                 {showMonthPicker && (
                                     <MonthYearPicker
-                                        currentDate={currentDate}
-                                        onChange={setCurrentDate}
+                                        isOpen={showMonthPicker}
+                                        selectedDate={currentDate.toDate()}
+                                        onChange={(date) => setCurrentDate(dayjs(date))}
                                         onClose={() => setShowMonthPicker(false)}
                                     />
                                 )}
