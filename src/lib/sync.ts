@@ -110,15 +110,26 @@ class SyncManager {
             channel.on(
                 'postgres_changes',
                 { event: '*', schema: 'public', table: tableName },
-                () => {
+                (payload) => {
+                    console.log(`🔥 Realtime Event for [${tableName}]:`, payload.eventType);
                     this.triggerDebouncedSync();
                 }
             );
         });
 
         channel.subscribe((status) => {
+            console.log(`📡 Realtime Status: ${status}`);
+
+            // Ignore status updates if we have already disconnected locally
+            if (!this.realtimeChannel) return;
+
             if (status === 'SUBSCRIBED') {
                 console.log('✅ Realtime Connected.');
+            } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+                console.error(`❌ Realtime Connection Failed: ${status}`);
+                // Clear channel reference so we can try reconnecting later
+                this.realtimeChannel = null;
+                supabase.removeChannel(channel);
             }
         });
 
@@ -131,8 +142,9 @@ class SyncManager {
     cleanupRealtime() {
         if (this.realtimeChannel) {
             console.log('🔌 Disconnecting Realtime...');
-            supabase.removeChannel(this.realtimeChannel);
-            this.realtimeChannel = null;
+            const channel = this.realtimeChannel;
+            this.realtimeChannel = null; // Prepare for disconnect FIRST to prevent cleanup loop
+            supabase.removeChannel(channel);
         }
         if (this.syncDebounceTimer) {
             clearTimeout(this.syncDebounceTimer);
@@ -432,6 +444,10 @@ class SyncManager {
             'schedules'
         ];
 
+        // Create explicit safety buffer (e.g. 5 minutes) to handle clock skew
+        // This ensures we overlap slightly and don't miss records inserted "just now" on another device with slightly different clock
+        const SAFETY_BUFFER_MS = 5 * 60 * 1000;
+
         for (const dexieTable of tablesOrdered) {
             // Get per-table timestamp or fallback to global/epoch
             const storageKey = `arcnote_last_pull_${dexieTable}`;
@@ -440,11 +456,20 @@ class SyncManager {
             // Prioritize table-specific tick, then global tick, then 0
             const sinceValues = [lastTablePull, lastGlobalPull, new Date(0).toISOString()];
             // Valid valid is non-null.
-            const since = sinceValues.find(v => v !== null) as string;
+            const rawSince = sinceValues.find(v => v !== null) as string;
+
+            // Apply Safety Buffer
+            // If rawSince is Epoch (1970), don't buffer. Otherwise subtract buffer.
+            let since = rawSince;
+            if (rawSince !== new Date(0).toISOString()) {
+                const time = new Date(rawSince).getTime();
+                since = new Date(time - SAFETY_BUFFER_MS).toISOString();
+            }
 
             try {
                 await this.pullTable(dexieTable, since);
-                // On success, update timestamp for THIS table
+                // On success, update timestamp for THIS table to NOW (not 'since')
+                // We use 'now' because we successfully checked up to this point.
                 localStorage.setItem(storageKey, now);
             } catch (error) {
                 console.error(`Partial sync failed for ${dexieTable}. Continuing others...`, error);
@@ -461,11 +486,12 @@ class SyncManager {
         if (!supabaseTable) return;
 
         // DEBUG: Cek apakah query jalan dan timestamp apa yang dipakai
-        console.log(`🧐 Checking ${dexieTable} updates since: ${since}`);
+        // console.log(`🧐 Checking ${dexieTable} updates since: ${since}`);
 
         const table = (db as any)[dexieTable];
 
         // Tables yang tidak punya updatedAt column, gunakan createdAt
+        // PENTING: Untuk budgetAssignments, pastikan logic ini konsisten
         const tablesWithoutUpdatedAt = ['budgetAssignments'];
         const timestampColumn = tablesWithoutUpdatedAt.includes(dexieTable) ? 'createdAt' : 'updatedAt';
 
@@ -557,7 +583,16 @@ export async function clearUserData(newUserId: string) {
         );
 
         localStorage.setItem('arcnote_user_id', newUserId);
+
+        // Remove global pull timestamp
         localStorage.removeItem('arcnote_last_pull');
+
+        // Remove per-table pull timestamps to ensure fresh pull
+        Object.keys(localStorage).forEach(key => {
+            if (key.startsWith('arcnote_last_pull_')) {
+                localStorage.removeItem(key);
+            }
+        });
 
         console.log('✅ Local data cleared immediately.');
         window.dispatchEvent(new Event('arcnote:data-cleared'));
@@ -572,7 +607,7 @@ export async function clearUserData(newUserId: string) {
  * Tidak perlu check user ID, langsung clear semua
  */
 export async function clearAllData() {
-    console.log('��� Clearing all local data (logout)...');
+    console.log('🧹 Clearing all local data (logout)...');
 
     const tables = ['wallets', 'finance', 'budgets', 'budgetAssignments', 'schedules', 'pages', 'blocks'];
 
@@ -591,6 +626,13 @@ export async function clearAllData() {
     // Clear localStorage juga
     localStorage.removeItem('arcnote_user_id');
     localStorage.removeItem('arcnote_last_pull');
+
+    // Remove per-table pull timestamps
+    Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('arcnote_last_pull_')) {
+            localStorage.removeItem(key);
+        }
+    });
 
     console.log('✅ All local data cleared.');
     window.dispatchEvent(new Event('arcnote:data-cleared'));
