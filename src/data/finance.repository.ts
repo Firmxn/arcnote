@@ -570,7 +570,7 @@ export const financeRepository: FinanceRepo = {
             if (existing) {
                 await db.syncQueue.add({
                     id: existing.id,
-                    table: 'budget_assignments',
+                    table: 'budgetAssignments', // FIX: Use camelCase to match TABLE_MAP and Dexie
                     action: 'delete',
                     createdAt: new Date()
                 });
