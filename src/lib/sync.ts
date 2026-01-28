@@ -77,6 +77,7 @@ function toDexieRecord(obj: Record<string, any>, dexieTable: string): Record<str
 
 class SyncManager {
     private isSyncing = false;
+    private needsSyncAgain = false; // Flag untuk menandai antrian sync berikutnya
     private realtimeChannel: RealtimeChannel | null = null;
     private syncDebounceTimer: any = null;
 
@@ -140,14 +141,21 @@ class SyncManager {
     }
 
     /**
-     * Main Sync Function
+     * Main Sync Function (with Smart Queue)
      */
     async sync() {
-        if (this.isSyncing) return;
-        if (!navigator.onLine) return; // Browser check
+        if (!navigator.onLine) return;
+
+        // Jika sedang sync, tandai bahwa kita perlu sync lagi segera setelah ini selesai
+        if (this.isSyncing) {
+            console.log('🔄 Sync in progress, scheduling next run...');
+            this.needsSyncAgain = true;
+            return;
+        }
 
         try {
             this.isSyncing = true;
+            this.needsSyncAgain = false; // Reset flag saat mulai
             console.log('🔄 Sync Started...');
 
             // 1. Auth Check
@@ -158,28 +166,35 @@ class SyncManager {
             }
             const userId = user.id;
 
-            // 2. Check User Context - Clear data jika user berbeda atau first-time login
+            // 2. Check User Context
             const lastUserId = localStorage.getItem('arcnote_user_id');
             if (!lastUserId || lastUserId !== userId) {
-                // First-time login atau user switch - clear data lama dan pull fresh
                 console.log(`🔄 ${!lastUserId ? 'First login' : 'User changed'}. Clearing local data...`);
                 await this.clearAllLocalData();
-                localStorage.removeItem('arcnote_last_pull'); // Reset pull timestamp
+                localStorage.removeItem('arcnote_last_pull');
             }
             localStorage.setItem('arcnote_user_id', userId);
 
-            // 3. Push Local Changes (Upload data kotor)
+            // 3. Push Local Changes
             await this.pushChanges(userId);
 
-            // 4. Pull Cloud Changes (Download data baru)
+            // 4. Pull Cloud Changes
             await this.pullChanges();
 
             console.log('✅ Sync Completed.');
             window.dispatchEvent(new Event('arcnote:sync-completed'));
+
         } catch (error) {
             console.error('❌ Sync Failed:', error);
         } finally {
             this.isSyncing = false;
+
+            // Cek apakah ada request sync yang masuk saat kita sedang sibuk tadi
+            if (this.needsSyncAgain) {
+                console.log('🔁 Executing queued sync...');
+                // Gunakan timeout kecil untuk melepas stack dan biarkan event loop bernapas
+                setTimeout(() => this.sync(), 100);
+            }
         }
     }
 

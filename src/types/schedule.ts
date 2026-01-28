@@ -7,7 +7,6 @@ import type { Syncable } from './sync';
 export interface ScheduleEvent extends Syncable {
     id: string;
     title: string;
-    description?: string;
     content?: string; // HTML content dari editor
     date: Date;
     endDate?: Date; // Support range/duration

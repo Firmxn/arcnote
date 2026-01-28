@@ -46,6 +46,7 @@ export interface FinanceTransaction extends Syncable {
     amount: number;
     category: TransactionCategory;
     description?: string;
+    attachments?: string[]; // Array of URLs/paths
     date: Date; // Tanggal transaksi
     createdAt: Date;
     updatedAt: Date;
