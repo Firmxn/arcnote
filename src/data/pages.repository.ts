@@ -57,7 +57,7 @@ export const pagesRepository: PagesRepo = {
             syncStatus: page.syncStatus === 'created' ? 'created' : 'updated'
         };
 
-        await db.pages.update(id, updated);
+        await db.pages.update(id, updated as any);
         return updated;
     },
 

@@ -9,7 +9,8 @@ export interface Page extends Syncable {
     title: string;
     description?: string; // Short description for card display
     parentId?: string | null;
-    content?: string; // HTML content dari Tiptap editor
+    content?: any; // JSON content from Tiptap editor (compatible with Supabase jsonb)
+    isFavorite?: boolean; // New: Favorite support
     createdAt: Date;
     updatedAt: Date;
     lastVisitedAt?: Date; // Tracking kapan terakhir dibuka (untuk Recently Visited)

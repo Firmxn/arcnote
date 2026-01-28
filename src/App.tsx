@@ -65,6 +65,7 @@ const ScheduleWithNav = () => {
 };
 
 import { useBackButton } from './hooks/useBackButton';
+import { useSync } from './hooks/useSync';
 
 function App() {
   // Setup Back Button Handling
@@ -87,6 +88,9 @@ function App() {
     loadRecentTransactions
   } = useFinanceStore();
 
+  // Setup Sync Engine (Auto Sync + Realtime)
+  useSync();
+
   // Initialize Auth (for cloud sync)
   useEffect(() => {
     initAuth();
@@ -100,7 +104,7 @@ function App() {
     loadBudgets();
   }, [loadPages, loadEvents, loadWallets, loadBudgets]);
 
-  // Listen for Sync/Clear Events & Setup Auto-Sync
+  // Listen for Sync/Clear Events to Reload UI
   useEffect(() => {
     const handleSyncCompleted = () => {
       console.log('🔄 Reloading data from stores...');
@@ -125,36 +129,12 @@ function App() {
       useFinanceStore.getState().resetState();
     };
 
-    // Auto-Sync Interval (every 60s)
-    const syncInterval = setInterval(() => {
-      console.log('⏰ Auto-sync triggered');
-      // Import syncManager dynamically or pass it? It's exported from lib/sync
-      // We need to import it at top level. Assuming it's imported as syncManager.
-      // Wait, 'syncManager' is not imported in original file Step 371?
-      // Check imports first. If not imported, we need to add import.
-      // Assuming user wants me to fix imports too.
-      import('./lib/sync').then(({ syncManager }) => {
-        syncManager.sync();
-      });
-    }, 60000); // 1 minute
-
-    // Network Status Listeners
-    const handleOnline = () => {
-      console.log('🌐 Online detected, syncing...');
-      import('./lib/sync').then(({ syncManager }) => {
-        syncManager.sync();
-      });
-    };
-
     window.addEventListener('arcnote:sync-completed', handleSyncCompleted);
     window.addEventListener('arcnote:data-cleared', handleDataCleared);
-    window.addEventListener('online', handleOnline);
 
     return () => {
-      clearInterval(syncInterval);
       window.removeEventListener('arcnote:sync-completed', handleSyncCompleted);
       window.removeEventListener('arcnote:data-cleared', handleDataCleared);
-      window.removeEventListener('online', handleOnline);
     };
   }, [
     loadPages, loadEvents, loadWallets, loadBudgets, loadBalances,

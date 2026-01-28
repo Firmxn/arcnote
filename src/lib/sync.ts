@@ -77,6 +77,7 @@ function toDexieRecord(obj: Record<string, any>, dexieTable: string): Record<str
 
 class SyncManager {
     private isSyncing = false;
+    private needsSyncAgain = false; // Flag untuk menandai antrian sync berikutnya
     private realtimeChannel: RealtimeChannel | null = null;
     private syncDebounceTimer: any = null;
 
@@ -140,14 +141,21 @@ class SyncManager {
     }
 
     /**
-     * Main Sync Function
+     * Main Sync Function (with Smart Queue)
      */
     async sync() {
-        if (this.isSyncing) return;
-        if (!navigator.onLine) return; // Browser check
+        if (!navigator.onLine) return;
+
+        // Jika sedang sync, tandai bahwa kita perlu sync lagi segera setelah ini selesai
+        if (this.isSyncing) {
+            console.log('🔄 Sync in progress, scheduling next run...');
+            this.needsSyncAgain = true;
+            return;
+        }
 
         try {
             this.isSyncing = true;
+            this.needsSyncAgain = false; // Reset flag saat mulai
             console.log('🔄 Sync Started...');
 
             // 1. Auth Check
@@ -158,28 +166,37 @@ class SyncManager {
             }
             const userId = user.id;
 
-            // 2. Check User Context - Clear data jika user berbeda atau first-time login
+            // 2. Check User Context
             const lastUserId = localStorage.getItem('arcnote_user_id');
             if (!lastUserId || lastUserId !== userId) {
-                // First-time login atau user switch - clear data lama dan pull fresh
                 console.log(`🔄 ${!lastUserId ? 'First login' : 'User changed'}. Clearing local data...`);
                 await this.clearAllLocalData();
-                localStorage.removeItem('arcnote_last_pull'); // Reset pull timestamp
+                localStorage.removeItem('arcnote_last_pull');
             }
             localStorage.setItem('arcnote_user_id', userId);
 
-            // 3. Push Local Changes (Upload data kotor)
-            await this.pushChanges(userId);
-
-            // 4. Pull Cloud Changes (Download data baru)
+            // 3. PULL Cloud Changes (Download data server DULUAN)
+            // Agar kita punya basis data terbaru sebelum memutuskan untuk menimpa server
             await this.pullChanges();
+
+            // 4. PUSH Local Changes (Upload data kotor)
+            // Hanya push jika data lokal kita MEMANG lebih baru dari yang baru saja di-pull
+            await this.pushChanges(userId);
 
             console.log('✅ Sync Completed.');
             window.dispatchEvent(new Event('arcnote:sync-completed'));
+
         } catch (error) {
             console.error('❌ Sync Failed:', error);
         } finally {
             this.isSyncing = false;
+
+            // Cek apakah ada request sync yang masuk saat kita sedang sibuk tadi
+            if (this.needsSyncAgain) {
+                console.log('🔁 Executing queued sync...');
+                // Gunakan timeout kecil untuk melepas stack dan biarkan event loop bernapas
+                setTimeout(() => this.sync(), 100);
+            }
         }
     }
 
@@ -443,6 +460,9 @@ class SyncManager {
         const supabaseTable = TABLE_MAP[dexieTable];
         if (!supabaseTable) return;
 
+        // DEBUG: Cek apakah query jalan dan timestamp apa yang dipakai
+        console.log(`🧐 Checking ${dexieTable} updates since: ${since}`);
+
         const table = (db as any)[dexieTable];
 
         // Tables yang tidak punya updatedAt column, gunakan createdAt
@@ -458,9 +478,12 @@ class SyncManager {
             throw error; // Let parent catch it
         }
 
-        if (!data || data.length === 0) return;
+        if (!data || data.length === 0) {
+            // console.log(`✓ No updates for ${dexieTable}`);
+            return;
+        }
 
-        console.log(`Pulled ${data.length} updates for ${dexieTable}`);
+        console.log(`📥 Pulled ${data.length} updates for ${dexieTable}`);
 
         await db.transaction('rw', table, async () => {
             for (const row of data) {
@@ -474,11 +497,33 @@ class SyncManager {
                 if (mappedRow.endDate) mappedRow.endDate = new Date(mappedRow.endDate);
                 if (mappedRow.lastVisitedAt) mappedRow.lastVisitedAt = new Date(mappedRow.lastVisitedAt);
 
-                // Set status = synced
-                mappedRow.syncStatus = 'synced';
+                // --- SMART MERGE LOGIC ---
+                const existing = await table.get(mappedRow.id);
+                let shouldUpdate = true;
 
-                // Put (Overwrite local)
-                await table.put(mappedRow);
+                if (existing) {
+                    // Jika lokal dirty, kita harus hati-hati
+                    if (existing.syncStatus === 'created' || existing.syncStatus === 'updated') {
+                        const localTime = new Date(existing.updatedAt).getTime();
+                        const serverTime = new Date(mappedRow.updatedAt).getTime();
+
+                        // Conflict Resolution:
+                        // Jika Server Time LEBIH BARU dari Local Time -> Server Menang (Timpa Lokal & Hilangkan Dirty)
+                        // Jika Local Time LEBIH BARU dari Server Time -> Local Menang (Skip Pull ini, nanti Local akan di-push)
+                        if (serverTime > localTime) {
+                            console.log(`⚠️ Conflict ${dexieTable}:${mappedRow.id} - Server newer (${serverTime} > ${localTime}). Overwriting local.`);
+                            shouldUpdate = true;
+                        } else {
+                            console.log(`🛡️ Conflict ${dexieTable}:${mappedRow.id} - Local newer (${localTime} >= ${serverTime}). Keeping local.`);
+                            shouldUpdate = false;
+                        }
+                    }
+                }
+
+                if (shouldUpdate) {
+                    mappedRow.syncStatus = 'synced'; // Reset status jadi synced
+                    await table.put(mappedRow);
+                }
             }
         });
     }

@@ -161,46 +161,70 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
         try {
             let wallets = await financeRepository.getAllWallets();
 
+            // Deduplicate Main Wallets (Self-healing for sync race conditions)
+            const mainWallets = wallets.filter(w => w.isMain);
+            if (mainWallets.length > 1) {
+                console.warn(`⚠️ Found ${mainWallets.length} Main Wallets. Deduplicating...`);
+                // Sort by creation time (Oldest wins)
+                mainWallets.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+                // Keep the oldest, downgrade others
+                const losers = mainWallets.slice(1);
+
+                await Promise.all(losers.map(async (loser) => {
+                    await financeRepository.updateWallet(loser.id, { isMain: false });
+                    loser.isMain = false; // Update local object
+                }));
+            }
+
             // Auto-generate Main Wallet jika tidak ada wallet sama sekali
             if (wallets.length === 0) {
                 // Cek konteks user untuk menentukan apakah boleh buat Main Wallet
                 const lastPull = localStorage.getItem('arcnote_last_pull');
-                const userId = localStorage.getItem('arcnote_user_id');
+                const userId = localStorage.getItem('arcnote_user_id'); // Diset saat login
 
-                /**
-                 * Hanya buat Main Wallet jika:
-                 * 1. User belum login (mode offline) - userId belum ada
-                 * 2. Sync sudah pernah berjalan (lastPull ada) - artinya data cloud sudah di-pull
-                 *    dan memang kosong, jadi aman untuk buat Main Wallet baru
-                 * 
-                 * Jika userId ada tapi lastPull belum ada, berarti:
-                 * - User baru login tapi sync belum selesai
-                 * - Jangan buat Main Wallet dulu, tunggu sync selesai
-                 * - Data mungkin ada di cloud dan akan di-pull
-                 */
-                const isOfflineMode = !userId;
-                const isSyncCompleted = !!lastPull;
+                const isOfflineMode = !userId; // Belum login
+                const isSyncCompleted = !!lastPull; // Sudah pernah sync sukses minimal sekali
 
-                if (isOfflineMode || isSyncCompleted) {
-                    // Cek lagi apakah sudah ada Main Wallet (double-check setelah sync)
-                    const existingMain = await financeRepository.getMainWallet();
-                    if (!existingMain) {
-                        try {
-                            const mainWallet = await financeRepository.createWallet({
-                                title: 'Main Wallet',
-                                description: 'Default Wallet',
-                                currency: 'IDR',
-                                isMain: true // Tandai sebagai main wallet
-                            });
-                            wallets = [mainWallet];
-                            console.log('✅ Auto-created Main Wallet');
-                        } catch (createError) {
-                            console.error('Failed to auto-create main wallet', createError);
-                        }
-                    }
+                if (isOfflineMode) {
+                    // KASUS 1: Offline User (Belum Login)
+                    // Aman untuk membuat wallet lokal karena tidak ada data cloud yang ditunggu
+                    console.log('👤 Offline mode detected. Creating Local Main Wallet...');
+                    await createAndSetMainWallet();
+                } else if (isSyncCompleted) {
+                    // KASUS 2: Logged In & Sudah Sync Selesai -> Tapi data kosong
+                    // Artinya user memang belum punya wallet di cloud
+                    console.log('✅ Sync completed but no wallets found. Creating Cloud Main Wallet...');
+                    await createAndSetMainWallet();
                 } else {
-                    // User login tapi sync belum selesai - tunggu sync
-                    console.log('⏳ Waiting for sync to complete before creating Main Wallet...');
+                    // KASUS 3: Logged In & Belum Sync (Baru login di browser baru)
+                    // PENTING: Jangan buat wallet! Tunggu sync 'pull' dari server.
+                    // Jika kita buat sekarang, akan bentrok dengan data server yang sedang OTW.
+                    console.log('⏳ User logged in but sync pending. Waiting for sync payload...');
+                    // State tetap kosong (wallets: []), UI mungkin perlu handling loading/empty state
+                }
+            }
+
+            // Helper function untuk create main wallet
+            async function createAndSetMainWallet() {
+                try {
+                    // Double check race condition di lokal
+                    const existing = await financeRepository.getMainWallet();
+                    if (existing) {
+                        wallets = [existing];
+                        return;
+                    }
+
+                    const mainWallet = await financeRepository.createWallet({
+                        title: 'Main Wallet',
+                        description: 'Default Wallet',
+                        currency: 'IDR',
+                        isMain: true
+                    });
+                    wallets = [mainWallet];
+                    console.log('✨ Main Wallet auto-created:', mainWallet.id);
+                } catch (createError) {
+                    console.error('Failed to auto-create main wallet', createError);
                 }
             }
 

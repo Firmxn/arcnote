@@ -275,7 +275,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 searchResults.push({
                     id: event.id,
                     title: event.title,
-                    description: event.description || event.type || 'No description',
+                    description: event.type || 'No description',
                     category: 'Schedules',
                     icon: (
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
