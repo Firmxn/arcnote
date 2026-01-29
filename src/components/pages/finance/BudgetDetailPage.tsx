@@ -16,7 +16,7 @@ import AssignTransactionModal from '../../modals/AssignTransactionModal';
 import { BudgetCard } from '../../ui/BudgetCard';
 import { TransactionListCard } from '../../ui/TransactionListCard';
 import { ConfirmDialog } from '../../ui/ConfirmDialog';
-import { financeRepository } from '../../../data/finance.repository';
+import { transactionRepository } from '../../../data/transaction.repository';
 
 export default function BudgetDetailPage() {
     const { id } = useParams<{ id: string }>();
@@ -70,7 +70,7 @@ export default function BudgetDetailPage() {
                 const transactionIds = budgetAssignments.map(a => a.transactionId);
                 // Load directly from DB to ensure we get them even if not in current wallet view
                 try {
-                    const assigned = await financeRepository.getTransactionsByIds(transactionIds);
+                    const assigned = await transactionRepository.getTransactionsByIds(transactionIds);
                     // Sort details by date desc
                     assigned.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
                     setAssignedTransactions(assigned);

@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { useFinanceStore } from '../../state/finance.store';
-import { financeRepository } from '../../data/finance.repository'; // Direct access to repo
+import { transactionRepository } from '../../data/transaction.repository'; // Direct access to repo
 import type { FinanceTransaction } from '../../types/finance';
 import { Radio } from '../ui/Radio';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
@@ -49,7 +49,7 @@ export default function AssignTransactionModal({ isOpen, onClose, budgetId }: As
             try {
                 // Fetch transactions directly from repository
                 // We cannot rely on store.transactions because it only holds currentWallet's data
-                const txs = await financeRepository.getAll(selectedWalletId);
+                const txs = await transactionRepository.getAll(selectedWalletId);
 
                 // Filter expense transactions locally
                 const expenseTxs = txs.filter(tx => tx.type === 'expense');

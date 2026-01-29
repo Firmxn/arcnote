@@ -1,5 +1,5 @@
 /**
- * Finance Repository (Unified Local-First)
+ * Transaction Repository (Unified Local-First)
  *
  * Architecture:
  * - Reads: Always from Local DB (Dexie)
@@ -29,7 +29,7 @@ import { nanoid } from 'nanoid';
 /**
  * Interface Repository
  */
-interface FinanceRepo {
+interface TransactionRepo {
     // --- WALLETS ---
     getAllWallets(): Promise<Wallet[]>;
     getWalletById(id: string): Promise<Wallet | undefined>;
@@ -70,7 +70,7 @@ interface FinanceRepo {
     getAssignmentsForTransaction(transactionId: string): Promise<BudgetAssignment[]>;
 }
 
-export const financeRepository: FinanceRepo = {
+export const transactionRepository: TransactionRepo = {
     // --- WALLETS ---
     async getAllWallets(): Promise<Wallet[]> {
         return await db.wallets.orderBy('createdAt').toArray();
@@ -125,12 +125,12 @@ export const financeRepository: FinanceRepo = {
     },
 
     async deleteWallet(id: string): Promise<void> {
-        return db.transaction('rw', db.wallets, db.finance, db.syncQueue, async () => {
+        return db.transaction('rw', db.wallets, db.transactions, db.syncQueue, async () => {
             // 1. Queue Transactions Deletion (Avoid FK Constraint in Supabase)
-            const transactions = await db.finance.where('walletId').equals(id).toArray();
+            const transactions = await db.transactions.where('walletId').equals(id).toArray();
             const transactionQueueItems = transactions.map(t => ({
                 id: t.id,
-                table: 'finance', // Use Dexie table name for mapping
+                table: 'transactions', // Use Dexie table name for mapping
                 action: 'delete' as const,
                 createdAt: new Date()
             }));
@@ -150,7 +150,7 @@ export const financeRepository: FinanceRepo = {
             // 3. Local Delete (Manual Cascade)
             // Use bulkDelete for performance if many transactions
             if (transactions.length > 0) {
-                await db.finance.bulkDelete(transactions.map(t => t.id));
+                await db.transactions.bulkDelete(transactions.map(t => t.id));
             }
             await db.wallets.delete(id);
         });
@@ -166,12 +166,12 @@ export const financeRepository: FinanceRepo = {
         let transactions: FinanceTransaction[];
 
         if (walletId) {
-            transactions = await db.finance
+            transactions = await db.transactions
                 .where('walletId')
                 .equals(walletId)
                 .toArray();
         } else {
-            transactions = await db.finance.toArray();
+            transactions = await db.transactions.toArray();
         }
 
         // Sort: Date (Day) DESC, then CreatedAt DESC
@@ -185,11 +185,11 @@ export const financeRepository: FinanceRepo = {
     },
 
     async getById(id: string): Promise<FinanceTransaction | undefined> {
-        return await db.finance.get(id);
+        return await db.transactions.get(id);
     },
 
     async getTransactionsByIds(ids: string[]): Promise<FinanceTransaction[]> {
-        const transactions = await db.finance.bulkGet(ids);
+        const transactions = await db.transactions.bulkGet(ids);
         return transactions.filter((t): t is FinanceTransaction => !!t);
     },
 
@@ -200,7 +200,7 @@ export const financeRepository: FinanceRepo = {
     async getTransactionsByDateRange(walletId: string, start: Date, end: Date): Promise<FinanceTransaction[]> {
         // Use Dexie's where().filter() which is efficient
         // Ideally we would have a compound index [walletId+date], but walletId index + range check is good enough
-        const transactions = await db.finance
+        const transactions = await db.transactions
             .where('walletId').equals(walletId)
             .filter(t => {
                 const d = new Date(t.date);
@@ -250,8 +250,8 @@ export const financeRepository: FinanceRepo = {
             syncStatus: 'created', // Sync Flag
         };
 
-        return db.transaction('rw', db.finance, db.wallets, async () => {
-            await db.finance.add(transaction);
+        return db.transaction('rw', db.transactions, db.wallets, async () => {
+            await db.transactions.add(transaction);
 
             // Update wallet's updatedAt (trigger wallet sync too)
             const wallet = await db.wallets.get(input.walletId);
@@ -267,7 +267,7 @@ export const financeRepository: FinanceRepo = {
     },
 
     async update(id: string, input: UpdateTransactionInput): Promise<FinanceTransaction | undefined> {
-        const transaction = await db.finance.get(id);
+        const transaction = await db.transactions.get(id);
         if (!transaction) {
             throw new Error(`Transaction with id ${id} not found`);
         }
@@ -281,8 +281,8 @@ export const financeRepository: FinanceRepo = {
         };
 
         try {
-            return await db.transaction('rw', db.finance, db.wallets, async () => {
-                await db.finance.put(updated);
+            return await db.transaction('rw', db.transactions, db.wallets, async () => {
+                await db.transactions.put(updated);
 
                 // Update wallet's updatedAt (only if walletId is valid)
                 if (updated.walletId) {
@@ -304,18 +304,18 @@ export const financeRepository: FinanceRepo = {
     },
 
     async delete(id: string): Promise<void> {
-        const transaction = await db.finance.get(id);
+        const transaction = await db.transactions.get(id);
         if (transaction) {
-            return db.transaction('rw', db.finance, db.wallets, db.syncQueue, async () => {
+            return db.transaction('rw', db.transactions, db.wallets, db.syncQueue, async () => {
                 // Queue Deletion
                 await db.syncQueue.add({
                     id,
-                    table: 'finance', // Use Dexie table name
+                    table: 'transactions', // Use Dexie table name
                     action: 'delete',
                     createdAt: new Date()
                 });
 
-                await db.finance.delete(id);
+                await db.transactions.delete(id);
 
                 // Update wallet
                 await db.wallets.update(transaction.walletId, {
@@ -328,7 +328,7 @@ export const financeRepository: FinanceRepo = {
     },
 
     async markAsVisited(id: string): Promise<void> {
-        await db.finance.update(id, {
+        await db.transactions.update(id, {
             lastVisitedAt: new Date(),
         });
     },
@@ -336,9 +336,9 @@ export const financeRepository: FinanceRepo = {
     async getSummary(walletId?: string): Promise<FinanceSummary> {
         let transactions: FinanceTransaction[];
         if (walletId) {
-            transactions = await db.finance.where('walletId').equals(walletId).toArray();
+            transactions = await db.transactions.where('walletId').equals(walletId).toArray();
         } else {
-            transactions = await db.finance.toArray();
+            transactions = await db.transactions.toArray();
         }
 
         // Hitung total dengan logika berbeda untuk Global vs Per-Wallet
@@ -434,8 +434,8 @@ export const financeRepository: FinanceRepo = {
             syncStatus: 'created'
         };
 
-        await db.transaction('rw', db.finance, db.wallets, async () => {
-            await db.finance.bulkAdd([outTransaction, inTransaction]);
+        await db.transaction('rw', db.transactions, db.wallets, async () => {
+            await db.transactions.bulkAdd([outTransaction, inTransaction]);
 
             // Mark wallets as updated
             if (fromWallet) await db.wallets.update(fromWalletId, { updatedAt: now, syncStatus: fromWallet.syncStatus === 'created' ? 'created' : 'updated' });
@@ -510,7 +510,7 @@ export const financeRepository: FinanceRepo = {
         const transactionIds = assignments.map(a => a.transactionId);
 
         // Get transactions yang di-assign dan filter by period
-        const transactions = await db.finance.bulkGet(transactionIds);
+        const transactions = await db.transactions.bulkGet(transactionIds);
         const filteredTransactions = transactions.filter(t => {
             if (!t) return false;
             const txDate = new Date(t.date);

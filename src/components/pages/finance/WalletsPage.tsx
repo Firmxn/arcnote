@@ -266,17 +266,28 @@ export const WalletsPage: React.FC = () => {
                             </button>
                         }
                         trailing={
-                            wallets.filter(w => !w.isArchived).length > 1 && (
+                            <div className="flex items-center gap-2">
                                 <button
-                                    onClick={() => setIsTransferModalOpen(true)}
+                                    onClick={() => navigate('/finance/recurring')}
                                     className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-text-neutral dark:text-text-secondary transition-colors"
-                                    title="Transfer antar wallet"
+                                    title="Manage Recurring Transactions"
                                 >
                                     <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                                     </svg>
                                 </button>
-                            )
+                                {wallets.filter(w => !w.isArchived).length > 1 && (
+                                    <button
+                                        onClick={() => setIsTransferModalOpen(true)}
+                                        className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-text-neutral dark:text-text-secondary transition-colors"
+                                        title="Transfer antar wallet"
+                                    >
+                                        <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                                        </svg>
+                                    </button>
+                                )}
+                            </div>
                         }
                     />
 

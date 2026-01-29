@@ -69,6 +69,28 @@ export interface FinanceSummary {
     transactionCount: number;
 }
 
+export type RecurringInterval = 'daily' | 'weekly' | 'monthly' | 'yearly';
+
+export interface RecurringTemplate extends Syncable {
+    id: string;
+    walletId: string;
+    type: TransactionType;
+    amount: number;
+    category: TransactionCategory;
+    description?: string;
+
+    // Engine Config
+    interval: RecurringInterval;
+    startDate: Date;
+    nextRunDate: Date;
+    isActive: boolean;
+
+    // Meta
+    lastGeneratedId?: string;
+    createdAt: Date;
+    updatedAt: Date;
+}
+
 /**
  * Budget Period type
  * Menentukan periode budget (mingguan, bulanan, atau tahunan)
