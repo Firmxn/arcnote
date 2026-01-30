@@ -56,9 +56,9 @@ export const Modal: React.FC<ModalProps> = ({
 
             {/* Panel */}
             <div className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-210 w-full max-w-lg px-4 pointer-events-none ${!hasMounted ? 'animate-in fade-in zoom-in-95 duration-200' : ''}`}>
-                <div className={`bg-neutral rounded-xl shadow-2xl border border-secondary/20 pointer-events-auto w-full max-h-[85vh] flex flex-col overflow-hidden ${className}`}>
+                <div className={`bg-neutral rounded-xl shadow-2xl border border-secondary/10 dark:border-accent/30 pointer-events-auto w-full max-h-[85vh] flex flex-col overflow-hidden ${className}`}>
                     {title && (
-                        <div className={`flex justify-between items-center shrink-0 ${noPadding ? 'px-6 py-4 border-b border-secondary/10' : 'px-6 pt-6 pb-4'}`}>
+                        <div className={`flex justify-between items-center shrink-0 ${noPadding ? 'px-6 py-4 border-b border-secondary/10 dark:border-accent/30' : 'px-6 pt-6 pb-4'}`}>
                             <h3 className="text-lg font-bold text-text-neutral">
                                 {title}
                             </h3>

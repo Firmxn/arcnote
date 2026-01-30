@@ -41,7 +41,7 @@ export const Button: React.FC<ButtonProps> = ({
         info: 'bg-blue-500 text-white hover:bg-blue-600 focus:ring-blue-500',
         success: 'bg-green-500 text-white hover:bg-green-600 focus:ring-green-500',
         ghost: 'bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300',
-        outline: 'bg-transparent border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+        outline: 'bg-transparent border border-secondary/10 dark:border-accent/30 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
     };
 
     const sizes = {

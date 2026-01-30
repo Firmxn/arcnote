@@ -73,7 +73,7 @@ export const TransferDetailModal: React.FC<TransferDetailModalProps> = ({
     };
 
     const footerContent = (
-        <div className="bg-white dark:bg-secondary border-t border-gray-200 dark:border-primary/20 px-6 py-4 flex gap-3">
+        <div className="bg-white dark:bg-secondary border-t border-secondary/10 dark:border-accent/30 px-6 py-4 flex gap-3">
             {linkedWallet && (
                 <Button
                     variant="secondary"
@@ -126,7 +126,7 @@ export const TransferDetailModal: React.FC<TransferDetailModalProps> = ({
                         <label className="block text-sm font-medium text-text-neutral dark:text-text-primary mb-2">
                             Dari Wallet
                         </label>
-                        <div className="px-4 py-2.5 rounded-lg bg-gray-100 dark:bg-primary/10 border border-gray-200 dark:border-primary/20">
+                        <div className="px-4 py-2.5 rounded-lg bg-gray-100 dark:bg-primary/10 border border-secondary/10 dark:border-accent/30">
                             <p className="text-text-neutral dark:text-text-primary font-medium">
                                 {fromWallet?.title || 'Unknown Wallet'}
                             </p>
@@ -141,7 +141,7 @@ export const TransferDetailModal: React.FC<TransferDetailModalProps> = ({
                         <button
                             onClick={handleNavigate}
                             disabled={!linkedWallet}
-                            className={`w-full px-4 py-2.5 rounded-lg bg-gray-100 dark:bg-primary/10 border border-gray-200 dark:border-primary/20 text-left flex items-center justify-between transition-colors ${linkedWallet ? 'hover:bg-gray-200 dark:hover:bg-primary/20 cursor-pointer' : 'opacity-50 cursor-not-allowed'
+                            className={`w-full px-4 py-2.5 rounded-lg bg-gray-100 dark:bg-primary/10 border border-secondary/10 dark:border-accent/30 text-left flex items-center justify-between transition-colors ${linkedWallet ? 'hover:bg-gray-200 dark:hover:bg-primary/20 cursor-pointer' : 'opacity-50 cursor-not-allowed'
                                 }`}
                         >
                             <p className="text-text-neutral dark:text-text-primary font-medium">
@@ -160,7 +160,7 @@ export const TransferDetailModal: React.FC<TransferDetailModalProps> = ({
                         <label className="block text-sm font-medium text-text-neutral dark:text-text-primary mb-2">
                             Jumlah
                         </label>
-                        <div className="px-4 py-2.5 rounded-lg bg-gray-100 dark:bg-primary/10 border border-gray-200 dark:border-primary/20">
+                        <div className="px-4 py-2.5 rounded-lg bg-gray-100 dark:bg-primary/10 border border-secondary/10 dark:border-accent/30">
                             <p className={`text-xl font-bold font-mono ${isTransferOut ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
                                 {isTransferOut ? '-' : '+'}{formatCurrency(transaction.amount, currentWallet.currency)}
                             </p>
@@ -172,7 +172,7 @@ export const TransferDetailModal: React.FC<TransferDetailModalProps> = ({
                         <label className="block text-sm font-medium text-text-neutral dark:text-text-primary mb-2">
                             Tanggal
                         </label>
-                        <div className="px-4 py-2.5 rounded-lg bg-gray-100 dark:bg-primary/10 border border-gray-200 dark:border-primary/20">
+                        <div className="px-4 py-2.5 rounded-lg bg-gray-100 dark:bg-primary/10 border border-secondary/10 dark:border-accent/30">
                             <p className="text-text-neutral dark:text-text-primary">
                                 {dayjs(transaction.date).format('DD MMMM YYYY')}
                             </p>
@@ -185,7 +185,7 @@ export const TransferDetailModal: React.FC<TransferDetailModalProps> = ({
                             <label className="block text-sm font-medium text-text-neutral dark:text-text-primary mb-2">
                                 Keterangan
                             </label>
-                            <div className="px-4 py-2.5 rounded-lg bg-gray-100 dark:bg-primary/10 border border-gray-200 dark:border-primary/20">
+                            <div className="px-4 py-2.5 rounded-lg bg-gray-100 dark:bg-primary/10 border border-secondary/10 dark:border-accent/30">
                                 <p className="text-text-neutral dark:text-text-primary">
                                     {transaction.description}
                                 </p>

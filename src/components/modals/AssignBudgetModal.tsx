@@ -109,7 +109,7 @@ export default function AssignBudgetModal({ isOpen, onClose, transaction }: Assi
                 <div className="p-6 border-t border-secondary/10 flex gap-3 justify-end">
                     <button
                         type="button"
-                        className="px-4 py-2 rounded-lg border border-neutral/30 dark:border-white/20 hover:bg-neutral/10 dark:hover:bg-white/10 transition-colors text-text-neutral dark:text-text-primary font-medium"
+                        className="px-4 py-2 rounded-lg border border-neutral/30 dark:border-accent/30 hover:bg-neutral/10 dark:hover:bg-white/10 transition-colors text-text-neutral dark:text-text-primary font-medium"
                         onClick={onClose}
                         disabled={isSubmitting}
                     >
@@ -134,7 +134,7 @@ export default function AssignBudgetModal({ isOpen, onClose, transaction }: Assi
             }
         >
             {/* Transaction Info */}
-            <div className="bg-neutral/5 dark:bg-white/5 rounded-xl border border-neutral/10 dark:border-white/10 mb-4">
+            <div className="bg-neutral/5 dark:bg-white/5 rounded-xl border border-neutral/10 dark:border-accent/30 mb-4">
                 <div className="p-3">
                     <div className="flex justify-between items-start">
                         <div>
@@ -176,7 +176,7 @@ export default function AssignBudgetModal({ isOpen, onClose, transaction }: Assi
                                     key={budget.id}
                                     className={`block bg-neutral/5 dark:bg-white/5 rounded-xl border cursor-pointer hover:bg-neutral/10 dark:hover:bg-white/10 transition-colors ${selectedBudgetId === budget.id
                                         ? 'border-accent bg-accent/5'
-                                        : 'border-neutral/10 dark:border-white/10'
+                                        : 'border-neutral/10 dark:border-accent/30'
                                         }`}
                                 >
                                     <div className="p-3 flex flex-row items-center gap-3">

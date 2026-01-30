@@ -55,7 +55,7 @@ export function BudgetCard({
     return (
         <div
             onClick={onClick}
-            className={`bg-white dark:bg-secondary rounded-lg p-4 border border-secondary/10 dark:border-white/5 ${isClickable ? 'cursor-pointer hover:border-accent/30 transition-colors' : ''
+            className={`bg-white dark:bg-secondary rounded-lg p-4 border border-secondary/10 dark:border-accent/30 ${isClickable ? 'cursor-pointer hover:border-accent/30 transition-colors' : ''
                 } ${className}`}
         >
             {/* Header */}

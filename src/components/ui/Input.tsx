@@ -25,7 +25,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(({
     // Style per variant
     const variantClasses = {
         // Default: Box style dengan shadow tipis, tanpa border, background bersih
-        default: "bg-white dark:bg-secondary/20 shadow-sm rounded-lg border-none placeholder-gray-500 text-text-neutral py-2.5",
+        default: "bg-white dark:bg-secondary/20 rounded-lg border border-secondary/10 dark:border-accent/30 placeholder-gray-500 text-text-neutral py-2.5",
 
         // Ghost: Transparent, muncul background tipis saat focus (cocok untuk inline edit)
         ghost: "bg-transparent border-none p-0 focus:bg-primary/5 rounded px-1 text-text-neutral",

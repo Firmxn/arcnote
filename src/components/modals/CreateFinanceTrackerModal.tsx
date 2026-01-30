@@ -121,7 +121,7 @@ export const CreateFinanceTrackerModal: React.FC<CreateFinanceTrackerModalProps>
                     <button
                         onClick={handleSubmit}
                         disabled={isLoading || !title.trim()}
-                        className="px-4 py-2 text-sm bg-accent hover:bg-accent-hover text-white rounded-md transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="px-4 py-2 text-sm bg-primary dark:bg-accent hover:bg-primary/90 dark:hover:bg-accent/90 text-white rounded-md transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {isLoading ? 'Creating...' : 'Create Tracker'}
                     </button>

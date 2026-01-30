@@ -46,7 +46,7 @@ export const UpdatePasswordPage = () => {
     return (
         <div className="min-h-screen w-full bg-white dark:bg-primary overflow-y-auto text-text-neutral dark:text-text-primary">
             <div className="min-h-screen py-12 flex flex-col items-center justify-center px-4">
-                <div className="w-full max-w-[420px] md:max-w-[480px] md:bg-neutral md:dark:bg-secondary md:shadow-2xl md:rounded-3xl md:p-8 md:border md:border-neutral-200 md:dark:border-white/5 transition-all duration-300">
+                <div className="w-full max-w-[420px] md:max-w-[480px] md:bg-neutral md:dark:bg-secondary md:shadow-2xl md:rounded-3xl md:p-8 md:border md:border-neutral-200 md:dark:border-accent/30 transition-all duration-300">
 
                     <div className="text-center mb-10 md:mb-6">
                         <div className="w-16 h-16 md:w-14 md:h-14 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-6 md:mb-4">
@@ -84,7 +84,7 @@ export const UpdatePasswordPage = () => {
                             </div>
                             <input
                                 type="password"
-                                className="w-full pl-12 pr-5 py-3.5 md:py-3 rounded-full border border-neutral-200 dark:border-white/10 bg-neutral-50 dark:bg-white/5 text-text-neutral dark:text-white focus:ring-2 focus:ring-accent focus:border-transparent outline-none transition-all placeholder:text-text-neutral/40 text-sm md:text-base"
+                                className="w-full pl-12 pr-5 py-3.5 md:py-3 rounded-full border border-neutral-200 dark:border-accent/30 bg-neutral-50 dark:bg-white/5 text-text-neutral dark:text-white focus:ring-2 focus:ring-accent focus:border-transparent outline-none transition-all placeholder:text-text-neutral/40 text-sm md:text-base"
                                 placeholder="New Password"
                                 value={password}
                                 onChange={e => setPassword(e.target.value)}

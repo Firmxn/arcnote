@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFinanceStore } from '../../../state/finance.store';
 import { Button } from '../../ui/Button';
-import { AddTransactionModal } from '../../modals/AddTransactionModal';
+import { TransactionModal } from '../../modals/TransactionModal';
 import { TransferModal } from '../../modals/TransferModal';
 import { TransferDetailModal } from '../../modals/TransferDetailModal';
 import dayjs from 'dayjs';
@@ -143,7 +143,7 @@ export const WalletDetailPage: React.FC = () => {
 
                 {/* Combined Balance & Summary Card */}
                 {summary && (
-                    <div className="bg-white dark:bg-secondary rounded-xl p-4 md:p-6 mb-6 border border-secondary/10 dark:border-white/5">
+                    <div className="bg-white dark:bg-secondary rounded-xl p-4 md:p-6 mb-6 border border-secondary/10 dark:border-accent/30">
                         {/* Total Balance Section */}
                         <div className="mb-4">
                             <div className="flex items-center justify-between mb-2">
@@ -356,7 +356,7 @@ export const WalletDetailPage: React.FC = () => {
             <MiniFAB onClick={scrollToTop} show={isFabHidden} />
 
             {/* Add/Edit Transaction Modal */}
-            <AddTransactionModal
+            <TransactionModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 initialData={selectedTransaction}
@@ -364,7 +364,7 @@ export const WalletDetailPage: React.FC = () => {
                 onDelete={modalMode === 'edit' && selectedTransaction ? async () => {
                     await deleteTransaction(selectedTransaction.id);
                 } : undefined}
-                onSubmit={async (data) => {
+                onSubmit={async (data: any) => {
                     if (modalMode === 'create') {
                         if (!currentWallet) return;
                         await createTransaction({ ...data, walletId: currentWallet.id });

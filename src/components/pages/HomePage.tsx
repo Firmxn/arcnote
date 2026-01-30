@@ -39,6 +39,7 @@ interface HomePageProps {
     onFinanceListClick?: () => void; // Navigate to finance list
     onNewPageClick?: () => void; // Create new page
     onViewArchive?: () => void; // Navigate to archive page
+    onRecurringClick?: () => void; // Navigate to recurring page
 }
 
 const WalletIcon = ({ className = "w-6 h-6" }) => (
@@ -54,7 +55,8 @@ export const HomePage: React.FC<HomePageProps> = ({
     onFinanceClick,
     onFinanceListClick: _onFinanceListClick,
     onNewPageClick,
-    onViewArchive
+    onViewArchive,
+    onRecurringClick
 }) => {
     const { pages, deletePage, archivePage } = usePagesStore();
     const { events, markEventAsVisited, deleteEvent, archiveEvent } = useSchedulesStore();
@@ -529,7 +531,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                                     variant="ghost"
                                     size="icon"
                                     circle
-                                    className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 z-10 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity bg-white dark:bg-secondary border border-secondary/10 dark:border-primary/10 p-0"
+                                    className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 z-10 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity bg-white dark:bg-secondary border border-secondary/10 dark:border-accent/30 p-0"
                                     aria-label="Scroll left"
                                 >
                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -544,7 +546,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                                     variant="ghost"
                                     size="icon"
                                     circle
-                                    className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 z-10 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity bg-white dark:bg-secondary border border-secondary/10 dark:border-primary/10 p-0"
+                                    className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 z-10 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity bg-white dark:bg-secondary border border-secondary/10 dark:border-accent/30 p-0"
                                     aria-label="Scroll right"
                                 >
                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -596,6 +598,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                         onAddPage={onNewPageClick}
                         onAddSchedule={() => setIsScheduleModalOpen(true)}
                         onViewArchive={onViewArchive}
+                        onManageRecurring={onRecurringClick}
                     />
                 </div>
 

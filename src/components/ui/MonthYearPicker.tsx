@@ -44,7 +44,7 @@ export const MonthYearPicker: React.FC<MonthYearPickerProps> = ({
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
-                <div className="p-4 bg-neutral-50 dark:bg-white/5 border-b border-neutral-100 dark:border-white/5 flex justify-between items-center">
+                <div className="p-4 bg-neutral-50 dark:bg-white/5 border-b border-secondary/10 dark:border-accent/30 flex justify-between items-center">
                     <button
                         onClick={() => handleYearChange(-1)}
                         className="p-2 hover:bg-black/5 dark:hover:bg-white/10 rounded-full transition-colors"
@@ -94,7 +94,7 @@ export const MonthYearPicker: React.FC<MonthYearPickerProps> = ({
                 </div>
 
                 {/* Footer */}
-                <div className="p-4 border-t border-neutral-100 dark:border-white/5 flex justify-center">
+                <div className="p-4 border-t border-secondary/10 dark:border-accent/30 flex justify-center">
                     <button
                         onClick={() => {
                             const now = new Date();

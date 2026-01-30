@@ -47,6 +47,7 @@ const HomeWithNav = () => {
       onFinanceClick={(id) => navigate(`/finance/${id}`)}
       onNewPageClick={handleCreate}
       onViewArchive={() => navigate('/archive')}
+      onRecurringClick={() => navigate('/finance/recurring')}
     />
   );
 };

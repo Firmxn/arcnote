@@ -24,6 +24,9 @@
 - selalu menerapkan kode yang bekerja optimal dan bertahan jangka panjang daripada kode simpel
 - konsistensi gaya penulisan kode atau mekanisme yang digunakan, misalnya pada halaman A menggunakan gaya A namun halaman B menggunakan gaya B maka harus diubah menjadi gaya yang sama, karena sebenarnya halaman A dan B secara garis besar membutuhkan mekanisme yang sama
 
+## Pola UI & Komponen (UI Patterns)
+- **Modal Swapping / Sibling Composition**: Saat perlu memunculkan dialog baru dari dalam modal (misal: Confirm Delete), gunakan pola *Sibling Composition* (render sejajar dalam Fragment `s<>...</>`), bukan *nested*. Terapkan teknik **Modal Swapping** (Sequential Modals): sembunyikan sementara modal utama saat dialog muncul, dan tampilkan kembali saat dialog dibatalkan. Ini menghindari masalah tumpukan overlay/backdrop.
+
 ## Penerapan prompting
 - Jangan langsung implementasi setelah planning jika belum saya perintahkan
 

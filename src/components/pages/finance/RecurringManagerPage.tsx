@@ -92,7 +92,7 @@ export const RecurringManagerPage: React.FC = () => {
                                 className={`
                                     relative overflow-hidden bg-white dark:bg-secondary rounded-xl p-4 border transition-all
                                     ${template.isActive
-                                        ? 'border-gray-100 dark:border-white/5 shadow-sm'
+                                        ? 'border-secondary/10 dark:border-white/5 shadow-sm'
                                         : 'border-transparent opacity-70 bg-gray-50 dark:bg-white/5'}
                                 `}
                             >
@@ -120,7 +120,7 @@ export const RecurringManagerPage: React.FC = () => {
                                     </div>
                                 </div>
 
-                                <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100 dark:border-white/5">
+                                <div className="flex items-center justify-between mt-4 pt-3 border-t border-secondary/10 dark:border-white/5">
                                     <div className="text-xs text-gray-500">
                                         Next: {dayjs(template.nextRunDate).format('DD MMM YYYY')}
                                     </div>
@@ -183,7 +183,7 @@ export const RecurringManagerPage: React.FC = () => {
                                         px-3 py-1.5 rounded-lg text-sm capitalize border
                                         ${editInterval === int
                                             ? 'bg-accent text-white border-accent'
-                                            : 'bg-transparent border-gray-200 dark:border-white/10'}
+                                            : 'bg-transparent border-secondary/10 dark:border-white/10'}
                                     `}
                                 >
                                     {int}
