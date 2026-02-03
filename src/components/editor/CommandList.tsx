@@ -105,13 +105,13 @@ export const CommandList = forwardRef((props: CommandListProps, ref) => {
     }));
 
     return (
-        <div className="bg-white dark:bg-[#1a1a1a] rounded-lg shadow-xl border border-gray-200 dark:border-gray-800 overflow-hidden py-1 min-w-[240px]">
+        <div className="bg-white dark:bg-[#1a1a1a] rounded-lg shadow-xl border border-secondary/10 dark:border-accent/30 overflow-hidden py-1 min-w-[240px]">
             {/* Header jika di submenu */}
             {/* Header Back Button jika di submenu */}
             {activeSubmenu && parentTitle && (
                 <button
                     onClick={backToParent}
-                    className="w-full text-left px-3 py-1.5 text-xs font-medium text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-800 mb-1 flex items-center hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+                    className="w-full text-left px-3 py-1.5 text-xs font-medium text-gray-500 dark:text-gray-400 border-b border-secondary/10 dark:border-accent/30 mb-1 flex items-center hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer"
                 >
                     <span className="mr-1.5 text-gray-400">←</span>
                     <span className="opacity-75">Back to </span>
@@ -132,7 +132,7 @@ export const CommandList = forwardRef((props: CommandListProps, ref) => {
                         onClick={() => selectItem(index)}
                     >
                         {item.icon && (
-                            <span className="mr-2.5 w-5 h-5 flex items-center justify-center flex-shrink-0 text-gray-500 rounded-sm">
+                            <span className="mr-2.5 w-5 h-5 flex items-center justify-center shrink-0 text-gray-500 rounded-sm">
                                 {item.icon}
                             </span>
                         )}

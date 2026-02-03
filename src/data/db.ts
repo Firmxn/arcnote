@@ -8,16 +8,17 @@ import type { Table } from 'dexie';
 import type { Page } from '../types/page';
 import type { Block } from '../types/block';
 import type { ScheduleEvent } from '../types/schedule';
-import type { FinanceTransaction, Wallet, Budget, BudgetAssignment } from '../types/finance';
+import type { FinanceTransaction, Wallet, Budget, BudgetAssignment, RecurringTemplate } from '../types/finance';
 
 export class ArcNoteDatabase extends Dexie {
     pages!: Table<Page, string>;
     blocks!: Table<Block, string>;
     schedules!: Table<ScheduleEvent, string>;
-    finance!: Table<FinanceTransaction, string>;
+    transactions!: Table<FinanceTransaction, string>;
     wallets!: Table<Wallet, string>;
     budgets!: Table<Budget, string>;
     budgetAssignments!: Table<BudgetAssignment, string>;
+    recurringTemplates!: Table<RecurringTemplate, string>;
     syncQueue!: Table<SyncQueueItem, string>; // Added queue table definition
 
     constructor() {
@@ -147,6 +148,24 @@ export class ArcNoteDatabase extends Dexie {
         // Version 12: Add isMain index untuk main wallet lookup (mencegah duplikat)
         this.version(12).stores({
             wallets: 'id, title, isMain, isArchived, syncStatus, createdAt, updatedAt'
+        });
+
+        // Version 13: Add Recurring Templates
+        this.version(13).stores({
+            recurringTemplates: 'id, walletId, nextRunDate, isActive, syncStatus, createdAt, updatedAt'
+        });
+
+        // Version 14: Rename finance → transactions
+        this.version(14).stores({
+            transactions: 'id, walletId, type, category, date, amount, syncStatus, createdAt, updatedAt',
+            finance: null // Delete old table
+        }).upgrade(async trans => {
+            const oldTable = trans.table('finance');
+            const newTable = trans.table('transactions');
+
+            // Copy all records
+            const records = await oldTable.toArray();
+            await newTable.bulkAdd(records);
         });
     }
 }

@@ -5,7 +5,7 @@ import { SectionHeader } from '../../ui/SectionHeader';
 import { PageHeader } from '../../ui/PageHeader';
 import { ListCard } from '../../ui/ListCard';
 import { FAB } from '../../ui/FAB';
-import { AddTransactionModal } from '../../modals/AddTransactionModal';
+import { TransactionModal } from '../../modals/TransactionModal';
 import { CreateFinanceTrackerModal } from '../../modals/CreateFinanceTrackerModal';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -197,7 +197,7 @@ export const DashboardPage: React.FC = () => {
                 />
 
                 {/* Combined Balance & Summary Card */}
-                <div className=" bg-white dark:bg-secondary rounded-xl p-4 md:p-6 mb-6 border border-secondary/10 dark:border-white/5">
+                <div className=" bg-white dark:bg-secondary rounded-xl p-4 md:p-6 mb-6 border border-secondary/10 dark:border-accent/30">
                     {/* Total Balance Section */}
                     <div className="mb-4">
                         <div className="flex justify-between items-center mb-2">
@@ -421,7 +421,7 @@ export const DashboardPage: React.FC = () => {
                                     <div
                                         key={budget.id}
                                         onClick={() => navigate(`/finance/budgets/${budget.id}`)}
-                                        className="bg-white dark:bg-secondary rounded-lg p-3 border border-secondary/10 dark:border-white/5 cursor-pointer hover:border-accent/30 transition-colors"
+                                        className="bg-white dark:bg-secondary rounded-lg p-3 border border-secondary/10 dark:border-accent/30 cursor-pointer hover:border-accent/30 transition-colors"
                                     >
                                         <div className="flex justify-between items-start mb-2">
                                             <div>
@@ -524,11 +524,12 @@ export const DashboardPage: React.FC = () => {
                 <FAB onClick={() => setIsTransactionModalOpen(true)} />
 
                 {/* Add Transaction Modal */}
-                <AddTransactionModal
+                {/* Add Transaction Modal */}
+                <TransactionModal
                     isOpen={isTransactionModalOpen}
                     onClose={() => setIsTransactionModalOpen(false)}
                     wallets={activeWallets}
-                    onSubmit={async (data) => {
+                    onSubmit={async (data: any) => {
                         if (data.walletId) {
                             await createTransaction({ ...data, walletId: data.walletId });
                         }

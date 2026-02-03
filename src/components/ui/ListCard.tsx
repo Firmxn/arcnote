@@ -85,7 +85,7 @@ export const ListCard: React.FC<ListCardProps> = ({
                 flex items-center justify-between p-4 
                 bg-white dark:bg-secondary 
                 rounded-xl 
-                border border-secondary/10 dark:border-white/5 
+                border border-secondary/10 dark:border-accent/30 
                 hover:border-secondary/20 dark:hover:border-white/10 
                 transition-all duration-200 
                 group

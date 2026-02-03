@@ -7,7 +7,7 @@ import React from 'react';
 // Color Palette Dot Component
 const ColorDot = ({ color }: { color: string }) => (
     <div
-        className="w-3 h-3 rounded-full border border-gray-200 dark:border-gray-600 shadow-sm"
+        className="w-3 h-3 rounded-full border border-secondary/10 dark:border-accent/30 shadow-sm"
         style={{ backgroundColor: color }}
     />
 );
@@ -46,7 +46,7 @@ export default {
             },
             {
                 title: 'Bullet List',
-                icon: <div className="border border-gray-400 rounded-sm w-full h-full flex items-center justify-center p-0.5">•</div>,
+                icon: <div className="border border-secondary/30 dark:border-accent/30 rounded-sm w-full h-full flex items-center justify-center p-0.5">•</div>,
                 command: ({ editor, range }: any) => {
                     editor.chain().focus().deleteRange(range).toggleBulletList().run();
                 },

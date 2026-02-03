@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFinanceStore } from '../../../state/finance.store';
 import { Button } from '../../ui/Button';
-import { AddTransactionModal } from '../../modals/AddTransactionModal';
+import { TransactionModal } from '../../modals/TransactionModal';
 import { TransferModal } from '../../modals/TransferModal';
 import { TransferDetailModal } from '../../modals/TransferDetailModal';
 import dayjs from 'dayjs';
@@ -15,6 +15,7 @@ import { ListCard } from '../../ui/ListCard';
 import { EmptyStateAction } from '../../ui/EmptyStateAction';
 
 import { MonthYearPicker } from '../../ui/MonthYearPicker';
+import { BackButton } from '../../ui/BackButton';
 
 export const WalletDetailPage: React.FC = () => {
     const {
@@ -115,17 +116,7 @@ export const WalletDetailPage: React.FC = () => {
                     title={currentWallet?.title || 'Finance Tracker'}
                     description={currentWallet?.description || 'Track your income and expenses'}
                     className="md:mb-8"
-                    leading={
-                        <button
-                            onClick={() => navigate('/finance')}
-                            className="p-2 -ml-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-text-neutral dark:text-text-secondary transition-colors"
-                            title="Back to wallets"
-                        >
-                            <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                            </svg>
-                        </button>
-                    }
+                    leading={<BackButton />}
                     trailing={
                         wallets.filter(w => !w.isArchived).length > 1 && (
                             <button
@@ -143,7 +134,7 @@ export const WalletDetailPage: React.FC = () => {
 
                 {/* Combined Balance & Summary Card */}
                 {summary && (
-                    <div className="bg-white dark:bg-secondary rounded-xl p-4 md:p-6 mb-6 border border-secondary/10 dark:border-white/5">
+                    <div className="bg-white dark:bg-secondary rounded-xl p-4 md:p-6 mb-6 border border-secondary/10 dark:border-accent/30">
                         {/* Total Balance Section */}
                         <div className="mb-4">
                             <div className="flex items-center justify-between mb-2">
@@ -356,7 +347,7 @@ export const WalletDetailPage: React.FC = () => {
             <MiniFAB onClick={scrollToTop} show={isFabHidden} />
 
             {/* Add/Edit Transaction Modal */}
-            <AddTransactionModal
+            <TransactionModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 initialData={selectedTransaction}
@@ -364,7 +355,7 @@ export const WalletDetailPage: React.FC = () => {
                 onDelete={modalMode === 'edit' && selectedTransaction ? async () => {
                     await deleteTransaction(selectedTransaction.id);
                 } : undefined}
-                onSubmit={async (data) => {
+                onSubmit={async (data: any) => {
                     if (modalMode === 'create') {
                         if (!currentWallet) return;
                         await createTransaction({ ...data, walletId: currentWallet.id });

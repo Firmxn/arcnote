@@ -67,11 +67,11 @@ export const TimePicker: React.FC<TimePickerProps> = ({ value, onChange, onClose
 
     return (
         <div
-            className="absolute top-full left-0 mt-2 z-50 w-48 bg-neutral border border-secondary/20 shadow-xl rounded-lg animate-in fade-in zoom-in-95 duration-200"
+            className="absolute top-full left-0 mt-2 z-50 w-48 bg-neutral border border-secondary/10 dark:border-accent/30 shadow-xl rounded-lg animate-in fade-in zoom-in-95 duration-200"
             onClick={(e) => e.stopPropagation()}
         >
             {/* AM/PM Toggle */}
-            <div className="flex border-b border-secondary/20 p-2 gap-1">
+            <div className="flex border-b border-secondary/10 dark:border-accent/30 p-2 gap-1">
                 <button
                     onClick={() => handlePeriodToggle('AM')}
                     className={`

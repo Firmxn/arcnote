@@ -30,7 +30,7 @@ export const Card: React.FC<CardProps> = ({
         <button
             onClick={onClick}
             onContextMenu={onContextMenu}
-            className="group relative bg-white dark:bg-secondary rounded-xl md:rounded-2xl p-3 md:p-6 text-left transition-all w-full border border-secondary/10 dark:border-white/5 hover:border-secondary/20 dark:hover:border-white/10"
+            className="group relative bg-white dark:bg-secondary rounded-xl md:rounded-2xl p-3 md:p-6 text-left transition-all w-full border border-secondary/10 dark:border-accent/30 hover:border-secondary/20 dark:hover:border-white/10"
         >
             {/* Container untuk content agar padding seimbang */}
             <div className="flex flex-col h-full justify-between min-h-[136px] md:min-h-0">

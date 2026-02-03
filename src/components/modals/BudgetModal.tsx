@@ -112,7 +112,7 @@ export default function BudgetModal({ isOpen, onClose, budget }: BudgetModalProp
     };
 
     const footerContent = (
-        <div className="bg-white dark:bg-secondary border-t border-gray-200 dark:border-primary/20 px-6 py-4 flex gap-3">
+        <div className="bg-white dark:bg-secondary border-t border-secondary/10 dark:border-accent/30 px-6 py-4 flex gap-3">
             <Button
                 type="button"
                 variant="ghost"

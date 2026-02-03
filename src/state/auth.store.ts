@@ -9,14 +9,18 @@ interface AuthState {
     isLoading: boolean;
     error: AuthError | null;
 
+    isGuest: boolean;
+
     // Actions
     initialize: () => Promise<void>;
     setUser: (user: User | null) => void;
+    setGuest: (isGuest: boolean) => void;
     signOut: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
     user: null,
+    isGuest: false,
     isLoading: true,
     error: null,
 
@@ -35,13 +39,16 @@ export const useAuthStore = create<AuthState>((set) => ({
             if (newUser) {
                 const { clearUserData } = await import('../lib/sync');
                 await clearUserData(newUser.id);
+                // If user logs in, they are no longer a guest
+                set({ user: newUser, isGuest: false, isLoading: false });
+            } else {
+                set({ user: null, isLoading: false });
             }
-
-            set({ user: newUser, isLoading: false });
         });
     },
 
     setUser: (user) => set({ user }),
+    setGuest: (isGuest) => set({ isGuest }),
 
     signOut: async () => {
         // Clear local data saat logout (best practice untuk privacy & security)
@@ -59,6 +66,6 @@ export const useAuthStore = create<AuthState>((set) => ({
             }
         }
 
-        set({ user: null });
+        set({ user: null, isGuest: false });
     },
 }));

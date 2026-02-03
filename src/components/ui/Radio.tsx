@@ -28,7 +28,7 @@ export const Radio: React.FC<RadioProps> = ({
                 checked={checked}
                 onChange={onChange}
                 disabled={disabled}
-                className="w-4 h-4 text-accent bg-white dark:bg-secondary border-neutral/30 dark:border-white/20 focus:ring-2 focus:ring-accent focus:ring-offset-0 disabled:cursor-not-allowed"
+                className="w-4 h-4 text-accent bg-white dark:bg-secondary border-secondary/10 dark:border-accent/30 focus:ring-2 focus:ring-accent focus:ring-offset-0 disabled:cursor-not-allowed"
             />
             {label && (
                 <span className="text-sm text-text-neutral dark:text-text-primary select-none">

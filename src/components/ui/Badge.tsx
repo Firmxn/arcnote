@@ -50,7 +50,7 @@ export const Badge: React.FC<BadgeProps> = ({
         neutral: {
             solid: 'bg-neutral text-neutral-content',
             soft: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
-            outline: 'bg-transparent text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600',
+            outline: 'bg-transparent text-gray-600 dark:text-gray-400 border border-secondary/10 dark:border-accent/30',
             ghost: 'bg-transparent text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
         },
         success: {

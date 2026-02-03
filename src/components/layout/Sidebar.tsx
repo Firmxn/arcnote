@@ -73,14 +73,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ onPageSelect, onSettingsClick,
 
             <aside
                 className={`
-                    h-[100dvh] bg-primary dark:bg-secondary border-r border-primary dark:border-secondary flex flex-col transition-all duration-300 overflow-hidden
+                    h-dvh bg-primary dark:bg-secondary border-r border-primary dark:border-secondary flex flex-col transition-all duration-300 overflow-hidden
                     ${isCollapsed ? 'w-16' : 'w-48 md:w-56'}
                     md:relative fixed z-50
                 `}
             >
                 {/* Header with Toggle */}
                 <div className={`
-                shrink-0 border-b border-secondary/50 dark:border-neutral flex items-center transition-all
+                shrink-0 border-b border-secondary/50 dark:border-accent/30 flex items-center transition-all
                 ${isCollapsed ? 'justify-center py-4 px-3' : 'justify-between px-4 py-4'}
             `}>
                     {!isCollapsed && (
@@ -251,7 +251,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onPageSelect, onSettingsClick,
 
                     {/* Collapsed Pages - Show only 2 buttons */}
                     {isCollapsed && (
-                        <div className="py-3 flex flex-col items-center gap-1 border-t border-secondary/50 dark:border-neutral">
+                        <div className="py-3 flex flex-col items-center gap-1 border-t border-secondary/50 dark:border-accent/30">
                             {/* Pages Button */}
                             <button
                                 onClick={onPagesClick}
@@ -283,7 +283,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onPageSelect, onSettingsClick,
                     )}
                 </div>
 
-                <div className={`shrink-0 border-t border-secondary/50 dark:border-neutral flex items-center bg-primary dark:bg-secondary/10 transition-all ${isCollapsed ? 'justify-center py-3 px-3' : 'justify-between px-4 py-3'}`}>
+                <div className={`shrink-0 border-t border-secondary/50 dark:border-accent/30 flex items-center bg-primary dark:bg-secondary/10 transition-all ${isCollapsed ? 'justify-center py-3 px-3' : 'justify-between px-4 py-3'}`}>
                     {!isCollapsed && (
                         <div className="text-xs text-text-primary dark:text-text-accent font-medium opacity-80">
                             {pages.length} {pages.length === 1 ? 'page' : 'pages'}

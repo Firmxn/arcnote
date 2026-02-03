@@ -7,27 +7,26 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFinanceStore } from '../../../state/finance.store';
 import { PageHeader } from '../../ui/PageHeader';
+import { BackButton } from '../../ui/BackButton';
 import { FAB } from '../../ui/FAB';
 import BudgetModal from '../../modals/BudgetModal';
 import { BudgetCard } from '../../ui/BudgetCard';
 
 export default function BudgetsPage() {
     const navigate = useNavigate();
-    const { budgets, budgetSummaries, loadBudgets, loadBudgetSummary, isLoading } = useFinanceStore();
+    const { budgets, budgetSummaries, loadBudgets, loadBudgetSummary, isLoading, selectedDate } = useFinanceStore();
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     useEffect(() => {
         loadBudgets();
     }, [loadBudgets]);
 
-    // Load summaries untuk semua budgets
+    // Load summaries update whenever budgets or selectedDate changes
     useEffect(() => {
         budgets.forEach(budget => {
-            if (!budgetSummaries[budget.id]) {
-                loadBudgetSummary(budget.id);
-            }
+            loadBudgetSummary(budget.id);
         });
-    }, [budgets, budgetSummaries, loadBudgetSummary]);
+    }, [budgets, loadBudgetSummary, selectedDate]);
 
     const handleCreateBudget = () => {
         setIsModalOpen(true);
@@ -49,17 +48,7 @@ export default function BudgetsPage() {
                         title="Budgets"
                         description="Track your spending against targets"
                         className="mb-4 md:mb-8"
-                        leading={
-                            <button
-                                onClick={() => navigate('/finance')}
-                                className="p-2 -ml-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-text-neutral dark:text-text-secondary transition-colors"
-                                title="Back to Finance Dashboard"
-                            >
-                                <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                                </svg>
-                            </button>
-                        }
+                        leading={<BackButton />}
                     />
 
                     {/* Desktop Button - Hidden on Mobile */}

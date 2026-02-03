@@ -79,7 +79,7 @@ export const ActionSheet: React.FC<ActionSheetProps> = ({
                             </span>
                         </button>
                         {index < items.length - 1 && (
-                            <div className="border-t border-secondary/10 dark:border-white/5 mx-4" />
+                            <div className="border-t border-secondary/10 dark:border-accent/30 mx-4" />
                         )}
                     </React.Fragment>
                 ))}

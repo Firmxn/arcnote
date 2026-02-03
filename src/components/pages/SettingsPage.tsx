@@ -37,7 +37,7 @@ export const SettingsPage: React.FC = () => {
                 <div className="space-y-4">
                     {/* Theme Section */}
                     {/* ... (Theme UI remains same) ... */}
-                    <div className="bg-white dark:bg-primary/5 rounded-lg border border-secondary/20 p-6 shadow-sm">
+                    <div className="bg-white dark:bg-primary/5 rounded-lg border border-secondary/10 dark:border-accent/30 p-6">
                         <h2 className="text-lg font-semibold text-text-neutral dark:text-text-primary mb-4">Appearance</h2>
 
                         <div className="flex items-center justify-between gap-4">
@@ -84,7 +84,7 @@ export const SettingsPage: React.FC = () => {
                     </div>
 
                     {/* Cloud Sync Section */}
-                    <div className="bg-white dark:bg-primary/5 rounded-lg border border-secondary/20 p-6 shadow-sm">
+                    <div className="bg-white dark:bg-primary/5 rounded-lg border border-secondary/10 dark:border-accent/30 p-6">
                         <h2 className="text-lg font-semibold text-text-neutral dark:text-text-primary mb-4">Cloud Sync</h2>
 
                         {user ? (
@@ -138,7 +138,7 @@ export const SettingsPage: React.FC = () => {
                                 {/* Login Button */}
                                 <button
                                     onClick={() => navigate('/login')}
-                                    className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-primary hover:bg-primary/90 text-white font-medium rounded-lg transition-colors"
+                                    className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-primary dark:bg-accent hover:bg-primary/90 dark:hover:bg-accent/90 text-white font-medium rounded-lg transition-colors"
                                 >
                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />

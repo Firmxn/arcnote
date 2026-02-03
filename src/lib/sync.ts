@@ -15,23 +15,35 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 
 // ... (existing helper maps and functions)
 
-// Map Dexie Table Names to Supabase Table Names
-const TABLE_MAP: Record<string, string> = {
-    wallets: 'wallets',
-    finance: 'finance',
-    budgets: 'budgets',
-    budgetAssignments: 'budgetAssignments',
-    schedules: 'schedules',
+export const TABLE_WHITELIST = [
+    'pages',
+    'blocks',
+    'schedules',
+    'wallets',
+    'transactions',
+    'budgets',
+    'budgetAssignments',
+    'recurringTemplates'
+];
+
+/**
+ * Mapping nama tabel Dexie (CamelCase) ke Supabase (snake_case)
+ */
+export const TABLE_MAP: Record<string, string> = {
     pages: 'pages',
     blocks: 'blocks',
+    schedules: 'schedules',
+    wallets: 'wallets',
+    transactions: 'transactions',
+    budgets: 'budgets',
+    budgetAssignments: 'budgetAssignments',
+    recurringTemplates: 'recurringTemplates'
 };
-
-// ... (helpers)
 
 // Per-field mapping: Dexie -> Supabase (untuk Push)
 const DEXIE_TO_SUPABASE: Record<string, Record<string, string>> = {
     wallets: {},
-    finance: {},
+    transactions: {},
     pages: {},
     schedules: {},
     blocks: {},
@@ -42,7 +54,7 @@ const DEXIE_TO_SUPABASE: Record<string, Record<string, string>> = {
 // Per-field mapping: Supabase -> Dexie (untuk Pull)
 const SUPABASE_TO_DEXIE: Record<string, Record<string, string>> = {
     wallets: {},
-    finance: {},
+    transactions: {},
     pages: {},
     schedules: {},
     blocks: {},
@@ -216,10 +228,10 @@ class SyncManager {
      * Clear semua data lokal saat user switch
      */
     private async clearAllLocalData() {
-        const tables = ['wallets', 'finance', 'budgets', 'budgetAssignments', 'schedules', 'pages', 'blocks'];
+        const tables = ['wallets', 'transactions', 'budgets', 'budgetAssignments', 'schedules', 'pages', 'blocks'];
 
         await db.transaction('rw',
-            [db.wallets, db.finance, db.budgets, db.budgetAssignments,
+            [db.wallets, db.transactions, db.budgets, db.budgetAssignments,
             db.schedules, db.pages, db.blocks, db.syncQueue],
             async () => {
                 for (const tableName of tables) {
@@ -249,7 +261,7 @@ class SyncManager {
         await this.pushTable('pages', userId);
 
         // Step 3: Push Children
-        await this.pushTable('finance', userId); // Transactions depend on Wallets
+        await this.pushTable('transactions', userId); // Transactions depend on Wallets
         await this.pushTable('budgetAssignments', userId); // Depend on Budgets & Transactions
         await this.pushTable('blocks', userId); // Depend on Pages
 
@@ -334,7 +346,7 @@ class SyncManager {
             }
 
             // Inject User ID jika dibutuhkan
-            const tablesNeedingUserId = ['wallets', 'finance', 'budgets', 'budgetAssignments', 'schedules', 'pages', 'blocks'];
+            const tablesNeedingUserId = ['wallets', 'transactions', 'budgets', 'budgetAssignments', 'schedules', 'pages', 'blocks'];
             if (tablesNeedingUserId.includes(dexieTable as string)) {
                 if (!payload.userId) payload.userId = userId;
             }
@@ -438,7 +450,7 @@ class SyncManager {
             'wallets',
             'budgets',
             'pages',
-            'finance',
+            'transactions',
             'budgetAssignments',
             'blocks',
             'schedules'
@@ -568,10 +580,10 @@ export async function clearUserData(newUserId: string) {
     if (!lastUserId || lastUserId !== newUserId) {
         console.log(`🔄 User switch detected (${lastUserId || 'none'} → ${newUserId}). Clearing data...`);
 
-        const tables = ['wallets', 'finance', 'budgets', 'budgetAssignments', 'schedules', 'pages', 'blocks'];
+        const tables = ['wallets', 'transactions', 'budgets', 'budgetAssignments', 'schedules', 'pages', 'blocks'];
 
         await db.transaction('rw',
-            [db.wallets, db.finance, db.budgets, db.budgetAssignments,
+            [db.wallets, db.transactions, db.budgets, db.budgetAssignments,
             db.schedules, db.pages, db.blocks, db.syncQueue],
             async () => {
                 for (const tableName of tables) {
@@ -609,10 +621,10 @@ export async function clearUserData(newUserId: string) {
 export async function clearAllData() {
     console.log('🧹 Clearing all local data (logout)...');
 
-    const tables = ['wallets', 'finance', 'budgets', 'budgetAssignments', 'schedules', 'pages', 'blocks'];
+    const tables = ['wallets', 'transactions', 'budgets', 'budgetAssignments', 'schedules', 'pages', 'blocks'];
 
     await db.transaction('rw',
-        [db.wallets, db.finance, db.budgets, db.budgetAssignments,
+        [db.wallets, db.transactions, db.budgets, db.budgetAssignments,
         db.schedules, db.pages, db.blocks, db.syncQueue],
         async () => {
             for (const tableName of tables) {

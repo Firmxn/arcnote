@@ -18,7 +18,7 @@ import type {
     UpdateBudgetInput,
     BudgetSummary
 } from '../types/finance';
-import { financeRepository } from '../data/finance.repository';
+import { transactionRepository } from '../data/transaction.repository';
 
 interface FinanceState {
     // Wallets State
@@ -87,7 +87,7 @@ interface FinanceState {
     updateBudget: (id: string, input: UpdateBudgetInput) => Promise<void>;
     deleteBudget: (id: string) => Promise<void>;
     selectBudget: (budgetId: string) => Promise<void>;
-    loadBudgetSummary: (budgetId: string) => Promise<BudgetSummary>;
+    loadBudgetSummary: (budgetId: string, date?: Date) => Promise<BudgetSummary>;
 
     // Budget Assignment Actions
     assignTransactionToBudget: (transactionId: string, budgetId: string) => Promise<void>;
@@ -142,6 +142,10 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
             get().loadTransactions();
             get().loadSummary();
         }
+
+        // Reload budget summaries to reflect new date
+        const { budgets } = get();
+        budgets.forEach(b => get().loadBudgetSummary(b.id));
     },
 
     isLoading: false,
@@ -159,7 +163,7 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
         if (get().isLoading) return;
         set({ isLoading: true, error: null });
         try {
-            let wallets = await financeRepository.getAllWallets();
+            let wallets = await transactionRepository.getAllWallets();
 
             // Deduplicate Main Wallets (Self-healing for sync race conditions)
             const mainWallets = wallets.filter(w => w.isMain);
@@ -172,7 +176,7 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
                 const losers = mainWallets.slice(1);
 
                 await Promise.all(losers.map(async (loser) => {
-                    await financeRepository.updateWallet(loser.id, { isMain: false });
+                    await transactionRepository.updateWallet(loser.id, { isMain: false });
                     loser.isMain = false; // Update local object
                 }));
             }
@@ -209,13 +213,13 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
             async function createAndSetMainWallet() {
                 try {
                     // Double check race condition di lokal
-                    const existing = await financeRepository.getMainWallet();
+                    const existing = await transactionRepository.getMainWallet();
                     if (existing) {
                         wallets = [existing];
                         return;
                     }
 
-                    const mainWallet = await financeRepository.createWallet({
+                    const mainWallet = await transactionRepository.createWallet({
                         title: 'Main Wallet',
                         description: 'Default Wallet',
                         currency: 'IDR',
@@ -240,7 +244,7 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
 
         try {
             await Promise.all(wallets.map(async (wallet) => {
-                const summary = await financeRepository.getSummary(wallet.id);
+                const summary = await transactionRepository.getSummary(wallet.id);
                 balances[wallet.id] = summary.balance;
             }));
             set({ balances });
@@ -260,7 +264,7 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
         }
 
         try {
-            const newWallet = await financeRepository.createWallet(input);
+            const newWallet = await transactionRepository.createWallet(input);
             set((state) => ({
                 wallets: [...state.wallets, newWallet]
             }));
@@ -287,8 +291,8 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
         }
 
         try {
-            await financeRepository.updateWallet(id, input);
-            const wallets = await financeRepository.getAllWallets();
+            await transactionRepository.updateWallet(id, input);
+            const wallets = await transactionRepository.getAllWallets();
             set({ wallets });
 
             // Update current wallet if matched
@@ -309,7 +313,7 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
 
         if (!targetWallet) {
             // Try fetch fresh
-            const refreshedWallets = await financeRepository.getAllWallets();
+            const refreshedWallets = await transactionRepository.getAllWallets();
             targetWallet = refreshedWallets.find(w => w.id === walletId);
             set({ wallets: refreshedWallets });
         }
@@ -330,8 +334,8 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
     deleteWallet: async (id: string) => {
         try {
             // Soft delete: hanya set isArchived = true
-            await financeRepository.updateWallet(id, { isArchived: true });
-            const wallets = await financeRepository.getAllWallets();
+            await transactionRepository.updateWallet(id, { isArchived: true });
+            const wallets = await transactionRepository.getAllWallets();
             set({ wallets });
             if (get().currentWallet?.id === id) {
                 set({ currentWallet: null });
@@ -348,8 +352,8 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
      */
     permanentDeleteWallet: async (id: string) => {
         try {
-            await financeRepository.deleteWallet(id);
-            const wallets = await financeRepository.getAllWallets();
+            await transactionRepository.deleteWallet(id);
+            const wallets = await transactionRepository.getAllWallets();
             set({ wallets });
             // Jika kebetulan sedang view wallet ini (sangat jarang terjadi jika dari archive)
             if (get().currentWallet?.id === id) {
@@ -362,7 +366,7 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
 
     markWalletAsVisited: async (id: string) => {
         try {
-            await financeRepository.markWalletAsVisited(id);
+            await transactionRepository.markWalletAsVisited(id);
         } catch (error) {
             console.error('Failed to mark wallet as visited', error);
         }
@@ -370,7 +374,7 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
 
     archiveWallet: async (id: string) => {
         try {
-            await financeRepository.updateWallet(id, { isArchived: true });
+            await transactionRepository.updateWallet(id, { isArchived: true });
             get().loadWallets();
         } catch (error) {
             console.error('Failed to archive wallet', error);
@@ -379,7 +383,7 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
 
     restoreWallet: async (id: string) => {
         try {
-            await financeRepository.updateWallet(id, { isArchived: false });
+            await transactionRepository.updateWallet(id, { isArchived: false });
             get().loadWallets();
         } catch (error) {
             console.error('Failed to restore wallet', error);
@@ -399,7 +403,7 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
             const endOfMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0, 23, 59, 59);
 
             // Use optimized query
-            const transactions = await financeRepository.getTransactionsByDateRange(
+            const transactions = await transactionRepository.getTransactionsByDateRange(
                 currentWallet.id,
                 startOfMonth,
                 endOfMonth
@@ -422,7 +426,7 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
             // Calculate summary based on Date Filter
             // Balance: Cumulative up to end of selected month
             // Income/Expense: Only for selected month
-            const allTransactions = await financeRepository.getAll(currentWallet.id);
+            const allTransactions = await transactionRepository.getAll(currentWallet.id);
 
             const startOfMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
             const endOfMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0, 23, 59, 59);
@@ -479,7 +483,7 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
 
         set({ isLoading: true, error: null });
         try {
-            await financeRepository.create({
+            await transactionRepository.create({
                 ...input,
                 walletId: targetWalletId
             });
@@ -511,7 +515,7 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
         const { loadTransactions, loadSummary, loadBalances } = get();
         set({ isLoading: true, error: null });
         try {
-            await financeRepository.update(id, input);
+            await transactionRepository.update(id, input);
             await Promise.all([
                 loadTransactions(),
                 loadSummary(),
@@ -529,7 +533,7 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
         const { loadTransactions, loadSummary, loadBalances } = get();
         set({ isLoading: true, error: null });
         try {
-            await financeRepository.delete(id);
+            await transactionRepository.delete(id);
             await Promise.all([
                 loadTransactions(),
                 loadSummary(),
@@ -547,8 +551,8 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
         if (!currentWallet) return;
 
         try {
-            await financeRepository.markAsVisited(id);
-            const transactions = await financeRepository.getAll(currentWallet.id);
+            await transactionRepository.markAsVisited(id);
+            const transactions = await transactionRepository.getAll(currentWallet.id);
             set({ transactions });
         } catch (error) {
             console.error('Failed to mark transaction as visited:', error);
@@ -561,7 +565,7 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
 
         set({ isLoading: true, error: null });
         try {
-            const all = await financeRepository.getAll(currentWallet.id);
+            const all = await transactionRepository.getAll(currentWallet.id);
             if (type === 'all') {
                 set({ transactions: all, isLoading: false });
             } else {
@@ -586,7 +590,7 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
         set({ isLoading: true, error: null });
         try {
             // Eksekusi transfer via repository
-            await financeRepository.transferBetweenWallets(
+            await transactionRepository.transferBetweenWallets(
                 fromWalletId,
                 toWalletId,
                 amount,
@@ -625,7 +629,7 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
             const activeWallets = wallets.filter(w => !w.isArchived);
 
             await Promise.all(activeWallets.map(async (wallet) => {
-                const summary = await financeRepository.getSummary(wallet.id);
+                const summary = await transactionRepository.getSummary(wallet.id);
                 totalIncome += summary.totalIncome;
                 totalExpense += summary.totalExpense;
                 transactionCount += summary.transactionCount;
@@ -663,7 +667,7 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
 
             await Promise.all(activeWallets.map(async (wallet) => {
                 // Use optimized summary query
-                const summary = await financeRepository.getSummaryByDateRange(
+                const summary = await transactionRepository.getSummaryByDateRange(
                     wallet.id,
                     startOfMonth,
                     endOfMonth
@@ -696,7 +700,7 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
 
             // Fetch all transactions dari semua wallet
             await Promise.all(activeWallets.map(async (wallet) => {
-                const transactions = await financeRepository.getAll(wallet.id);
+                const transactions = await transactionRepository.getAll(wallet.id);
                 allTransactions.push(...transactions);
             }));
 
@@ -730,7 +734,7 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
     loadBudgets: async () => {
         set({ isLoading: true, error: null });
         try {
-            const budgets = await financeRepository.getAllBudgets();
+            const budgets = await transactionRepository.getAllBudgets();
             set({ budgets, isLoading: false });
         } catch (error) {
             set({ error: 'Failed to load budgets', isLoading: false });
@@ -748,7 +752,7 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
         }
 
         try {
-            const newBudget = await financeRepository.createBudget(input);
+            const newBudget = await transactionRepository.createBudget(input);
             set((state) => ({
                 budgets: [...state.budgets, newBudget]
             }));
@@ -775,8 +779,8 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
         }
 
         try {
-            await financeRepository.updateBudget(id, input);
-            const budgets = await financeRepository.getAllBudgets();
+            await transactionRepository.updateBudget(id, input);
+            const budgets = await transactionRepository.getAllBudgets();
             set({ budgets });
 
             // Update current budget if matched
@@ -792,8 +796,8 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
 
     deleteBudget: async (id: string) => {
         try {
-            await financeRepository.deleteBudget(id);
-            const budgets = await financeRepository.getAllBudgets();
+            await transactionRepository.deleteBudget(id);
+            const budgets = await transactionRepository.getAllBudgets();
             set({ budgets });
             if (get().currentBudget?.id === id) {
                 set({ currentBudget: null });
@@ -809,7 +813,7 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
 
         if (!targetBudget) {
             // Try fetch fresh
-            const refreshedBudgets = await financeRepository.getAllBudgets();
+            const refreshedBudgets = await transactionRepository.getAllBudgets();
             targetBudget = refreshedBudgets.find(b => b.id === budgetId);
             set({ budgets: refreshedBudgets });
         }
@@ -821,19 +825,23 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
         }
     },
 
-    loadBudgetSummary: async (budgetId: string) => {
+    loadBudgetSummary: async (budgetId: string, date?: Date) => {
         try {
-            const budget = await financeRepository.getBudgetById(budgetId);
+            const budget = await transactionRepository.getBudgetById(budgetId);
             if (!budget) throw new Error('Budget not found');
 
+            // Use provided date or global selectedDate
+            // If date is provided, use it. If not, use global selectedDate from store.
+            const targetDate = date || get().selectedDate;
+            const now = targetDate; // Use this as "now" reference
+
             // Calculate period range based on budget period
-            const now = new Date();
             let periodStart: Date;
             let periodEnd: Date;
 
             switch (budget.period) {
                 case 'weekly':
-                    // Current week (Monday - Sunday)
+                    // Current week (Monday - Sunday) of the targetDate
                     const dayOfWeek = now.getDay();
                     const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Adjust for Monday start
                     periodStart = new Date(now);
@@ -845,13 +853,13 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
                     break;
 
                 case 'monthly':
-                    // Current month
+                    // Current month of the targetDate
                     periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
                     periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
                     break;
 
                 case 'yearly':
-                    // Current year
+                    // Current year of the targetDate
                     periodStart = new Date(now.getFullYear(), 0, 1);
                     periodEnd = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
                     break;
@@ -860,7 +868,7 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
                     throw new Error('Invalid budget period');
             }
 
-            const summary = await financeRepository.getBudgetSummary(budgetId, periodStart, periodEnd);
+            const summary = await transactionRepository.getBudgetSummary(budgetId, periodStart, periodEnd);
 
             set((state) => ({
                 budgetSummaries: {
@@ -880,7 +888,7 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
 
     assignTransactionToBudget: async (transactionId: string, budgetId: string) => {
         try {
-            await financeRepository.assignTransactionToBudget(transactionId, budgetId);
+            await transactionRepository.assignTransactionToBudget(transactionId, budgetId);
 
             // Reload budget summary untuk update spending
             await get().loadBudgetSummary(budgetId);
@@ -897,7 +905,7 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
 
     unassignTransactionFromBudget: async (transactionId: string, budgetId: string) => {
         try {
-            await financeRepository.unassignTransactionFromBudget(transactionId, budgetId);
+            await transactionRepository.unassignTransactionFromBudget(transactionId, budgetId);
 
             // Reload budget summary untuk update spending
             await get().loadBudgetSummary(budgetId);
@@ -914,7 +922,7 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
 
     loadAssignmentsForBudget: async (budgetId: string) => {
         try {
-            const assignments = await financeRepository.getAssignmentsForBudget(budgetId);
+            const assignments = await transactionRepository.getAssignmentsForBudget(budgetId);
             set({ budgetAssignments: assignments });
             return assignments;
         } catch (error) {
@@ -924,7 +932,7 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
     },
     getAssignmentsForTransaction: async (transactionId: string) => {
         try {
-            return await financeRepository.getAssignmentsForTransaction(transactionId);
+            return await transactionRepository.getAssignmentsForTransaction(transactionId);
         } catch (error) {
             console.error('Failed to load transaction assignments', error);
             return [];

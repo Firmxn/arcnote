@@ -117,7 +117,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
                 className={`
                     w-full px-3 py-2.5 rounded-lg text-left flex items-center justify-between
                     transition-all
-                    bg-white dark:bg-secondary/20 shadow-sm
+                    bg-white dark:bg-secondary/20 border border-secondary/10 dark:border-accent/30
                     placeholder-gray-500 text-text-neutral
                     outline-none! ring-0!
                     ${disabled
@@ -146,7 +146,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
                     className={`
                         absolute left-0 right-0 z-50 
                         bg-white dark:bg-secondary 
-                        border border-gray-200 dark:border-primary/20 
+                        border border-secondary/10 dark:border-accent/30 
                         rounded-lg shadow-xl 
                         max-h-80 overflow-y-auto
                         animate-in fade-in zoom-in-95 duration-200

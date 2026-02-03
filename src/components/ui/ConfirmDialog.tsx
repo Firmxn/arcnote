@@ -121,7 +121,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
                 role="alertdialog"
                 className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-210 animate-in fade-in zoom-in-95 duration-200"
             >
-                <div className="bg-neutral rounded-lg shadow-2xl border border-secondary/20 p-6 w-[400px] max-w-[90vw]">
+                <div className="bg-neutral rounded-lg shadow-2xl border border-secondary/10 dark:border-accent/30 p-6 w-[400px] max-w-[90vw]">
                     {/* Icon */}
                     <div className="flex justify-center mb-4">
                         {getIcon()}

@@ -138,7 +138,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
                     className={`
                         w-full px-3 py-2.5 rounded-lg text-left flex items-center justify-between
                         transition-all
-                        bg-white dark:bg-secondary/20 shadow-sm
+                        bg-white dark:bg-secondary/20 border border-secondary/10 dark:border-accent/30
                         text-text-neutral dark:text-text-primary
                         outline-none! ring-0!
                         ${showConfirm ? 'z-0' : ''} 
@@ -158,7 +158,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
                 <div
                     ref={pickerRef}
                     className={`
-                        absolute z-50 p-4 rounded-lg bg-neutral dark:bg-secondary border border-secondary/20 shadow-xl w-64 animate-in fade-in zoom-in-95 duration-200
+                        absolute z-50 p-4 rounded-lg bg-neutral dark:bg-secondary border border-secondary/10 dark:border-accent/30 shadow-xl w-64 animate-in fade-in zoom-in-95 duration-200
                         ${align === 'left' ? 'left-0' : 'right-0'}
                         top-full mt-2
                     `}
@@ -167,6 +167,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
                     {/* Header */}
                     <div className="flex items-center justify-between mb-4">
                         <button
+                            type="button"
                             onClick={handlePrevMonth}
                             className="p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded text-text-neutral/70 hover:text-text-neutral transition-colors"
                         >
@@ -176,6 +177,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
                             {currentMonth.format('MMMM YYYY')}
                         </div>
                         <button
+                            type="button"
                             onClick={handleNextMonth}
                             className="p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded text-text-neutral/70 hover:text-text-neutral transition-colors"
                         >
@@ -203,6 +205,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
                             return (
                                 <button
                                     key={dateItem.toString()}
+                                    type="button"
                                     onClick={() => handleDateClick(dateItem)}
                                     className={`
                                         h-8 w-8 rounded-full flex items-center justify-center text-sm transition-all relative
@@ -224,8 +227,9 @@ export const DatePicker: React.FC<DatePickerProps> = ({
                     </div>
 
                     {/* Footer */}
-                    <div className="mt-4 pt-3 border-t border-secondary/20 flex justify-center">
+                    <div className="mt-4 pt-3 border-t border-secondary/10 dark:border-accent/30 flex justify-center">
                         <button
+                            type="button"
                             onClick={handleToday}
                             className="text-xs font-medium text-accent hover:text-primary/80 transition-colors"
                         >

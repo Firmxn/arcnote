@@ -39,7 +39,7 @@ export const SearchButton: React.FC<SearchButtonProps> = ({
             {/* Search Bar - Click to open modal */}
             <button
                 onClick={handleOpenModal}
-                className={`flex items-center gap-3 bg-white dark:bg-secondary border border-secondary/20 dark:border-white/10 rounded-lg px-4 py-2.5 hover:border-secondary/30 dark:hover:border-white/20 transition-all duration-200 shadow-sm hover:shadow-md w-full max-w-md ${className}`}
+                className={`flex items-center gap-3 bg-white dark:bg-secondary border border-secondary/20 dark:border-accent/30 rounded-lg px-4 py-2.5 hover:border-secondary/30 dark:hover:border-accent/50 transition-all duration-200 shadow-sm hover:shadow-md w-full max-w-md ${className}`}
                 aria-label="Search"
             >
                 {/* Search Icon */}

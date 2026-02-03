@@ -116,7 +116,7 @@ body {
   --color-text-success: #34d399;
 }
 
-/* Scrollbar styling - Linear style (minimal) */
+/* Scrollbar styling - Linear style (minimal) - Visible on Desktop */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -143,6 +143,18 @@ body {
   background: rgba(255, 255, 255, 0.25);
 }
 
+/* Mobile: Hide Scrollbar (App-like feel) */
+@media (max-width: 768px) {
+  ::-webkit-scrollbar {
+    display: none;
+  }
+
+  * {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
 /* Selection color - Linear style */
 ::selection {
   background-color: rgba(99, 102, 241, 0.2);
@@ -160,10 +172,13 @@ body {
 
 /* Hide scrollbar but keep scroll functionality */
 .scrollbar-hide {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
 }
 
 .scrollbar-hide::-webkit-scrollbar {
-  display: none;  /* Chrome, Safari, Opera */
+  display: none;
+  /* Chrome, Safari, Opera */
 }

@@ -11,6 +11,7 @@ import { WalletsPage } from './components/pages/finance/WalletsPage';
 import { WalletDetailRoute } from './components/pages/finance/WalletDetailRoute';
 import BudgetsPage from './components/pages/finance/BudgetsPage';
 import BudgetDetailPage from './components/pages/finance/BudgetDetailPage';
+import { RecurringManagerPage } from './components/pages/finance/RecurringManagerPage';
 import { EditorRoute } from './components/pages/EditorRoute';
 import { LoginPage } from './components/pages/LoginPage';
 import { UpdatePasswordPage } from './components/pages/UpdatePasswordPage';
@@ -18,6 +19,8 @@ import { usePagesStore } from './state/pages.store';
 import { useSchedulesStore } from './state/schedules.store';
 import { useFinanceStore } from './state/finance.store';
 import { useAuthStore } from './state/auth.store';
+import { recurringService } from './services/recurring.service';
+import { AuthGuard } from './components/auth/AuthGuard';
 
 // --- Route Wrappers to Adapt Props to Router ---
 
@@ -45,6 +48,7 @@ const HomeWithNav = () => {
       onFinanceClick={(id) => navigate(`/finance/${id}`)}
       onNewPageClick={handleCreate}
       onViewArchive={() => navigate('/archive')}
+      onRecurringClick={() => navigate('/finance/recurring')}
     />
   );
 };
@@ -102,6 +106,9 @@ function App() {
     loadEvents();
     loadWallets();
     loadBudgets();
+
+    // Initialize Recurring Engine
+    recurringService.processTemplates();
   }, [loadPages, loadEvents, loadWallets, loadBudgets]);
 
   // Listen for Sync/Clear Events to Reload UI
@@ -143,7 +150,11 @@ function App() {
 
   return (
     <Routes>
-      <Route element={<MainLayout />}>
+      <Route element={
+        <AuthGuard>
+          <MainLayout />
+        </AuthGuard>
+      }>
         <Route path="/" element={<HomeWithNav />} />
         <Route path="/pages" element={<PagesListWithNav />} />
         <Route path="/settings" element={<SettingsPage />} />
@@ -155,6 +166,7 @@ function App() {
           <Route path="wallets" element={<WalletsPage />} />
           <Route path="budgets" element={<BudgetsPage />} />
           <Route path="budgets/:id" element={<BudgetDetailPage />} />
+          <Route path="recurring" element={<RecurringManagerPage />} />
           <Route path=":walletId" element={<WalletDetailRoute />} />
         </Route>
 
