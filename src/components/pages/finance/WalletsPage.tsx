@@ -21,6 +21,7 @@ import { SectionHeader } from '../../ui/SectionHeader';
 import { useDebounce } from '../../../hooks/useDebounce';
 import { PageHeader } from '../../ui/PageHeader';
 import { ActionSheet, type ActionSheetItem } from '../../ui/ActionSheet';
+import { BackButton } from '../../ui/BackButton';
 
 dayjs.extend(relativeTime);
 
@@ -254,17 +255,7 @@ export const WalletsPage: React.FC = () => {
                         title="My Wallets"
                         description="Manage your wallets and budgets"
                         className="mb-4 md:mb-8"
-                        leading={
-                            <button
-                                onClick={() => navigate('/finance')}
-                                className="p-2 -ml-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-text-neutral dark:text-text-secondary transition-colors"
-                                title="Back to Finance Dashboard"
-                            >
-                                <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                                </svg>
-                            </button>
-                        }
+                        leading={<BackButton />}
                         trailing={
                             <div className="flex items-center gap-2">
                                 <button

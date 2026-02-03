@@ -20,6 +20,7 @@ import { useSchedulesStore } from './state/schedules.store';
 import { useFinanceStore } from './state/finance.store';
 import { useAuthStore } from './state/auth.store';
 import { recurringService } from './services/recurring.service';
+import { AuthGuard } from './components/auth/AuthGuard';
 
 // --- Route Wrappers to Adapt Props to Router ---
 
@@ -149,7 +150,11 @@ function App() {
 
   return (
     <Routes>
-      <Route element={<MainLayout />}>
+      <Route element={
+        <AuthGuard>
+          <MainLayout />
+        </AuthGuard>
+      }>
         <Route path="/" element={<HomeWithNav />} />
         <Route path="/pages" element={<PagesListWithNav />} />
         <Route path="/settings" element={<SettingsPage />} />

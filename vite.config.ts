@@ -9,6 +9,8 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
+      filename: 'arcnote-sw.js', // Rename actual SW to avoid conflict with the 'sw.js' killer
+      injectRegister: null, // Disable auto-injection, we handle it manually
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
       manifest: {

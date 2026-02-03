@@ -87,7 +87,7 @@ interface FinanceState {
     updateBudget: (id: string, input: UpdateBudgetInput) => Promise<void>;
     deleteBudget: (id: string) => Promise<void>;
     selectBudget: (budgetId: string) => Promise<void>;
-    loadBudgetSummary: (budgetId: string) => Promise<BudgetSummary>;
+    loadBudgetSummary: (budgetId: string, date?: Date) => Promise<BudgetSummary>;
 
     // Budget Assignment Actions
     assignTransactionToBudget: (transactionId: string, budgetId: string) => Promise<void>;
@@ -142,6 +142,10 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
             get().loadTransactions();
             get().loadSummary();
         }
+
+        // Reload budget summaries to reflect new date
+        const { budgets } = get();
+        budgets.forEach(b => get().loadBudgetSummary(b.id));
     },
 
     isLoading: false,
@@ -821,19 +825,23 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
         }
     },
 
-    loadBudgetSummary: async (budgetId: string) => {
+    loadBudgetSummary: async (budgetId: string, date?: Date) => {
         try {
             const budget = await transactionRepository.getBudgetById(budgetId);
             if (!budget) throw new Error('Budget not found');
 
+            // Use provided date or global selectedDate
+            // If date is provided, use it. If not, use global selectedDate from store.
+            const targetDate = date || get().selectedDate;
+            const now = targetDate; // Use this as "now" reference
+
             // Calculate period range based on budget period
-            const now = new Date();
             let periodStart: Date;
             let periodEnd: Date;
 
             switch (budget.period) {
                 case 'weekly':
-                    // Current week (Monday - Sunday)
+                    // Current week (Monday - Sunday) of the targetDate
                     const dayOfWeek = now.getDay();
                     const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Adjust for Monday start
                     periodStart = new Date(now);
@@ -845,13 +853,13 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
                     break;
 
                 case 'monthly':
-                    // Current month
+                    // Current month of the targetDate
                     periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
                     periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
                     break;
 
                 case 'yearly':
-                    // Current year
+                    // Current year of the targetDate
                     periodStart = new Date(now.getFullYear(), 0, 1);
                     periodEnd = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
                     break;

@@ -13,6 +13,7 @@ interface BudgetCardProps {
     onClick?: () => void;
     className?: string;
     showOverBudgetWarning?: boolean;
+    headerAction?: React.ReactNode;
 }
 
 export function BudgetCard({
@@ -20,7 +21,8 @@ export function BudgetCard({
     summary,
     onClick,
     className = '',
-    showOverBudgetWarning = true
+    showOverBudgetWarning = true,
+    headerAction
 }: BudgetCardProps) {
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('id-ID', {
@@ -62,13 +64,26 @@ export function BudgetCard({
             <div className="flex justify-between items-start mb-3">
                 <div>
                     <h3 className="font-semibold text-lg text-text-neutral dark:text-text-primary">{budget.title}</h3>
-                    <span className="inline-block mt-1 px-2 py-0.5 text-xs rounded-full bg-accent/10 text-accent">
-                        {getPeriodLabel(budget.period)}
-                    </span>
+                    <div className="flex items-center flex-wrap gap-2 mt-1">
+                        <span className="inline-block px-2 py-0.5 text-xs rounded-full bg-accent/10 text-accent">
+                            {getPeriodLabel(budget.period)}
+                        </span>
+                        {headerAction && (
+                            <span className="text-sm text-text-neutral/60 dark:text-text-secondary">
+                                • Target: {formatCurrency(budget.targetAmount)}
+                            </span>
+                        )}
+                    </div>
                 </div>
-                <div className="text-right">
-                    <div className="text-sm text-text-neutral/60 dark:text-text-secondary">Target</div>
-                    <div className="font-semibold text-text-neutral dark:text-text-primary">{formatCurrency(budget.targetAmount)}</div>
+                <div className="text-right pl-4">
+                    {headerAction ? (
+                        <div className="mt-0.5">{headerAction}</div>
+                    ) : (
+                        <>
+                            <div className="text-sm text-text-neutral/60 dark:text-text-secondary">Target</div>
+                            <div className="font-semibold text-text-neutral dark:text-text-primary">{formatCurrency(budget.targetAmount)}</div>
+                        </>
+                    )}
                 </div>
             </div>
 

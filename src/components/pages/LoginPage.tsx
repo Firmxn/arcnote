@@ -7,14 +7,31 @@ import { syncManager } from '../../lib/sync';
 
 type AuthMode = 'login' | 'register' | 'forgot_password';
 
+import { useAuthStore } from '../../state/auth.store';
+
 export const LoginPage = () => {
     const navigate = useNavigate();
+    // ... existing state ...
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [mode, setMode] = useState<AuthMode>('login');
     const [message, setMessage] = useState<string | null>(null);
+
+    const handleGuest = () => {
+        const { setGuest } = useAuthStore.getState();
+        setGuest(true);
+        navigate('/');
+    };
+
+    // If already logged in, redirect to home
+    React.useEffect(() => {
+        const { user } = useAuthStore.getState();
+        if (user) {
+            navigate('/', { replace: true });
+        }
+    }, [navigate]);
 
     const performPostLoginSync = async () => {
         setMessage('Syncing your data...');
@@ -278,7 +295,7 @@ export const LoginPage = () => {
                         </div>
 
                         <button
-                            onClick={() => navigate('/')}
+                            onClick={handleGuest}
                             className="text-xs text-text-neutral/40 hover:text-text-neutral dark:text-text-secondary hover:underline focus:outline-none transition-colors mb-4 md:mb-0 block w-full"
                         >
                             Continue as Guest

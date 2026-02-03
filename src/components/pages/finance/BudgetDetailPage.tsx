@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useFinanceStore } from '../../../state/finance.store';
 import { PageHeader } from '../../ui/PageHeader';
+import { BackButton } from '../../ui/BackButton';
 import BudgetModal from '../../modals/BudgetModal';
 import type { FinanceTransaction } from '../../../types/finance';
 import { LoadingSpinner } from '../../ui/LoadingSpinner';
@@ -17,6 +18,8 @@ import { BudgetCard } from '../../ui/BudgetCard';
 import { TransactionListCard } from '../../ui/TransactionListCard';
 import { ConfirmDialog } from '../../ui/ConfirmDialog';
 import { transactionRepository } from '../../../data/transaction.repository';
+import { MonthYearPicker } from '../../ui/MonthYearPicker';
+import dayjs from 'dayjs';
 
 export default function BudgetDetailPage() {
     const { id } = useParams<{ id: string }>();
@@ -28,26 +31,33 @@ export default function BudgetDetailPage() {
 
         selectBudget,
         loadAssignmentsForBudget,
+        loadBudgetSummary, // Need this to reload summary
         unassignTransactionFromBudget,
         deleteBudget,
-        isLoading
+        isLoading,
+        selectedDate, // From Store
+        setSelectedDate // From Store
     } = useFinanceStore();
 
     const [assignedTransactions, setAssignedTransactions] = useState<FinanceTransaction[]>([]);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [showActionSheet, setShowActionSheet] = useState(false);
     const [showAssignModal, setShowAssignModal] = useState(false);
+    const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
 
     // Unassign Confirmation State
     const [isConfirmUnassignOpen, setIsConfirmUnassignOpen] = useState(false);
     const [transactionToUnassign, setTransactionToUnassign] = useState<string | null>(null);
 
+    // Load initial budget data (and Summary whenever selectedDate changes)
     useEffect(() => {
         if (id) {
             selectBudget(id);
             loadAssignmentsForBudget(id);
+            // Explicitly reload summary when selectedDate changes (Store already handles default to selectedDate)
+            loadBudgetSummary(id);
         }
-    }, [id, selectBudget, loadAssignmentsForBudget]);
+    }, [id, selectBudget, loadAssignmentsForBudget, loadBudgetSummary, selectedDate]);
 
     // Reset assigned transactions saat budget berubah untuk mencegah stale state
     useEffect(() => {
@@ -71,9 +81,29 @@ export default function BudgetDetailPage() {
                 // Load directly from DB to ensure we get them even if not in current wallet view
                 try {
                     const assigned = await transactionRepository.getTransactionsByIds(transactionIds);
+
+                    // Filter by Date (same logic as Store Summary)
+                    // Currently assume MONTHLY for MVP filter as per MonthPicker
+                    // TODO: Adjust if user switches Budget Period? For now, we align UI filter with Budget Summary logic.
+                    // Actually, Store Summary uses budget.period. Here we just want to match what the summary shows.
+                    // If budget is yearly, MonthPicker might be misleading IF it filtered by month.
+                    // BUT: User feedback said "same as wallet filter". Wallet uses Month.
+                    // SO: We filter list by MONTH.
+                    // WARNING: If Budget is Weekly/Yearly, summary might show different range than list if we strictly filter by month here.
+                    // Ideally list should match summary range.
+                    // For now, let's filter by Month to be consistent with the Picker.
+
+                    const startOfMonth = dayjs(selectedDate).startOf('month');
+                    const endOfMonth = dayjs(selectedDate).endOf('month');
+
+                    const filtered = assigned.filter(t => {
+                        const tDate = dayjs(t.date);
+                        return tDate.isAfter(startOfMonth.subtract(1, 'second')) && tDate.isBefore(endOfMonth.add(1, 'second'));
+                    });
+
                     // Sort details by date desc
-                    assigned.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-                    setAssignedTransactions(assigned);
+                    filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                    setAssignedTransactions(filtered);
                 } catch (error) {
                     console.error('Failed to load assigned transactions details', error);
                 }
@@ -83,7 +113,7 @@ export default function BudgetDetailPage() {
         };
 
         fetchAssignedTransactions();
-    }, [budgetAssignments]);
+    }, [budgetAssignments, selectedDate]);
 
     const handleUnassignClick = (transactionId: string) => {
         setTransactionToUnassign(transactionId);
@@ -140,38 +170,47 @@ export default function BudgetDetailPage() {
     return (
         <div className="h-full w-full overflow-y-auto bg-neutral dark:bg-primary [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
             <div className="max-w-7xl mx-auto px-4 md:px-8 py-6 md:py-12 pb-[100px] md:pb-12">
-                <PageHeader
-                    title={currentBudget.title}
-                    description={currentBudget.description}
-                    className="md:mb-8"
-                    leading={
-                        <button
-                            onClick={() => navigate('/finance/budgets')}
-                            className="p-2 -ml-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-text-neutral dark:text-text-secondary transition-colors"
-                            title="Back to budgets"
-                        >
-                            <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                            </svg>
-                        </button>
-                    }
-                    trailing={
-                        <button
-                            onClick={() => setShowActionSheet(true)}
-                            className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-text-neutral dark:text-text-secondary transition-colors"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 md:w-6 md:h-6">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 12.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 18.75a.75.75 0 110-1.5.75.75 0 010 1.5z" />
-                            </svg>
-                        </button>
-                    }
-                />
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 md:mb-8">
+                    <PageHeader
+                        title={currentBudget.title}
+                        description={currentBudget.description}
+                        className="mb-0"
+                        leading={<BackButton />}
+                        trailing={
+                            <button
+                                onClick={() => setShowActionSheet(true)}
+                                className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-text-neutral dark:text-text-secondary transition-colors"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 md:w-6 md:h-6">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 12.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 18.75a.75.75 0 110-1.5.75.75 0 010 1.5z" />
+                                </svg>
+                            </button>
+                        }
+                    />
+                </div>
 
                 <div className="space-y-6">
                     {/* Summary Section - Using DRY BudgetCard */}
                     <BudgetCard
                         budget={currentBudget}
                         summary={summary}
+                        // Inject Month Picker here
+                        headerAction={
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setIsDatePickerOpen(true);
+                                }}
+                                className="px-2 py-1 rounded-md hover:bg-neutral-100 dark:hover:bg-white/10 transition-colors flex items-center gap-1 group"
+                            >
+                                <span className="text-xs font-medium text-text-neutral/50 dark:text-text-secondary/50 group-hover:text-primary dark:group-hover:text-accent transition-colors">
+                                    {dayjs(selectedDate).format('MMMM YYYY')}
+                                </span>
+                                <svg className="w-3 h-3 text-text-neutral/30 group-hover:text-primary dark:group-hover:text-accent transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+                        }
                     // onClick is undefined so it won't be clickable/hoverable like list item
                     />
 
@@ -197,7 +236,7 @@ export default function BudgetDetailPage() {
                         ) : assignedTransactions.length === 0 ? (
                             <EmptyState
                                 icon="📝"
-                                description="Belum ada transaksi di budget ini"
+                                description={`Belum ada transaksi di bulan ${dayjs(selectedDate).format('MMMM')}`}
                             />
                         ) : (
                             <div className="space-y-2">
@@ -272,6 +311,14 @@ export default function BudgetDetailPage() {
                             onClick: handleDelete
                         }
                     ]}
+                />
+
+                {/* Date Picker Modal */}
+                <MonthYearPicker
+                    isOpen={isDatePickerOpen}
+                    onClose={() => setIsDatePickerOpen(false)}
+                    selectedDate={selectedDate}
+                    onChange={setSelectedDate}
                 />
             </div>
         </div>
